@@ -1,0 +1,42 @@
+﻿@model IEnumerable<EReaderApp.Models.Book>
+@{
+    ViewData["Title"] = "Book List";
+}
+
+<h1>Book List</h1>
+<p>
+    <a asp-action="Create" class="btn btn-primary">Upload New Book</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>@Html.DisplayNameFor(model => model.First().Title)</th>
+            <th>@Html.DisplayNameFor(model => model.First().Author)</th>
+            <th>@Html.DisplayNameFor(model => model.First().Description)</th>
+            <th>PDF</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@Html.DisplayFor(modelItem => item.Title)</td>
+                <td>@Html.DisplayFor(modelItem => item.Author)</td>
+                <td>@Html.DisplayFor(modelItem => item.Description)</td>
+                <td>
+                    @if (!string.IsNullOrEmpty(item.PdfPath))
+                    {
+
+                        <a asp-controller="Reader" asp-action="Read" asp-route-id="@item.IdBook" class="btn btn-success">Read PDF</a>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.IdBook" class="btn btn-secondary btn-sm">Edit</a>
+                    <a asp-action="Details" asp-route-id="@item.IdBook" class="btn btn-info btn-sm">Details</a>
+                    <a asp-action="Delete" asp-route-id="@item.IdBook" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,216 @@
+:root {
+    --primary-color: #4361ee;
+    --secondary-color: #3f37c9;
+    --accent-color: #4cc9f0;
+    --text-color: #333333;
+    --light-gray: #f8f9fa;
+    --border-color: #dee2e6;
+    --success-color: #4caf50;
+    --warning-color: #ff9800;
+    --danger-color: #f44336;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* Header & Navigation */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand .logo-text {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.nav-link {
+    font-weight: 500;
+}
+
+/* Hero Section */
+.hero-section {
+    padding: 3rem 0;
+}
+
+/* Book Cards */
+.book-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    background-color: white;
+}
+
+    .book-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+.book-cover {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.book-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.book-author {
+    font-size: 0.8rem;
+}
+
+.book-card a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Category Cards */
+.category-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s ease;
+}
+
+    .category-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .category-card .card {
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+/* Section Titles */
+.section-title {
+    position: relative;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    display: inline-block;
+}
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -5px;
+        width: 50px;
+        height: 3px;
+        background-color: var(--primary-color);
+    }
+
+/* Reader Styles */
+.reader-container {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.reader-header {
+    padding: 1.5rem;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.reader-toolbar {
+    padding: 1rem;
+    background-color: #f3f3f3;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dark-theme {
+    background-color: #2d3748;
+    color: #f7fafc;
+}
+
+.pdf-container {
+    padding: 1rem;
+}
+
+/* Authentication Pages */
+.auth-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-divider {
+    margin: 1.5rem 0;
+    text-align: center;
+    position: relative;
+}
+
+    .auth-divider::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background-color: var(--border-color);
+    }
+
+    .auth-divider span {
+        position: relative;
+        background-color: white;
+        padding: 0 1rem;
+        color: #6c757d;
+    }
+
+/* Footer */
+.footer {
+    background-color: #f8f9fa;
+    padding: 1rem 0;
+    margin-top: 3rem;
+}
+
+.social-icons a {
+    color: var(--text-color);
+    transition: color 0.3s ease;
+}
+
+    .social-icons a:hover {
+        color: var(--primary-color);
+    }
+
+/* Media Queries */
+@media (max-width: 768px) {
+    .book-cover {
+        height: 160px;
+    }
+
+    .hero-section {
+        text-align: center;
+        padding: 2rem 0;
+    }
+
+        .hero-section .btn {
+            margin-bottom: 0.5rem;
+        }
+}
+
+@media (max-width: 576px) {
+    .book-cover {
+        height: 140px;
+    }
+}

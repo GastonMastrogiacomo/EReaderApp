@@ -1,0 +1,86 @@
+﻿@model IEnumerable<EReaderApp.Models.Book>
+@{
+    ViewData["Title"] = "Search Books";
+    var categories = ViewBag.Categories as List<EReaderApp.Models.Category>;
+    var currentCategory = ViewBag.CurrentCategory as int?;
+    var searchQuery = ViewBag.SearchQuery as string;
+}
+
+<div class="container">
+    <h1>Search Books</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <form method="get" class="d-flex">
+                <input type="text" name="query" class="form-control" placeholder="Search by title, author, or description" value="@searchQuery" />
+                <button type="submit" class="btn btn-primary ms-2">Search</button>
+            </form>
+        </div>
+        <div class="col-md-4">
+            <form method="get" class="d-flex">
+                <input type="hidden" name="query" value="@searchQuery" />
+                <select name="categoryId" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    @foreach (var category in categories)
+                    {
+                        <option value="@category.IdCategory" selected="@(currentCategory == category.IdCategory)">
+                            @category.CategoryName
+                        </option>
+                    }
+                </select>
+            </form>
+        </div>
+    </div>
+    
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            No books found matching your criteria.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var book in Model)
+            {
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100">
+                        @if (!string.IsNullOrEmpty(book.ImageLink))
+                        {
+                            <img src="@book.ImageLink" class="card-img-top" alt="@book.Title" />
+                        }
+                        else
+                        {
+                            <div class="card-img-top bg-light text-center py-5">
+                                <i class="fas fa-book fa-3x text-secondary"></i>
+                            </div>
+                        }
+                        <div class="card-body">
+                            <h5 class="card-title">@book.Title</h5>
+                            <p class="card-text text-muted">@book.Author</p>
+                            @if (book.Score.HasValue)
+                            {
+                                <div class="mb-2">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        if (i <= Math.Round(book.Score.Value))
+                                        {
+                                            <i class="fas fa-star text-warning"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="far fa-star text-warning"></i>
+                                        }
+                                    }
+                                    <span class="ms-1">(@book.Score.Value.ToString("F1"))</span>
+                                </div>
+                            }
+                            <a href="@Url.Action("Details", new { id = book.IdBook })" class="btn btn-primary">View Details</a>
+                            <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook" class="btn btn-success">Read PDF</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

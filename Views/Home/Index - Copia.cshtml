@@ -1,0 +1,65 @@
+﻿@{
+    ViewData["Title"] = "Inicio";
+    var recommendedBooks = ViewBag.RecommendedBooks as List<EReaderApp.Models.Book>;
+    var popularBooks = ViewBag.PopularBooks as List<EReaderApp.Models.Book>;
+}
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libro Libre - Lectura Sin Límites</title>
+
+</head>
+<body>
+    <main class="main-content">
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">Para Empezar</h2>
+            </div>
+            <div class="book-grid">
+                <!-- Repeat 5 times with slight variations -->
+                <div class="book-card">
+                    <div class="book-card-image"></div>
+                    <div class="book-card-details">
+                        <div class="book-card-title">Libro X</div>
+                        <div class="book-card-author">Apellido, Nombre</div>
+                        <div class="star-rating">★★★☆☆</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section style="margin-top: 2rem;">
+            <h2 class="section-title">Los más populares</h2>
+            <div class="book-grid">
+                <!-- Repeat 6 times with slight variations -->
+                <div class="book-card">
+                    <div class="book-card-image"></div>
+                    <div class="book-card-details">
+                        <div class="book-card-title">Libro X</div>
+                        <div class="book-card-author">Apellido, Nombre</div>
+                        <div class="star-rating">★★☆☆☆</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Dynamically populate book grids
+        const bookGrids = document.querySelectorAll('.book-grid');
+        bookGrids.forEach(grid => {
+            const isStartGrid = grid.parentElement.querySelector('.section-title').textContent === 'Para Empezar';
+            const count = isStartGrid ? 5 : 5;
+            
+            for (let i = 1; i < count; i++) {
+                const clone = grid.children[0].cloneNode(true);
+                grid.appendChild(clone);
+            }
+        });
+    </script>
+</body>
+</html>

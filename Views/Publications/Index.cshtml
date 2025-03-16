@@ -1,0 +1,114 @@
+﻿@model IEnumerable<EReaderApp.Models.Publication>
+@{
+    ViewData["Title"] = "Community";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Book Community</h1>
+
+        @if (User.Identity.IsAuthenticated)
+        {
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Post
+            </a>
+        }
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            @foreach (var publication in Model)
+            {
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            @if (!string.IsNullOrEmpty(publication.User.ProfilePicture))
+                            {
+                                <img src="@publication.User.ProfilePicture" class="rounded-circle me-2" width="32" height="32" alt="@publication.User.Name" />
+                            }
+                            else
+                            {
+                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            }
+                            <span>@publication.User.Name</span>
+                        </div>
+                        <small class="text-muted">Posted on @publication.CreatedAt.ToString("MMM dd, yyyy")</small>
+                    </div>
+
+                    <div class="card-body">
+                        <h5 class="card-title">@publication.Title</h5>
+                        <p class="card-text">@publication.Content</p>
+
+                        @if (!string.IsNullOrEmpty(publication.PubImageUrl))
+                        {
+                            <img src="@publication.PubImageUrl" class="img-fluid rounded mb-3" alt="Publication image" />
+                        }
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="d-flex">
+                            <form asp-action="LikePublication" method="post" class="me-3">
+                                <input type="hidden" name="id" value="@publication.IdPublication" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-heart"></i> Like
+                                    <span class="badge bg-secondary ms-1">@publication.Likes.Count()</span>
+                                </button>
+                            </form>
+
+                            <a asp-action="Details" asp-route-id="@publication.IdPublication" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-comment"></i> Comments
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (!Model.Any())
+            {
+                <div class="alert alert-info">
+                    No community posts yet. Be the first to share something!
+                </div>
+            }
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Community Guidelines</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">Be respectful to others</li>
+                        <li class="list-group-item">No spam or self-promotion</li>
+                        <li class="list-group-item">Keep discussions book-related</li>
+                        <li class="list-group-item">No offensive or inappropriate content</li>
+                        <li class="list-group-item">Have fun sharing your literary journey!</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Popular Tags</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="#" class="badge bg-primary text-decoration-none">Fiction</a>
+                        <a href="#" class="badge bg-primary text-decoration-none">Fantasy</a>
+                        <a href="#" class="badge bg-primary text-decoration-none">Mystery</a>
+                        <a href="#" class="badge bg-primary text-decoration-none">Romance</a>
+                        <a href="#" class="badge bg-primary text-decoration-none">Sci-Fi</a>
+                        <a href="#" class="badge bg-primary text-decoration-none">Biography</a>
+                        <a href="#" class="badge bg-primary text-decoration-none">History</a>
+                        <a href="#" class="badge bg-primary text-decoration-none">Adventure</a>
+                        <a href="#" class="badge bg-primary text-decoration-none">Thriller</a>
+                        <a href="#" class="badge bg-primary text-decoration-none">Horror</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

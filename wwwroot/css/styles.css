@@ -1,0 +1,95 @@
+﻿body {
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.header {
+    background-color: #333;
+    color: #fff;
+    padding: 20px 0;
+    text-align: center;
+}
+
+    .header h1 {
+        margin: 0;
+        font-size: 2.5em;
+    }
+
+.categories a {
+    color: #fff;
+    text-decoration: none;
+    margin: 0 10px;
+    font-size: 1.2em;
+}
+
+    .categories a:hover {
+        text-decoration: underline;
+    }
+
+.section {
+    margin-bottom: 40px;
+}
+
+    .section h2 {
+        font-size: 2em;
+        border-bottom: 2px solid #333;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+
+.book-item {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+    .book-item h3 {
+        margin: 0 0 10px;
+        font-size: 1.5em;
+    }
+
+    .book-item p {
+        margin: 5px 0;
+        font-size: 1.1em;
+    }
+
+    .book-item .rating {
+        color: #f39c12;
+        font-size: 1.2em;
+    }
+
+.popular-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+    .popular-list li {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+        .popular-list li h3 {
+            margin: 0 0 10px;
+            font-size: 1.5em;
+        }
+
+        .popular-list li p {
+            margin: 5px 0;
+            font-size: 1.1em;
+        }
+
+        .popular-list li .genre {
+            color: #777;
+        }
+
+        .popular-list li .rating {
+            color: #f39c12;
+            font-size: 1.2em;
+        }

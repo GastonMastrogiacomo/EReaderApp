@@ -1,0 +1,49 @@
+﻿@model EReaderApp.Models.Publication
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit</h1>
+
+<h4>Publication</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="IdPublication" />
+            <div class="form-group">
+                <label asp-for="Title" class="control-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Content" class="control-label"></label>
+                <input asp-for="Content" class="form-control" />
+                <span asp-validation-for="Content" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="PubImageUrl" class="control-label"></label>
+                <input asp-for="PubImageUrl" class="form-control" />
+                <span asp-validation-for="PubImageUrl" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="FKIdUser" class="control-label"></label>
+                <select asp-for="FKIdUser" class="form-control" asp-items="ViewBag.FKIdUser"></select>
+                <span asp-validation-for="FKIdUser" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
