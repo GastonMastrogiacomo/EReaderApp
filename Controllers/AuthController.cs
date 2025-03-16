@@ -76,6 +76,9 @@ namespace EReaderApp.Controllers
                 // Hash the password
                 model.Password = HashPassword(model.Password);
 
+                // Set the creation date
+                model.CreatedAt = DateTime.Now;
+
                 _context.Users.Add(model);
                 await _context.SaveChangesAsync();
 

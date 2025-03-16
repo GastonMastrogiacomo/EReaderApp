@@ -1,0 +1,181 @@
+﻿@model UserProfileViewModel
+
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                <div class="card-header bg-primary text-white p-3">
+                    <h4 class="mb-0"><i class="fas fa-user-edit me-2"></i> Edit Profile</h4>
+                </div>
+
+                <div class="card-body p-4">
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> Please fix the errors below</h5>
+                            <div asp-validation-summary="ModelOnly" class="mb-0"></div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <form asp-action="UpdateProfile" method="post" enctype="multipart/form-data">
+                        <!-- Added enctype for file uploads -->
+                        <input type="hidden" asp-for="IdUser" />
+
+                        <div class="row mb-4">
+                            <div class="col-md-4 d-flex flex-column align-items-center justify-content-center mb-4 mb-md-0">
+                                <div class="position-relative mb-3">
+                                    @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                                    {
+                                        <img src="@Model.ProfilePicture" id="profile-preview" class="img-fluid rounded-circle border shadow-sm"
+                                             style="width: 150px; height: 150px; object-fit: cover;" alt="Profile Picture">
+                                    }
+                                    else
+                                    {
+                                        <div id="profile-preview" class="bg-light rounded-circle d-flex align-items-center justify-content-center border shadow-sm"
+                                             style="width: 150px; height: 150px;">
+                                            <i class="fas fa-user fa-4x text-primary opacity-50"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="small text-muted text-center">Profile picture preview</div>
+                            </div>
+
+                            <div class="col-md-8">
+                                <h5 class="mb-3 border-bottom pb-2">Personal Information</h5>
+
+                                <div class="mb-3">
+                                    <label asp-for="Name" class="form-label fw-medium">Full Name</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
+                                        <input asp-for="Name" class="form-control" placeholder="Enter your full name" />
+                                    </div>
+                                    <span asp-validation-for="Name" class="text-danger small"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Email" class="form-label fw-medium">Email Address</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="fas fa-envelope"></i></span>
+                                        <input asp-for="Email" class="form-control" placeholder="Enter your email address" />
+                                    </div>
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Profile Picture</label>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text bg-light"><i class="fas fa-image"></i></span>
+                                        <input type="file" asp-for="ProfilePictureFile" class="form-control" accept="image/*" id="profile-upload" />
+                                    </div>
+                                    <div class="form-text">Upload an image file (JPG, PNG, GIF) to use as your profile picture</div>
+                                    <span asp-validation-for="ProfilePictureFile" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 border-bottom pb-2">Change Password <span class="small text-muted">(optional)</span></h5>
+                        <p class="text-muted small mb-4">Leave password fields blank if you don't want to change your password</p>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="NewPassword" class="form-label fw-medium">New Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-lock"></i></span>
+                                    <input asp-for="NewPassword" class="form-control" placeholder="Enter new password" />
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="NewPassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="NewPassword" class="text-danger small"></span>
+                                <div class="form-text">Password should be at least 6 characters long</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label fw-medium">Confirm New Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-lock"></i></span>
+                                    <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm new password" />
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="ConfirmPassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex gap-2 justify-content-end">
+                            <a asp-action="Profile" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Preview profile picture when file is selected
+        document.getElementById('profile-upload').addEventListener('change', function () {
+            var preview = document.getElementById('profile-preview');
+            var file = this.files[0];
+
+            if (file) {
+                // Create a FileReader to read the image
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    // If there's an image file, show the preview
+                    if (preview.tagName.toLowerCase() === 'div') {
+                        // Create an image to replace the placeholder
+                        var img = document.createElement('img');
+                        img.id = 'profile-preview';
+                        img.className = 'img-fluid rounded-circle border shadow-sm';
+                        img.style = 'width: 150px; height: 150px; object-fit: cover;';
+                        img.alt = 'Profile Picture';
+                        img.src = e.target.result;
+                        preview.parentNode.replaceChild(img, preview);
+                    } else {
+                        // Just update the src
+                        preview.src = e.target.result;
+                    }
+                };
+
+                // Read the image file as a data URL
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Toggle password visibility
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    this.querySelector('i').classList.remove('fa-eye');
+                    this.querySelector('i').classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    this.querySelector('i').classList.remove('fa-eye-slash');
+                    this.querySelector('i').classList.add('fa-eye');
+                }
+            });
+        });
+    </script>
+}

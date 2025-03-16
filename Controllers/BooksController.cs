@@ -97,7 +97,6 @@ namespace EReaderApp.Controllers
             return View();
         }
 
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Book book, IFormFile? file)
@@ -111,18 +110,27 @@ namespace EReaderApp.Controllers
             // Handle file upload
             if (file != null && file.Length > 0)
             {
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                // Crear la ruta completa del directorio uploads/books-PDF
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "books-PDF");
+
+                // Asegurar que el directorio existe
                 if (!Directory.Exists(uploadsFolder))
                 {
                     Directory.CreateDirectory(uploadsFolder);
                 }
 
-                var filePath = Path.Combine(uploadsFolder, file.FileName);
+                // Generar un nombre de archivo único para evitar colisiones
+                string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                // Guardar el archivo
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
-                book.PdfPath = "/uploads/" + file.FileName;
+
+                // Guardar la ruta relativa en la base de datos (la que será accesible desde el navegador)
+                book.PdfPath = "/uploads/books-PDF/" + uniqueFileName;
             }
 
             _context.Add(book);

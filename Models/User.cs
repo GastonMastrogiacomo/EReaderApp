@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace EReaderApp.Models
 {
@@ -19,5 +20,7 @@ namespace EReaderApp.Models
         public string Password { get; set; }
 
         public string? ProfilePicture { get; set; } // Optional Profile Picture
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now; // Default to current time
     }
 }
