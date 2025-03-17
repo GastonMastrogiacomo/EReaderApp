@@ -4,6 +4,7 @@ using EReaderApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EReaderApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250316204649_AddReaderImprovementsAndNewModels")]
+    partial class AddReaderImprovementsAndNewModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -110,7 +113,7 @@ namespace EReaderApp.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("BookMarks");
+                    b.ToTable("Bookmarks");
                 });
 
             modelBuilder.Entity("EReaderApp.Models.Category", b =>
@@ -295,11 +298,14 @@ namespace EReaderApp.Migrations
                     b.Property<int>("BookId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("FirstAccess")
+                    b.Property<DateTime>("FirstAccessedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("LastAccess")
+                    b.Property<DateTime>("LastAccessedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("LongestSessionMinutes")
+                        .HasColumnType("int");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -310,10 +316,10 @@ namespace EReaderApp.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ReadingActivities");
+                    b.ToTable("ReadingActivity");
                 });
 
-            modelBuilder.Entity("EReaderApp.Models.ReadingState", b =>
+            modelBuilder.Entity("EReaderApp.Models.ReadingProgress", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -324,21 +330,29 @@ namespace EReaderApp.Migrations
                     b.Property<int>("BookId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("CompletionPercentage")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("CurrentPage")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("LastAccessed")
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastReadAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TotalPages")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalReadingTimeMinutes")
+                        .HasColumnType("int");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
-
-                    b.Property<string>("ViewMode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<float>("ZoomLevel")
-                        .HasColumnType("real");
 
                     b.HasKey("Id");
 
@@ -346,7 +360,7 @@ namespace EReaderApp.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ReadingStates");
+                    b.ToTable("ReadingProgress");
                 });
 
             modelBuilder.Entity("EReaderApp.Models.Review", b =>
@@ -436,7 +450,7 @@ namespace EReaderApp.Migrations
                     b.HasOne("EReaderApp.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Book");
@@ -549,7 +563,7 @@ namespace EReaderApp.Migrations
                     b.HasOne("EReaderApp.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Book");
@@ -557,7 +571,7 @@ namespace EReaderApp.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("EReaderApp.Models.ReadingState", b =>
+            modelBuilder.Entity("EReaderApp.Models.ReadingProgress", b =>
                 {
                     b.HasOne("EReaderApp.Models.Book", "Book")
                         .WithMany()
@@ -568,7 +582,7 @@ namespace EReaderApp.Migrations
                     b.HasOne("EReaderApp.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Book");

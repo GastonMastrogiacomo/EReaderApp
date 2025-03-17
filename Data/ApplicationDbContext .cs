@@ -17,15 +17,15 @@ namespace EReaderApp.Data
         public DbSet<Library> Libraries { get; set; }
         public DbSet<Publication> Publications { get; set; }
         public DbSet<Note> Notes { get; set; }
-
-
-        // Add these missing DbSet properties:
         public DbSet<BookCategory> BookCategories { get; set; }
         public DbSet<LibraryBook> LibraryBooks { get; set; }
         public DbSet<PublicationLike> PublicationLikes { get; set; }
         public DbSet<ReaderSettings> ReaderSettings { get; set; }
+        public DbSet<Bookmark> BookMarks { get; set; }
+        public DbSet<ReadingState> ReadingStates { get; set; }
+        public DbSet<ReadingActivity> ReadingActivities { get; set; }
 
-        // Optionally, configure the relationships in OnModelCreating
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure composite keys
@@ -80,6 +80,43 @@ namespace EReaderApp.Data
                 .WithMany()
                 .HasForeignKey("UserId")
                 .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Bookmark>()
+                .HasOne(b => b.User)
+                .WithMany()
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Bookmark>()
+                .HasOne(b => b.Book)
+                .WithMany()
+                .HasForeignKey(b => b.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ReadingState>()
+                .HasOne(rs => rs.User)
+                .WithMany()
+                .HasForeignKey(rs => rs.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ReadingState>()
+                .HasOne(rs => rs.Book)
+                .WithMany()
+                .HasForeignKey(rs => rs.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ReadingActivity>()
+                .HasOne(ra => ra.User)
+                .WithMany()
+                .HasForeignKey(ra => ra.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ReadingActivity>()
+                .HasOne(ra => ra.Book)
+                .WithMany()
+                .HasForeignKey(ra => ra.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
 
     }
