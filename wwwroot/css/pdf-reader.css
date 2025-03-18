@@ -1,280 +1,266 @@
-/* Estilos generales */
+/* Estilos generales del lector */
 .reader-container {
-    max-width: 1400px;
-    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 60px);
+    overflow: hidden;
+    position: relative;
 }
 
 .reader-layout {
     display: flex;
-    gap: 15px;
-    min-height: 600px;
-    max-height: calc(100vh - 200px);
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+#book-container {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 400px;
+    background-color: #f8f9fa;
+    transition: background-color 0.3s ease;
+}
+
+    /* Estilos para diferentes temas */
+    #book-container.theme-light,
+    .theme-light {
+        background-color: #ffffff;
+        color: #333333;
+    }
+
+    #book-container.theme-sepia,
+    .theme-sepia {
+        background-color: #f8f3e6;
+        color: #5b4636;
+    }
+
+    #book-container.theme-dark,
+    .theme-dark {
+        background-color: #222222;
+        color: #e0e0e0;
+    }
+
+/* Modo de página única */
+#single-page-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    transition: all 0.2s ease-out;
+}
+
+.book-page {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    transition: all 0.3s ease;
+}
+
+.single-page {
+    margin: 0 auto;
 }
 
 /* Panel lateral */
 #side-panel {
-    width: 280px;
-    flex-shrink: 0;
-    overflow-y: auto;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 300px;
+    max-height: calc(100% - 20px);
+    z-index: 100;
+    overflow: auto;
+    transition: all 0.3s ease;
 }
 
-/* Contenedor del libro */
-#book-container {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-    background-color: #f5f5f5;
-    padding: 20px 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+/* Panel de notas */
+#notes-panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 320px;
+    max-height: calc(100% - 20px);
+    z-index: 100;
+    overflow: auto;
+    transition: all 0.3s ease;
 }
 
-/* Estilos para la página única */
-.book-page {
-    background-color: white;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    border-radius: 5px;
+/* Estilo para las notas */
+.note-item {
+    transition: all 0.3s ease;
 }
 
-/* Estilos del modo libro (dos páginas) */
-#pages-container {
-    display: flex;
-    margin: 0 auto;
-    max-width: 100%;
-    height: 100%;
-    perspective: 1000px;
-}
-
-.left-page {
-    border-radius: 5px 0 0 5px;
-    box-shadow: -5px 5px 10px rgba(0,0,0,0.1);
-    transform-origin: right center;
-    margin-right: 1px;
-}
-
-.right-page {
-    border-radius: 0 5px 5px 0;
-    box-shadow: 5px 5px 10px rgba(0,0,0,0.1);
-    transform-origin: left center;
-    margin-left: 1px;
-}
-
-.single-page {
-    border-radius: 5px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
-.page-canvas {
-    max-width: 100%;
-    max-height: 100%;
-    display: block;
-}
-
-/* Animaciones del modo libro */
-.page-turning-forward {
-    animation: pageTurnForward 0.6s ease-in-out;
-}
-
-.page-turning-backward {
-    animation: pageTurnBackward 0.6s ease-in-out;
-}
-
-@keyframes pageTurnForward {
-    0% {
-        transform: perspective(1200px) rotateY(0deg);
-        z-index: 1;
+    .note-item:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
-    50% {
-        transform: perspective(1200px) rotateY(-15deg);
-        z-index: 1;
-    }
-
-    100% {
-        transform: perspective(1200px) rotateY(0deg);
-        z-index: 1;
-    }
+.note-content {
+    white-space: pre-wrap;
 }
 
-@keyframes pageTurnBackward {
-    0% {
-        transform: perspective(1200px) rotateY(0deg);
-        z-index: 1;
-    }
-
-    50% {
-        transform: perspective(1200px) rotateY(15deg);
-        z-index: 1;
-    }
-
-    100% {
-        transform: perspective(1200px) rotateY(0deg);
-        z-index: 1;
-    }
-}
-
-/* Animaciones de página única */
+/* Animaciones para cambio de página */
 .page-turning-next {
-    animation: pageSlideNext 0.3s ease-in-out;
+    animation: turningNext 0.3s forwards;
 }
 
 .page-turning-prev {
-    animation: pageSlidePrev 0.3s ease-in-out;
+    animation: turningPrev 0.3s forwards;
 }
 
-@keyframes pageSlideNext {
-    0% {
-        transform: translateX(0);
-        opacity: 1;
-    }
-
-    20% {
-        opacity: 0.8;
-    }
-
-    40% {
-        transform: translateX(-10%);
-        opacity: 0;
-    }
-
-    60% {
-        transform: translateX(10%);
-        opacity: 0;
-    }
-
-    80% {
-        opacity: 0.8;
-    }
-
-    100% {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes pageSlidePrev {
-    0% {
-        transform: translateX(0);
-        opacity: 1;
-    }
-
-    20% {
-        opacity: 0.8;
-    }
-
-    40% {
-        transform: translateX(10%);
-        opacity: 0;
-    }
-
-    60% {
-        transform: translateX(-10%);
-        opacity: 0;
-    }
-
-    80% {
-        opacity: 0.8;
-    }
-
-    100% {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-/* Transición entre modos */
-.mode-transition {
-    animation: modeTransition 0.5s ease-in-out;
-}
-
-@keyframes modeTransition {
+@keyframes turningNext {
     0% {
         opacity: 1;
-        transform: scale(1);
+        transform: translateX(0);
     }
 
     50% {
-        opacity: 0;
-        transform: scale(0.95);
+        opacity: 0.5;
+        transform: translateX(-10px);
     }
 
     100% {
         opacity: 1;
-        transform: scale(1);
+        transform: translateX(0);
     }
 }
 
-/* Estilos para marcadores y TOC */
-.bookmark-item, .toc-item {
-    cursor: pointer;
+@keyframes turningPrev {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: translateX(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Estilos para el modal de configuración */
+#preview-container.theme-light {
+    background-color: #ffffff;
+    color: #333333;
+    border-color: #dee2e6;
+}
+
+#preview-container.theme-sepia {
+    background-color: #f8f3e6;
+    color: #5b4636;
+    border-color: #d0c9b8;
+}
+
+#preview-container.theme-dark {
+    background-color: #222222;
+    color: #e0e0e0;
+    border-color: #444444;
+}
+
+/* Estilos para pantalla completa */
+.fullscreen-mode {
+    min-height: 100vh;
+}
+
+/* Indicador de carga de página */
+#page-loading-indicator {
+    z-index: 10;
+}
+
+/* Estilos para TOC (Tabla de Contenidos) */
+.toc-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     transition: all 0.2s ease;
 }
 
-    .bookmark-item:hover, .toc-item:hover {
-        background-color: #f8f9fa;
+    .toc-item:hover {
+        background-color: #f0f0f0;
     }
 
-    .bookmark-item.active, .toc-item.active {
+    .toc-item.active {
         background-color: #e9ecef;
-        border-left: 3px solid #0d6efd;
+        border-left: 3px solid #4361ee;
     }
 
-.toc-item {
-    padding-left: calc(0.5rem + (var(--toc-level, 0) * 1rem));
-}
-
-/* Responsive para dispositivos más pequeños */
-@media (max-width: 992px) {
-    .reader-layout {
-        flex-direction: column;
+/* Estilos para dispositivos móviles */
+@media (max-width: 768px) {
+    #side-panel, #notes-panel {
+        width: 90%;
+        max-width: 320px;
     }
 
-    #side-panel {
-        width: 100%;
-        max-height: 200px;
+    .reader-controls .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
     }
 
-    .book-page {
-        height: auto !important;
-    }
-
-    #book-view {
-        height: 70vh;
+    #current-page-input {
+        width: 40px !important;
     }
 }
 
-/* Estilos para notificaciones */
+/* Transición de modo */
+.mode-transition {
+    transition: opacity 0.3s ease;
+    opacity: 0.3;
+}
+
+/* Estilos para marcadores */
+.bookmark-item {
+    transition: all 0.2s ease;
+}
+
+    .bookmark-item:hover {
+        background-color: #f0f0f0;
+    }
+
+    .bookmark-item.active {
+        background-color: #e9ecef;
+        border-left: 3px solid #4361ee;
+    }
+
+/* Botones de navegación */
+.reader-controls .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tooltips personalizados */
+.tooltip {
+    z-index: 1070;
+    opacity: 0.9;
+}
+
+/* Notificaciones */
 .notification-toast {
-    animation: fadeInUp 0.3s, fadeOutDown 0.3s 2.7s;
+    z-index: 9999;
+    max-width: 350px;
+    animation: fadeInUp 0.3s ease;
 }
 
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translate3d(0, 30px, 0);
+        transform: translateY(20px);
     }
 
     to {
         opacity: 1;
-        transform: translate3d(0, 0, 0);
+        transform: translateY(0);
     }
 }
 
-@keyframes fadeOutDown {
-    from {
-        opacity: 1;
-        transform: translate3d(0, 0, 0);
-    }
-
-    to {
-        opacity: 0;
-        transform: translate3d(0, 30px, 0);
-    }
+/* Estilos para la barra de progreso */
+#reading-progress {
+    transition: width 0.3s ease;
+    height: 4px;
+    background-color: #4361ee;
 }

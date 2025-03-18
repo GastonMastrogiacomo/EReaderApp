@@ -31,7 +31,7 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-controller="Publications" asp-action="Index">Community</a>
-                        </li>
+                        </li>                    
                     </ul>
 
                     <div class="d-flex">
@@ -51,7 +51,12 @@
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                     <li>
                                         <a class="dropdown-item" asp-controller="Libraries" asp-action="MyLibraries">
-                                            <i class="fas fa-book"></i> My Libraries
+                                            <i class="fas fa-book"></i> Mis Bibliotecas
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Notes" asp-action="Index">
+                                            <i class="fas fa-sticky-note"></i> Mis Notas
                                         </a>
                                     </li>
                                     <li>
@@ -115,6 +120,10 @@
             </div>
         </div>
     </footer>
+
+    <form id="antiforgery-form" method="post" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

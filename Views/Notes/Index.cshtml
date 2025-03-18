@@ -1,0 +1,182 @@
+﻿@model IEnumerable<EReaderApp.Models.Note>
+@{
+    ViewData["Title"] = "Mis Notas";
+}
+
+<div class="container py-4">
+    <h1>Mis Notas</h1>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> Aún no tienes notas guardadas.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var note in Model)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">@note.Book.Title</h5>
+                            <small class="text-muted">
+                                @note.CreatedAt.ToString("dd/MM/yyyy")
+                            </small>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">@note.Content</p>
+                        </div>
+                        <div class="card-footer bg-white border-top-0">
+                            <div class="d-flex justify-content-between">
+                                <a href="@Url.Action("Read", "Reader", new { id = note.BookId })" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-book-open me-1"></i> Ir al libro
+                                </a>
+                                <div>
+                                    <button class="btn btn-outline-secondary btn-sm me-2 edit-note" data-note-id="@note.Id">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm delete-note" data-note-id="@note.Id">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Modal para editar nota -->
+<div class="modal fade" id="editNoteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Nota</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-note-id">
+                <div class="mb-3">
+                    <label for="edit-note-content" class="form-label">Contenido</label>
+                    <textarea id="edit-note-content" class="form-control" rows="5"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="save-edit-note">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Código para la edición y eliminación de notas mediante AJAX
+        document.addEventListener('DOMContentLoaded', function () {
+            // Eliminar nota
+            document.querySelectorAll('.delete-note').forEach(button => {
+                button.addEventListener('click', function () {
+                    const noteId = this.getAttribute('data-note-id');
+                    if (confirm('¿Estás seguro de que deseas eliminar esta nota?')) {
+                        fetch(`/Notes/DeleteNote/${noteId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                            }
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    // Eliminar el elemento de la interfaz
+                                    this.closest('.col-md-6').remove();
+                                    // Mostrar mensaje
+                                    showAlert('Nota eliminada correctamente', 'success');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                showAlert('Error al eliminar la nota', 'danger');
+                            });
+                    }
+                });
+            });
+
+            // Editar nota
+            document.querySelectorAll('.edit-note').forEach(button => {
+                button.addEventListener('click', function () {
+                    const noteId = this.getAttribute('data-note-id');
+                    const noteContent = this.closest('.card').querySelector('.card-text').textContent;
+
+                    // Establecer valores en el modal
+                    document.getElementById('edit-note-id').value = noteId;
+                    document.getElementById('edit-note-content').value = noteContent;
+
+                    // Mostrar el modal
+                    const modal = new bootstrap.Modal(document.getElementById('editNoteModal'));
+                    modal.show();
+                });
+            });
+
+            // Guardar cambios de la nota
+            document.getElementById('save-edit-note').addEventListener('click', function () {
+                const noteId = document.getElementById('edit-note-id').value;
+                const content = document.getElementById('edit-note-content').value;
+
+                if (!content.trim()) {
+                    alert('El contenido de la nota no puede estar vacío');
+                    return;
+                }
+
+                fetch(`/Notes/UpdateNote/${noteId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ content })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Actualizar el texto de la nota en la página
+                            const noteCard = document.querySelector(`.edit-note[data-note-id="${noteId}"]`).closest('.card');
+                            noteCard.querySelector('.card-text').textContent = content;
+
+                            // Cerrar el modal
+                            bootstrap.Modal.getInstance(document.getElementById('editNoteModal')).hide();
+
+                            // Mostrar mensaje
+                            showAlert('Nota actualizada correctamente', 'success');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showAlert('Error al actualizar la nota', 'danger');
+                    });
+            });
+
+            // Función para mostrar alertas
+            function showAlert(message, type) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.setAttribute('role', 'alert');
+                alertDiv.innerHTML = `
+                            ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        `;
+                document.querySelector('.container').prepend(alertDiv);
+
+                // Auto-cerrar después de 3 segundos
+                setTimeout(() => {
+                    alertDiv.classList.remove('show');
+                    setTimeout(() => alertDiv.remove(), 300);
+                }, 3000);
+            }
+        });
+    </script>
+}

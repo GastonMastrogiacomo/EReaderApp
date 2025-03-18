@@ -8,12 +8,17 @@ let totalPages = 0;
 let scale = 1.0;
 let bookmarks = [];
 let tocItems = [];
-const bookId = document.getElementById('book-container').dataset.bookId || 1; // Obtener el ID del libro
-let isDoublePage = true; // Modo libro (dos páginas) por defecto
+let notes = [];
+const bookId = document.getElementById('book-container').dataset.bookId || 1;
 let isFitWidth = false;
 let isFitPage = false;
 let pageRendering = false;
 let pageNumPending = null;
+let readerSettings = {
+    theme: 'light',
+    fontFamily: 'Arial',
+    fontSize: 16
+};
 
 // Función de inicialización
 document.addEventListener('DOMContentLoaded', function () {
@@ -28,12 +33,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // Cargar marcadores guardados
     loadBookmarks();
 
+    // Cargar notas
+    if (bookId) {
+        loadNotes();
+    }
+
+    // Cargar configuración del lector
+    loadReaderSettings();
+
     // Ajustar tamaño al redimensionar
     window.addEventListener('resize', debounce(function () {
         if (pdfDoc) {
             if (isFitWidth) fitToWidth();
             else if (isFitPage) fitToPage();
-            else renderCurrentPages();
+            else renderCurrentPage();
         }
     }, 300));
 });
@@ -43,7 +56,6 @@ async function loadPDF() {
     try {
         // Mostrar indicador de carga
         document.getElementById('loading-indicator').style.display = 'block';
-        document.getElementById('pages-container').style.display = 'none';
         document.getElementById('single-page-container').style.display = 'none';
 
         // Obtener ruta del PDF del atributo data-pdf-path
@@ -72,27 +84,20 @@ async function loadPDF() {
         // Intentar cargar la tabla de contenidos
         await loadTableOfContents();
 
-        // Cargar preferencia de modo
-        loadViewMode();
-
         // Intentar cargar posición guardada
         loadPosition();
 
         // O renderizar página inicial
         if (currentPage < 1) {
             currentPage = 1;
-            renderCurrentPages();
+            renderCurrentPage();
         }
 
         // Ocultar indicador de carga
         document.getElementById('loading-indicator').style.display = 'none';
 
-        // Mostrar el contenedor apropiado según el modo
-        if (isDoublePage) {
-            document.getElementById('pages-container').style.display = 'flex';
-        } else {
-            document.getElementById('single-page-container').style.display = 'flex';
-        }
+        // Mostrar el contenedor de página única
+        document.getElementById('single-page-container').style.display = 'flex';
     } catch (error) {
         console.error('Error al cargar el PDF:', error);
         document.getElementById('loading-indicator').innerHTML = `
@@ -193,7 +198,7 @@ function renderTableOfContents() {
 
             const tocElement = document.createElement('a');
             tocElement.className = 'list-group-item list-group-item-action toc-item';
-            tocElement.style.setProperty('--toc-level', item.level);
+            tocElement.style.paddingLeft = `${(item.level * 1.0) + 1}rem`;
 
             // Texto con sangría según nivel
             tocElement.innerHTML = `
@@ -247,7 +252,7 @@ function updateActiveTocItem() {
         const pageText = item.querySelector('small');
         if (pageText) {
             const pageNum = parseInt(pageText.textContent.replace('Pág. ', ''));
-            if (pageNum === currentPage || (isDoublePage && (pageNum === currentPage + 1))) {
+            if (pageNum === currentPage) {
                 item.classList.add('active');
 
                 // Scroll para mostrar el elemento activo
@@ -265,68 +270,29 @@ function queueRenderPage(num) {
     if (pageRendering) {
         pageNumPending = num;
     } else {
-        renderCurrentPages();
+        renderCurrentPage();
     }
 }
 
-// Renderizar las páginas actuales
-async function renderCurrentPages() {
+// Renderizar la página actual
+async function renderCurrentPage() {
     if (!pdfDoc) return;
 
     pageRendering = true;
 
     try {
-        if (isDoublePage) {
-            // Modo libro (dos páginas)
-            // Ocultar temporalmente para evitar parpadeos
-            document.getElementById('pages-container').style.opacity = '0.5';
+        // Modo página única siempre
+        // Ocultar temporalmente para evitar parpadeos
+        document.getElementById('single-page-container').style.opacity = '0.5';
 
-            // Obtener la página izquierda (par)
-            let leftPageNum = currentPage;
-            if (currentPage % 2 === 0) {
-                leftPageNum = currentPage - 1;
-            }
-            const rightPageNum = leftPageNum + 1;
+        const canvas = document.getElementById('single-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Obtener canvases
-            const leftCanvas = document.getElementById('left-canvas');
-            const rightCanvas = document.getElementById('right-canvas');
+        await renderPage(currentPage, canvas);
 
-            // Limpiar canvases
-            const leftCtx = leftCanvas.getContext('2d');
-            const rightCtx = rightCanvas.getContext('2d');
-            leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
-            rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
-
-            // Renderizar página izquierda si existe
-            if (leftPageNum >= 1) {
-                await renderPage(leftPageNum, leftCanvas, true);
-            }
-
-            // Renderizar página derecha si existe
-            if (rightPageNum <= totalPages) {
-                await renderPage(rightPageNum, rightCanvas, true);
-            } else {
-                // Limpiar el canvas derecho si no hay más páginas
-                rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
-            }
-
-            // Mostrar el contenedor
-            document.getElementById('pages-container').style.opacity = '1';
-        } else {
-            // Modo página única
-            // Ocultar temporalmente para evitar parpadeos
-            document.getElementById('single-page-container').style.opacity = '0.5';
-
-            const canvas = document.getElementById('single-canvas');
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            await renderPage(currentPage, canvas, false);
-
-            // Mostrar el contenedor
-            document.getElementById('single-page-container').style.opacity = '1';
-        }
+        // Mostrar el contenedor
+        document.getElementById('single-page-container').style.opacity = '1';
 
         // Actualizar número de página actual
         document.getElementById('current-page-input').value = currentPage;
@@ -338,20 +304,16 @@ async function renderCurrentPages() {
         // Actualizar estado de botones de navegación
         document.getElementById('prev-page').disabled = currentPage <= 1;
         document.getElementById('first-page').disabled = currentPage <= 1;
-
-        if (isDoublePage) {
-            const lastPageToShow = currentPage % 2 === 0 ? currentPage : currentPage + 1;
-            document.getElementById('next-page').disabled = lastPageToShow >= totalPages;
-            document.getElementById('last-page').disabled = lastPageToShow >= totalPages;
-        } else {
-            document.getElementById('next-page').disabled = currentPage >= totalPages;
-            document.getElementById('last-page').disabled = currentPage >= totalPages;
-        }
+        document.getElementById('next-page').disabled = currentPage >= totalPages;
+        document.getElementById('last-page').disabled = currentPage >= totalPages;
 
         // Actualizar URL con número de página
         if (history.replaceState) {
             history.replaceState(null, null, `#${currentPage}`);
         }
+
+        // Actualizar la barra de progreso
+        updateProgressBar();
 
         // Guardar posición en localStorage
         savePosition();
@@ -366,17 +328,13 @@ async function renderCurrentPages() {
     } catch (error) {
         console.error(`Error al renderizar página ${currentPage}: `, error);
         pageRendering = false;
-        if (isDoublePage) {
-            document.getElementById('pages-container').style.opacity = '1';
-        } else {
-            document.getElementById('single-page-container').style.opacity = '1';
-        }
+        document.getElementById('single-page-container').style.opacity = '1';
         showNotification('Error al renderizar la página', 'danger');
     }
 }
 
 // Renderizar una página específica en un canvas
-async function renderPage(pageNum, canvas, isDoublePage) {
+async function renderPage(pageNum, canvas) {
     try {
         // Obtener la página
         const page = await pdfDoc.getPage(pageNum);
@@ -394,31 +352,21 @@ async function renderPage(pageNum, canvas, isDoublePage) {
 
         if (isFitWidth) {
             // Ajustar al ancho
-            const pageWidth = isDoublePage ? containerWidth / 2 : containerWidth;
-            pageScale = pageWidth / viewport.width;
+            pageScale = containerWidth / viewport.width;
         } else if (isFitPage) {
             // Ajustar a la página
-            const pageWidth = isDoublePage ? containerWidth / 2 : containerWidth;
-            const pageHeight = containerHeight;
-
-            const scaleX = pageWidth / viewport.width;
-            const scaleY = pageHeight / viewport.height;
+            const scaleX = containerWidth / viewport.width;
+            const scaleY = containerHeight / viewport.height;
 
             pageScale = Math.min(scaleX, scaleY);
         } else {
-            if (isDoublePage) {
-                const maxScale = containerWidth / (viewport.width * 2);
-                if (scale > maxScale * 1.5) {
-                    pageScale = maxScale * 1.5;
-                }
-            } else {
-                const maxScaleX = containerWidth / viewport.width;
-                const maxScaleY = containerHeight / viewport.height;
-                const maxScale = Math.min(maxScaleX, maxScaleY);
+            // Verificar que la escala no sea demasiado grande
+            const maxScaleX = containerWidth / viewport.width;
+            const maxScaleY = containerHeight / viewport.height;
+            const maxScale = Math.min(maxScaleX, maxScaleY);
 
-                if (scale > maxScale * 1.5) {
-                    pageScale = maxScale * 1.5;
-                }
+            if (scale > maxScale * 1.5) {
+                pageScale = maxScale * 1.5;
             }
         }
 
@@ -432,6 +380,9 @@ async function renderPage(pageNum, canvas, isDoublePage) {
         const pageDiv = canvas.parentElement;
         pageDiv.style.width = `${scaledViewport.width}px`;
         pageDiv.style.height = `${scaledViewport.height}px`;
+
+        // Aplicar configuración de tema
+        applyTheme(pageDiv);
 
         // Renderizar
         const renderContext = {
@@ -452,13 +403,19 @@ async function renderPage(pageNum, canvas, isDoublePage) {
     }
 }
 
+// Función para aplicar el tema al lector
+function applyTheme(element) {
+    element.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+    element.classList.add(`theme-${readerSettings.theme}`);
+}
+
 // Función para ajustar al ancho
 function fitToWidth() {
     isFitWidth = true;
     isFitPage = false;
 
     document.getElementById('zoom-text').textContent = 'Ancho';
-    renderCurrentPages();
+    renderCurrentPage();
 }
 
 // Función para ajustar a la página
@@ -466,100 +423,72 @@ function fitToPage() {
     isFitWidth = false;
     isFitPage = true;
     document.getElementById('zoom-text').textContent = 'Página';
-    renderCurrentPages();
+    renderCurrentPage();
+}
+
+// Actualizar la barra de progreso
+function updateProgressBar() {
+    const progress = (currentPage / totalPages) * 100;
+    const progressBar = document.getElementById('reading-progress');
+    progressBar.style.width = `${progress}%`;
+    progressBar.setAttribute('aria-valuenow', progress);
 }
 
 // Funciones de navegación
 function goToPage(pageNum) {
     if (!pageNum || pageNum < 1 || pageNum > totalPages) return;
 
-    if (isDoublePage) {
-        if (pageNum % 2 === 0 && pageNum < currentPage) {
-            // No ajustar
-        } else if (pageNum % 2 === 0) {
-            pageNum = pageNum - 1;
-        }
-    }
+    showPageLoadingIndicator();
 
-    const direction = pageNum > currentPage ? (isDoublePage ? 'forward' : 'next') : (isDoublePage ? 'backward' : 'prev');
+    const direction = pageNum > currentPage ? 'next' : 'prev';
     animatePageTurn(direction);
 
     currentPage = pageNum;
     queueRenderPage(currentPage);
 }
 
-function previousPages() {
+function previousPage() {
     if (currentPage <= 1) return;
-
-    let prevPage;
-    if (isDoublePage) {
-        prevPage = Math.max(1, currentPage - 2);
-    } else {
-        prevPage = currentPage - 1;
-    }
-
-    goToPage(prevPage);
+    goToPage(currentPage - 1);
 }
 
-function nextPages() {
-    const lastPage = isDoublePage ?
-        (totalPages % 2 === 0 ? totalPages - 1 : totalPages) :
-        totalPages;
+function nextPage() {
+    if (currentPage >= totalPages) return;
+    goToPage(currentPage + 1);
+}
 
-    if (currentPage >= lastPage) return;
+// Indicador de carga para cambios de página
+function showPageLoadingIndicator() {
+    // Si ya existe, no crear otro
+    if (document.getElementById('page-loading-indicator')) return;
 
-    let nextPage;
-    if (isDoublePage) {
-        nextPage = Math.min(lastPage, currentPage + 2);
-    } else {
-        nextPage = currentPage + 1;
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'page-loading-indicator';
+    loadingIndicator.className = 'position-absolute top-50 start-50 translate-middle';
+    loadingIndicator.innerHTML = `
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando página...</span>
+        </div>
+    `;
+
+    document.getElementById('book-container').appendChild(loadingIndicator);
+}
+
+function hidePageLoadingIndicator() {
+    const indicator = document.getElementById('page-loading-indicator');
+    if (indicator) {
+        indicator.remove();
     }
-
-    goToPage(nextPage);
 }
 
 // Animación de cambio de página
 function animatePageTurn(direction) {
-    if (isDoublePage) {
-        const container = document.getElementById('pages-container');
-        container.classList.add(`page-turning-${direction}`);
-        setTimeout(() => {
-            container.classList.remove(`page-turning-${direction}`);
-        }, 600);
-    } else {
-        const container = document.getElementById('single-page-container');
-        container.classList.add(`page-turning-${direction}`);
-        setTimeout(() => {
-            container.classList.remove(`page-turning-${direction}`);
-        }, 300);
-    }
-}
-
-// Cambiar entre modo libro y página única
-function toggleBookMode() {
-    document.getElementById('book-view').classList.add('mode-transition');
-
+    const container = document.getElementById('single-page-container');
+    container.classList.add(`page-turning-${direction}`);
     setTimeout(() => {
-        isDoublePage = !isDoublePage;
-
-        document.getElementById('pages-container').style.display = 'none';
-        document.getElementById('single-page-container').style.display = 'none';
-
-        if (isDoublePage) {
-            document.getElementById('pages-container').style.display = 'flex';
-            if (currentPage % 2 === 0) currentPage--;
-        } else {
-            document.getElementById('single-page-container').style.display = 'flex';
-        }
-
-        renderCurrentPages();
-
-        localStorage.setItem(`book_mode_${bookId}`, isDoublePage ? 'double' : 'single');
-
-        setTimeout(() => {
-            document.getElementById('book-view').classList.remove('mode-transition');
-        }, 500);
-    }, 250);
+        container.classList.remove(`page-turning-${direction}`);
+        hidePageLoadingIndicator();
+    }, 300);
 }
 
 // Funciones de zoom
@@ -568,7 +497,7 @@ function setZoom(newScale) {
     isFitWidth = false;
     isFitPage = false;
     document.getElementById('zoom-text').textContent = `${Math.round(scale * 100)}%`;
-    renderCurrentPages();
+    renderCurrentPage();
 }
 
 // Función para mostrar notificaciones
@@ -578,7 +507,7 @@ function showNotification(message, type = 'info') {
     notification.role = 'alert';
     notification.innerHTML = `
         ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
 
     notification.style.position = 'fixed';
@@ -706,7 +635,6 @@ function savePosition() {
     localStorage.setItem(`position_${bookId}`, JSON.stringify({
         page: currentPage,
         scale: scale,
-        mode: isDoublePage ? 'double' : 'single',
         fitWidth: isFitWidth,
         fitPage: isFitPage,
         timestamp: new Date().toISOString()
@@ -740,28 +668,455 @@ function loadPosition() {
         }
     }
 
-    renderCurrentPages();
+    renderCurrentPage();
 }
 
-// Cargar preferencia de modo (libro o página única)
-function loadViewMode() {
-    const savedMode = localStorage.getItem(`book_mode_${bookId}`);
-    if (savedMode) {
-        isDoublePage = savedMode === 'double';
+// Funciones para notas
+async function loadNotes() {
+    try {
+        // Mostrar indicador de carga en el panel de notas
+        const notesList = document.getElementById('notes-list');
+        notesList.innerHTML = `
+            <div class="text-center p-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Cargando notas...</span>
+                </div>
+                <span class="ms-2">Cargando notas...</span>
+            </div>
+        `;
+
+        // Realizar la solicitud al servidor
+        const response = await fetch(`/Notes/GetBookNotes?bookId=${bookId}`);
+
+        if (response.ok) {
+            notes = await response.json();
+            console.log('Notas cargadas:', notes);
+            renderNotes();
+        } else {
+            console.error('Error al cargar las notas:', response.statusText);
+            notesList.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error al cargar las notas: ${response.statusText}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error al cargar las notas:', error);
+        document.getElementById('notes-list').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                Error al cargar las notas: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function renderNotes() {
+    const notesList = document.getElementById('notes-list');
+
+    if (notes.length === 0) {
+        notesList.innerHTML = `
+            <div class="text-center p-3 text-muted small notes-empty">
+                No hay notas para este libro
+            </div>`;
+        return;
+    }
+
+    // Ordenar notas por fecha de creación (más recientes primero)
+    notes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    notesList.innerHTML = '';
+
+    notes.forEach(note => {
+        const noteElement = document.createElement('div');
+        noteElement.className = 'card mb-2 note-item';
+        noteElement.dataset.noteId = note.id;
+
+        const formattedDate = new Date(note.createdAt).toLocaleDateString(
+            'es-ES',
+            { year: 'numeric', month: 'short', day: 'numeric' }
+        );
+
+        const updatedInfo = note.updatedAt ?
+            `<small class="text-muted">(Editada: ${new Date(note.updatedAt).toLocaleDateString()})</small>` : '';
+
+        noteElement.innerHTML = `
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-muted">${formattedDate}</small>
+                    <div class="note-actions">
+                        <button class="btn btn-sm btn-link p-0 me-2 edit-note" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-link p-0 text-danger delete-note" title="Eliminar">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="note-content mb-0">${note.content}</p>
+                ${updatedInfo}
+            </div>
+        `;
+
+        // Agregar eventos para editar y eliminar
+        const editButton = noteElement.querySelector('.edit-note');
+        const deleteButton = noteElement.querySelector('.delete-note');
+
+        editButton.addEventListener('click', () => {
+            editNote(note);
+        });
+
+        deleteButton.addEventListener('click', () => {
+            deleteNote(note.id);
+        });
+
+        notesList.appendChild(noteElement);
+    });
+}
+
+async function createNote() {
+    const content = document.getElementById('new-note-content').value.trim();
+    if (!content) {
+        showNotification('El contenido de la nota no puede estar vacío', 'warning');
+        return;
+    }
+
+    // Mostrar indicador de carga
+    const saveButton = document.getElementById('save-new-note');
+    const originalText = saveButton.innerHTML;
+    saveButton.disabled = true;
+    saveButton.innerHTML = `
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Guardando...
+    `;
+
+    try {
+        // Obtener el token de antiforgery del formulario oculto
+        const token = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]')?.value;
+
+        // Verificar si tenemos el token
+        if (!token) {
+            console.error('No se pudo encontrar el token de antiforgery');
+            console.log('Formulario:', document.getElementById('antiforgery-form'));
+            console.log('Token input:', document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]'));
+            showNotification('Error de autenticación al guardar la nota', 'danger');
+
+            // Restaurar el botón
+            saveButton.disabled = false;
+            saveButton.innerHTML = originalText;
+            return;
+        }
+
+        console.log('Enviando nota con token:', token);
+        console.log('Contenido:', content);
+        console.log('ID del libro:', bookId);
+
+        // Crear un objeto FormData
+        const formData = new FormData();
+        formData.append('bookId', bookId);
+        formData.append('content', content);
+
+        // Realizar la solicitud al servidor con FormData
+        const response = await fetch('/Notes/CreateNote', {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': token
+            },
+            body: formData
+        });
+
+        // Restaurar el botón
+        saveButton.disabled = false;
+        saveButton.innerHTML = originalText;
+
+        // Analizar la respuesta
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Respuesta del servidor:', result);
+
+            if (result.success) {
+                notes.push(result.note);
+                renderNotes();
+                document.getElementById('new-note-content').value = '';
+                showNotification('Nota guardada correctamente', 'success');
+            } else {
+                showNotification('Error al guardar la nota: ' + (result.message || 'Respuesta inválida'), 'danger');
+            }
+        } else {
+            const errorText = await response.text();
+            console.error('Error al guardar la nota - Respuesta:', response.status, errorText);
+            showNotification(`Error al guardar la nota (${response.status})`, 'danger');
+        }
+    } catch (error) {
+        console.error('Error al crear la nota:', error);
+        showNotification('Error al guardar la nota: ' + error.message, 'danger');
+
+        // Restaurar el botón
+        saveButton.disabled = false;
+        saveButton.innerHTML = originalText;
+    }
+}
+
+function editNote(note) {
+    const noteElement = document.querySelector(`.note-item[data-note-id="${note.id}"]`);
+    const contentElement = noteElement.querySelector('.note-content');
+    const currentContent = contentElement.textContent;
+
+    // Crear campo de texto para editar
+    const textarea = document.createElement('textarea');
+    textarea.className = 'form-control mb-2';
+    textarea.value = currentContent;
+    textarea.rows = 3;
+
+    // Crear botones de acción
+    const actions = document.createElement('div');
+    actions.className = 'd-flex justify-content-end';
+    actions.innerHTML = `
+        <button class="btn btn-sm btn-outline-secondary me-2 cancel-edit">Cancelar</button>
+        <button class="btn btn-sm btn-primary save-edit">Guardar</button>
+    `;
+
+    // Reemplazar el contenido con el editor
+    contentElement.replaceWith(textarea);
+    noteElement.querySelector('.note-actions').style.display = 'none';
+    noteElement.appendChild(actions);
+
+    // Enfocar el textarea
+    textarea.focus();
+
+    // Evento para cancelar la edición
+    noteElement.querySelector('.cancel-edit').addEventListener('click', () => {
+        textarea.replaceWith(contentElement);
+        actions.remove();
+        noteElement.querySelector('.note-actions').style.display = '';
+    });
+
+    // Evento para guardar la edición
+    noteElement.querySelector('.save-edit').addEventListener('click', async () => {
+        const newContent = textarea.value.trim();
+        if (!newContent) {
+            showNotification('El contenido de la nota no puede estar vacío', 'warning');
+            return;
+        }
+
+        try {
+            // Obtener el token de antiforgery del formulario oculto
+            const token = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]')?.value;
+
+            // Verificar si tenemos el token
+            if (!token) {
+                console.error('No se pudo encontrar el token de antiforgery');
+                showNotification('Error de autenticación al actualizar la nota', 'danger');
+                renderNotes();
+                return;
+            }
+
+            // Usar FormData para compatibilidad con ASP.NET Core
+            const formData = new FormData();
+            formData.append('id', note.id);
+            formData.append('content', newContent);
+
+            const response = await fetch(`/Notes/UpdateNote`, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+
+                // Actualizar la nota en el array
+                const index = notes.findIndex(n => n.id === note.id);
+                if (index !== -1) {
+                    notes[index] = result.note;
+                }
+
+                renderNotes();
+                showNotification('Nota actualizada correctamente', 'success');
+            } else {
+                const errorText = await response.text();
+                console.error('Error al actualizar la nota:', errorText);
+                showNotification('Error al actualizar la nota', 'danger');
+                renderNotes();
+            }
+        } catch (error) {
+            console.error('Error al actualizar la nota:', error);
+            showNotification('Error al actualizar la nota', 'danger');
+            renderNotes();
+        }
+    });
+}
+
+async function deleteNote(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta nota?')) {
+        return;
+    }
+
+    try {
+        // Obtener el token de antiforgery del formulario oculto
+        const token = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]')?.value;
+
+        // Verificar si tenemos el token
+        if (!token) {
+            console.error('No se pudo encontrar el token de antiforgery');
+            showNotification('Error de autenticación al eliminar la nota', 'danger');
+            return;
+        }
+
+        // Usar FormData para compatibilidad con ASP.NET Core
+        const formData = new FormData();
+        formData.append('id', id);
+
+        const response = await fetch(`/Notes/DeleteNote`, {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': token
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            // Eliminar la nota del array
+            notes = notes.filter(n => n.id !== id);
+            renderNotes();
+            showNotification('Nota eliminada correctamente', 'success');
+        } else {
+            const errorText = await response.text();
+            console.error('Error al eliminar la nota:', errorText);
+            showNotification('Error al eliminar la nota', 'danger');
+        }
+    } catch (error) {
+        console.error('Error al eliminar la nota:', error);
+        showNotification('Error al eliminar la nota', 'danger');
+    }
+}
+
+// Funciones para la configuración del lector
+async function loadReaderSettings() {
+    try {
+        const response = await fetch('/ReaderSettings/GetSettings');
+        if (response.ok) {
+            const settings = await response.json();
+            readerSettings = settings;
+
+            // Aplicar configuración
+            applyReaderSettings();
+
+            // Actualizar controles en el modal
+            document.querySelector(`input[name="theme"][value="${settings.theme}"]`).checked = true;
+            document.getElementById('font-family').value = settings.fontFamily;
+            document.getElementById('font-size').value = settings.fontSize;
+            document.getElementById('font-size-value').textContent = `${settings.fontSize}px`;
+
+            updatePreview();
+        }
+    } catch (error) {
+        console.error('Error al cargar la configuración del lector:', error);
+    }
+}
+
+function applyReaderSettings() {
+    // Aplicar tema al contenedor
+    const bookContainer = document.getElementById('book-container');
+    bookContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+    bookContainer.classList.add(`theme-${readerSettings.theme}`);
+
+    // Aplicar filtros según el tema
+    const canvas = document.getElementById('single-canvas');
+    if (readerSettings.theme === 'sepia') {
+        canvas.style.filter = 'sepia(0.5)';
+    } else if (readerSettings.theme === 'dark') {
+        canvas.style.filter = 'invert(0.85) hue-rotate(180deg)';
+    } else {
+        canvas.style.filter = 'none';
+    }
+}
+
+function updatePreview() {
+    const previewText = document.getElementById('preview-text');
+    const previewContainer = document.getElementById('preview-container');
+
+    // Aplicar fuente y tamaño
+    previewText.style.fontFamily = document.getElementById('font-family').value;
+    previewText.style.fontSize = `${document.getElementById('font-size').value}px`;
+
+    // Aplicar tema
+    const theme = document.querySelector('input[name="theme"]:checked').value;
+
+    previewContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+    previewContainer.classList.add(`theme-${theme}`);
+
+    // Actualizar el valor mostrado
+    document.getElementById('font-size-value').textContent = `${document.getElementById('font-size').value}px`;
+}
+
+async function saveReaderSettings() {
+    const theme = document.querySelector('input[name="theme"]:checked').value;
+    const fontFamily = document.getElementById('font-family').value;
+    const fontSize = parseInt(document.getElementById('font-size').value);
+
+    try {
+        // Obtener el token de antiforgery del formulario oculto
+        const token = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]')?.value;
+
+        // Verificar si tenemos el token
+        if (!token) {
+            console.error('No se pudo encontrar el token de antiforgery');
+            showNotification('Error de autenticación al guardar la configuración', 'danger');
+            return;
+        }
+
+        // Usar FormData para compatibilidad con ASP.NET Core
+        const formData = new FormData();
+        formData.append('theme', theme);
+        formData.append('fontFamily', fontFamily);
+        formData.append('fontSize', fontSize);
+
+        const response = await fetch('/ReaderSettings/UpdateSettings', {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': token
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+
+            // Guardar la configuración localmente para uso inmediato
+            readerSettings = {
+                theme: theme,
+                fontFamily: fontFamily,
+                fontSize: fontSize
+            };
+
+            // Aplicar la configuración
+            applyReaderSettings();
+
+            // Cerrar el modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('settings-modal'));
+            modal.hide();
+
+            showNotification('Configuración guardada correctamente', 'success');
+        } else {
+            const errorText = await response.text();
+            console.error('Error al guardar la configuración:', errorText);
+            showNotification('Error al guardar la configuración', 'danger');
+        }
+    } catch (error) {
+        console.error('Error al guardar la configuración del lector:', error);
+        showNotification('Error al guardar la configuración', 'danger');
     }
 }
 
 // Configurar eventos
 function setupEventListeners() {
     document.getElementById('first-page').addEventListener('click', () => goToPage(1));
-    document.getElementById('prev-page').addEventListener('click', previousPages);
-    document.getElementById('next-page').addEventListener('click', nextPages);
-    document.getElementById('last-page').addEventListener('click', () => {
-        const lastPage = isDoublePage ?
-            (totalPages % 2 === 0 ? totalPages - 1 : totalPages) :
-            totalPages;
-        goToPage(lastPage);
-    });
+    document.getElementById('prev-page').addEventListener('click', previousPage);
+    document.getElementById('next-page').addEventListener('click', nextPage);
+    document.getElementById('last-page').addEventListener('click', () => goToPage(totalPages));
 
     document.getElementById('current-page-input').addEventListener('change', function () {
         const page = parseInt(this.value);
@@ -787,8 +1142,6 @@ function setupEventListeners() {
     document.getElementById('zoom-fit-width').addEventListener('click', fitToWidth);
     document.getElementById('zoom-fit-page').addEventListener('click', fitToPage);
 
-    document.getElementById('toggle-mode').addEventListener('click', toggleBookMode);
-
     document.getElementById('bookmark-button').addEventListener('click', function () {
         document.getElementById('bookmark-page').textContent = currentPage;
         const modal = new bootstrap.Modal(document.getElementById('bookmark-modal'));
@@ -802,6 +1155,9 @@ function setupEventListeners() {
         if (panel.style.display === 'none') {
             panel.style.display = 'block';
             document.getElementById('bookmarks-tab').click();
+
+            // Ocultar otros paneles
+            document.getElementById('notes-panel').style.display = 'none';
         } else {
             if (document.getElementById('bookmarks-tab').classList.contains('active')) {
                 panel.style.display = 'none';
@@ -816,6 +1172,9 @@ function setupEventListeners() {
         if (panel.style.display === 'none') {
             panel.style.display = 'block';
             document.getElementById('toc-tab').click();
+
+            // Ocultar otros paneles
+            document.getElementById('notes-panel').style.display = 'none';
         } else {
             if (document.getElementById('toc-tab').classList.contains('active')) {
                 panel.style.display = 'none';
@@ -832,6 +1191,47 @@ function setupEventListeners() {
     document.getElementById('close-side-panel-toc').addEventListener('click', function () {
         document.getElementById('side-panel').style.display = 'none';
     });
+
+    // Eventos para notas
+    document.getElementById('toggle-notes').addEventListener('click', function () {
+        const panel = document.getElementById('notes-panel');
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            // Ocultar otros paneles si están abiertos
+            document.getElementById('side-panel').style.display = 'none';
+        } else {
+            panel.style.display = 'none';
+        }
+    });
+
+    document.getElementById('close-notes-panel').addEventListener('click', function () {
+        document.getElementById('notes-panel').style.display = 'none';
+    });
+
+    document.getElementById('save-new-note').addEventListener('click', createNote);
+
+    // Permitir usar Ctrl+Enter para guardar la nota
+    document.getElementById('new-note-content').addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            createNote();
+        }
+    });
+
+    // Eventos para configuración del lector
+    document.getElementById('toggle-settings').addEventListener('click', function () {
+        const modal = new bootstrap.Modal(document.getElementById('settings-modal'));
+        modal.show();
+    });
+
+    // Actualizar vista previa en tiempo real
+    document.getElementById('font-family').addEventListener('change', updatePreview);
+    document.getElementById('font-size').addEventListener('input', updatePreview);
+    document.querySelectorAll('input[name="theme"]').forEach(radio => {
+        radio.addEventListener('change', updatePreview);
+    });
+
+    // Guardar configuración
+    document.getElementById('save-settings').addEventListener('click', saveReaderSettings);
 
     document.getElementById('toggle-fullscreen').addEventListener('click', function () {
         const elem = document.getElementById('book-container');
@@ -860,11 +1260,11 @@ function setupEventListeners() {
     function handleSwipe() {
         const minSwipeDistance = 50;
         if (touchEndX < touchStartX - minSwipeDistance) {
-            nextPages();
+            nextPage();
         }
 
         if (touchEndX > touchStartX + minSwipeDistance) {
-            previousPages();
+            previousPage();
         }
     }
 
@@ -874,16 +1274,16 @@ function setupEventListeners() {
 
         switch (e.key) {
             case 'ArrowLeft':
-                previousPages();
+                previousPage();
                 break;
             case 'ArrowRight':
-                nextPages();
+                nextPage();
                 break;
             case 'Home':
                 goToPage(1);
                 break;
             case 'End':
-                goToPage(isDoublePage ? (totalPages % 2 === 0 ? totalPages - 1 : totalPages) : totalPages);
+                goToPage(totalPages);
                 break;
             case '+':
                 document.getElementById('zoom-in').click();
@@ -894,9 +1294,25 @@ function setupEventListeners() {
             case 'f':
                 document.getElementById('toggle-fullscreen').click();
                 break;
-            case 'm':
-                document.getElementById('toggle-mode').click();
-                break;
+        }
+    });
+
+    // Evento para pantalla completa
+    document.addEventListener('fullscreenchange', function () {
+        const bookContainer = document.getElementById('book-container');
+
+        if (document.fullscreenElement) {
+            bookContainer.classList.add('fullscreen-mode');
+            showNotification('Presiona ESC para salir de pantalla completa', 'info');
+        } else {
+            bookContainer.classList.remove('fullscreen-mode');
+        }
+
+        // Re-renderizar para ajustar tamaño
+        if (pdfDoc) {
+            if (isFitWidth) fitToWidth();
+            else if (isFitPage) fitToPage();
+            else renderCurrentPage();
         }
     });
 }
