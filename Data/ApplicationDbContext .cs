@@ -70,9 +70,9 @@ namespace EReaderApp.Data
                 .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Note>()
-                .HasOne<User>()
+                .HasOne(n => n.User)
                 .WithMany()
-                .HasForeignKey("UserId")
+                .HasForeignKey(n => n.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<ReaderSettings>()
