@@ -45,7 +45,7 @@ namespace EReaderApp.Controllers
             return Json(settings);
         }
 
-        // Actualizar configuración del lector
+        // Actualizar configuración del lector - permite recibir datos de FormData
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateSettings(string theme, string fontFamily, int fontSize)

@@ -33,7 +33,7 @@ namespace EReaderApp.Controllers
             return Json(notes);
         }
 
-        // API para crear una nueva nota
+        // API para crear una nueva nota - permite recibir datos de FormData
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateNote(int bookId, string content)
@@ -57,7 +57,7 @@ namespace EReaderApp.Controllers
             return Json(new { success = true, note });
         }
 
-        // API para actualizar una nota
+        // API para actualizar una nota - permite recibir datos de FormData
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateNote(int id, string content)
@@ -82,7 +82,7 @@ namespace EReaderApp.Controllers
             return Json(new { success = true, note });
         }
 
-        // API para eliminar una nota
+        // API para eliminar una nota - permite recibir datos de FormData
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteNote(int id)

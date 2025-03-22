@@ -672,6 +672,7 @@ function loadPosition() {
 }
 
 // Funciones para notas
+// Funciones para notas
 async function loadNotes() {
     try {
         // Mostrar indicador de carga en el panel de notas
@@ -774,6 +775,8 @@ function renderNotes() {
     });
 }
 
+
+// Función corregida para crear notas
 async function createNote() {
     const content = document.getElementById('new-note-content').value.trim();
     if (!content) {
@@ -783,6 +786,11 @@ async function createNote() {
 
     // Mostrar indicador de carga
     const saveButton = document.getElementById('save-new-note');
+    if (!saveButton) {
+        console.error('Botón de guardar nota no encontrado');
+        return;
+    }
+
     const originalText = saveButton.innerHTML;
     saveButton.disabled = true;
     saveButton.innerHTML = `
@@ -799,6 +807,11 @@ async function createNote() {
             console.error('No se pudo encontrar el token de antiforgery');
             console.log('Formulario:', document.getElementById('antiforgery-form'));
             console.log('Token input:', document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]'));
+
+            // Intenta encontrar el token de otra manera
+            const allTokens = document.querySelectorAll('input[name="__RequestVerificationToken"]');
+            console.log('Todos los tokens encontrados:', allTokens);
+
             showNotification('Error de autenticación al guardar la nota', 'danger');
 
             // Restaurar el botón
@@ -807,14 +820,18 @@ async function createNote() {
             return;
         }
 
-        console.log('Enviando nota con token:', token);
-        console.log('Contenido:', content);
-        console.log('ID del libro:', bookId);
+        console.log('Token encontrado:', token);
+        console.log('Creando nota para el libro ID:', bookId);
 
         // Crear un objeto FormData
         const formData = new FormData();
         formData.append('bookId', bookId);
         formData.append('content', content);
+
+        // Debug de FormData
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
 
         // Realizar la solicitud al servidor con FormData
         const response = await fetch('/Notes/CreateNote', {
@@ -840,6 +857,7 @@ async function createNote() {
                 document.getElementById('new-note-content').value = '';
                 showNotification('Nota guardada correctamente', 'success');
             } else {
+                console.error('Error de respuesta del servidor:', result);
                 showNotification('Error al guardar la nota: ' + (result.message || 'Respuesta inválida'), 'danger');
             }
         } else {
@@ -1006,9 +1024,25 @@ async function loadReaderSettings() {
 
             // Actualizar controles en el modal
             document.querySelector(`input[name="theme"][value="${settings.theme}"]`).checked = true;
-            document.getElementById('font-family').value = settings.fontFamily;
-            document.getElementById('font-size').value = settings.fontSize;
-            document.getElementById('font-size-value').textContent = `${settings.fontSize}px`;
+
+            // Configurar el zoom según las preferencias guardadas
+            const savedZoom = localStorage.getItem(`zoom_${bookId}`);
+            if (savedZoom) {
+                const zoomConfig = JSON.parse(savedZoom);
+                if (zoomConfig.fitWidth) {
+                    fitToWidth();
+                    document.getElementById('default-zoom').value = 'width';
+                } else if (zoomConfig.fitPage) {
+                    fitToPage();
+                    document.getElementById('default-zoom').value = 'page';
+                } else {
+                    setZoom(zoomConfig.scale || 1.0);
+                    document.getElementById('default-zoom').value = zoomConfig.scale || '1.0';
+                }
+            } else {
+                document.getElementById('default-zoom').value = 'page';
+                fitToPage();
+            }
 
             updatePreview();
         }
@@ -1035,12 +1069,8 @@ function applyReaderSettings() {
 }
 
 function updatePreview() {
-    const previewText = document.getElementById('preview-text');
     const previewContainer = document.getElementById('preview-container');
-
-    // Aplicar fuente y tamaño
-    previewText.style.fontFamily = document.getElementById('font-family').value;
-    previewText.style.fontSize = `${document.getElementById('font-size').value}px`;
+    const previewElement = document.getElementById('theme-preview');
 
     // Aplicar tema
     const theme = document.querySelector('input[name="theme"]:checked').value;
@@ -1048,14 +1078,22 @@ function updatePreview() {
     previewContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
     previewContainer.classList.add(`theme-${theme}`);
 
-    // Actualizar el valor mostrado
-    document.getElementById('font-size-value').textContent = `${document.getElementById('font-size').value}px`;
+    // Aplicar estilo según el tema
+    if (theme === 'light') {
+        previewElement.style.backgroundColor = '#ffffff';
+        previewElement.style.color = '#333333';
+    } else if (theme === 'sepia') {
+        previewElement.style.backgroundColor = '#f4ecd8';
+        previewElement.style.color = '#5f4b32';
+    } else if (theme === 'dark') {
+        previewElement.style.backgroundColor = '#333333';
+        previewElement.style.color = '#eeeeee';
+    }
 }
 
 async function saveReaderSettings() {
     const theme = document.querySelector('input[name="theme"]:checked').value;
-    const fontFamily = document.getElementById('font-family').value;
-    const fontSize = parseInt(document.getElementById('font-size').value);
+    const defaultZoom = document.getElementById('default-zoom').value;
 
     try {
         // Obtener el token de antiforgery del formulario oculto
@@ -1071,8 +1109,8 @@ async function saveReaderSettings() {
         // Usar FormData para compatibilidad con ASP.NET Core
         const formData = new FormData();
         formData.append('theme', theme);
-        formData.append('fontFamily', fontFamily);
-        formData.append('fontSize', fontSize);
+        formData.append('fontFamily', 'Arial'); // Valor por defecto aunque no se use
+        formData.append('fontSize', '16'); // Valor por defecto aunque no se use
 
         const response = await fetch('/ReaderSettings/UpdateSettings', {
             method: 'POST',
@@ -1088,9 +1126,30 @@ async function saveReaderSettings() {
             // Guardar la configuración localmente para uso inmediato
             readerSettings = {
                 theme: theme,
-                fontFamily: fontFamily,
-                fontSize: fontSize
+                fontFamily: 'Arial', // Valor por defecto aunque no se use
+                fontSize: 16 // Valor por defecto aunque no se use
             };
+
+            // Guardar la configuración de zoom en localStorage
+            const zoomConfig = {
+                scale: 1.0,
+                fitWidth: false,
+                fitPage: false
+            };
+
+            // Aplicar el zoom según la opción seleccionada
+            if (defaultZoom === 'width') {
+                zoomConfig.fitWidth = true;
+                fitToWidth();
+            } else if (defaultZoom === 'page') {
+                zoomConfig.fitPage = true;
+                fitToPage();
+            } else {
+                zoomConfig.scale = parseFloat(defaultZoom);
+                setZoom(zoomConfig.scale);
+            }
+
+            localStorage.setItem(`zoom_${bookId}`, JSON.stringify(zoomConfig));
 
             // Aplicar la configuración
             applyReaderSettings();
@@ -1113,128 +1172,227 @@ async function saveReaderSettings() {
 
 // Configurar eventos
 function setupEventListeners() {
-    document.getElementById('first-page').addEventListener('click', () => goToPage(1));
-    document.getElementById('prev-page').addEventListener('click', previousPage);
-    document.getElementById('next-page').addEventListener('click', nextPage);
-    document.getElementById('last-page').addEventListener('click', () => goToPage(totalPages));
+    // Función auxiliar para agregar event listeners de manera segura
+    function addSafeEventListener(elementId, eventType, handler) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.addEventListener(eventType, handler);
+        } else {
+            console.warn(`Elemento con id "${elementId}" no encontrado en el DOM`);
+        }
+    }
 
-    document.getElementById('current-page-input').addEventListener('change', function () {
+    // Navegación de páginas
+    addSafeEventListener('first-page', 'click', () => goToPage(1));
+    addSafeEventListener('prev-page', 'click', previousPage);
+    addSafeEventListener('next-page', 'click', nextPage);
+    addSafeEventListener('last-page', 'click', () => goToPage(totalPages));
+
+    // Input de página actual
+    addSafeEventListener('current-page-input', 'change', function () {
         const page = parseInt(this.value);
         if (page >= 1 && page <= totalPages) {
             goToPage(page);
         }
     });
 
-    document.getElementById('zoom-in').addEventListener('click', () => {
+    // Controles de zoom
+    addSafeEventListener('zoom-in', 'click', () => {
         setZoom(Math.min(scale + 0.15, 2.0));
     });
 
-    document.getElementById('zoom-out').addEventListener('click', () => {
+    addSafeEventListener('zoom-out', 'click', () => {
         setZoom(Math.max(scale - 0.15, 0.5));
     });
 
-    document.querySelectorAll('.zoom-preset').forEach(preset => {
-        preset.addEventListener('click', function () {
-            setZoom(parseFloat(this.dataset.zoom));
+    // Presets de zoom
+    const zoomPresets = document.querySelectorAll('.zoom-preset');
+    if (zoomPresets.length > 0) {
+        zoomPresets.forEach(preset => {
+            preset.addEventListener('click', function () {
+                setZoom(parseFloat(this.dataset.zoom));
+            });
         });
+    } else {
+        console.warn('No se encontraron elementos con la clase "zoom-preset"');
+    }
+
+    // Opciones de ajuste
+    addSafeEventListener('zoom-fit-width', 'click', fitToWidth);
+    addSafeEventListener('zoom-fit-page', 'click', fitToPage);
+
+    // Botón de marcadores
+    addSafeEventListener('bookmark-button', 'click', function () {
+        const bookmarkPage = document.getElementById('bookmark-page');
+        if (bookmarkPage) {
+            bookmarkPage.textContent = currentPage;
+        }
+        const modalElement = document.getElementById('bookmark-modal');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            console.warn('Elemento modal de marcadores no encontrado');
+        }
     });
 
-    document.getElementById('zoom-fit-width').addEventListener('click', fitToWidth);
-    document.getElementById('zoom-fit-page').addEventListener('click', fitToPage);
+    // Guardar marcador
+    addSafeEventListener('save-bookmark', 'click', saveBookmark);
 
-    document.getElementById('bookmark-button').addEventListener('click', function () {
-        document.getElementById('bookmark-page').textContent = currentPage;
-        const modal = new bootstrap.Modal(document.getElementById('bookmark-modal'));
-        modal.show();
-    });
-
-    document.getElementById('save-bookmark').addEventListener('click', saveBookmark);
-
-    document.getElementById('toggle-bookmarks').addEventListener('click', function () {
+    // Toggle de paneles laterales
+    addSafeEventListener('toggle-bookmarks', 'click', function () {
         const panel = document.getElementById('side-panel');
+        const bookmarksTab = document.getElementById('bookmarks-tab');
+        const notesPanel = document.getElementById('notes-panel');
+
+        if (!panel || !bookmarksTab) {
+            console.warn('Elementos del panel lateral o pestañas no encontrados');
+            return;
+        }
+
         if (panel.style.display === 'none') {
             panel.style.display = 'block';
-            document.getElementById('bookmarks-tab').click();
+            bookmarksTab.click();
 
             // Ocultar otros paneles
-            document.getElementById('notes-panel').style.display = 'none';
+            if (notesPanel) {
+                notesPanel.style.display = 'none';
+            }
         } else {
-            if (document.getElementById('bookmarks-tab').classList.contains('active')) {
+            if (bookmarksTab.classList.contains('active')) {
                 panel.style.display = 'none';
             } else {
-                document.getElementById('bookmarks-tab').click();
+                bookmarksTab.click();
             }
         }
     });
 
-    document.getElementById('toggle-toc').addEventListener('click', function () {
+    addSafeEventListener('toggle-toc', 'click', function () {
         const panel = document.getElementById('side-panel');
+        const tocTab = document.getElementById('toc-tab');
+        const notesPanel = document.getElementById('notes-panel');
+
+        if (!panel || !tocTab) {
+            console.warn('Elementos del panel lateral o pestañas no encontrados');
+            return;
+        }
+
         if (panel.style.display === 'none') {
             panel.style.display = 'block';
-            document.getElementById('toc-tab').click();
+            tocTab.click();
 
             // Ocultar otros paneles
-            document.getElementById('notes-panel').style.display = 'none';
+            if (notesPanel) {
+                notesPanel.style.display = 'none';
+            }
         } else {
-            if (document.getElementById('toc-tab').classList.contains('active')) {
+            if (tocTab.classList.contains('active')) {
                 panel.style.display = 'none';
             } else {
-                document.getElementById('toc-tab').click();
+                tocTab.click();
             }
         }
     });
 
-    document.getElementById('close-side-panel').addEventListener('click', function () {
-        document.getElementById('side-panel').style.display = 'none';
+    // Botones para cerrar paneles
+    addSafeEventListener('close-side-panel', 'click', function () {
+        const panel = document.getElementById('side-panel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
     });
 
-    document.getElementById('close-side-panel-toc').addEventListener('click', function () {
-        document.getElementById('side-panel').style.display = 'none';
+    addSafeEventListener('close-side-panel-toc', 'click', function () {
+        const panel = document.getElementById('side-panel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
     });
 
     // Eventos para notas
-    document.getElementById('toggle-notes').addEventListener('click', function () {
+    addSafeEventListener('toggle-notes', 'click', function () {
         const panel = document.getElementById('notes-panel');
+        const sidePanel = document.getElementById('side-panel');
+
+        if (!panel) {
+            console.warn('Panel de notas no encontrado');
+            return;
+        }
+
         if (panel.style.display === 'none') {
             panel.style.display = 'block';
             // Ocultar otros paneles si están abiertos
-            document.getElementById('side-panel').style.display = 'none';
+            if (sidePanel) {
+                sidePanel.style.display = 'none';
+            }
         } else {
             panel.style.display = 'none';
         }
     });
 
-    document.getElementById('close-notes-panel').addEventListener('click', function () {
-        document.getElementById('notes-panel').style.display = 'none';
-    });
-
-    document.getElementById('save-new-note').addEventListener('click', createNote);
-
-    // Permitir usar Ctrl+Enter para guardar la nota
-    document.getElementById('new-note-content').addEventListener('keydown', function (e) {
-        if (e.ctrlKey && e.key === 'Enter') {
-            createNote();
+    addSafeEventListener('close-notes-panel', 'click', function () {
+        const panel = document.getElementById('notes-panel');
+        if (panel) {
+            panel.style.display = 'none';
         }
     });
 
+    addSafeEventListener('save-new-note', 'click', createNote);
+
+    // Permitir usar Ctrl+Enter para guardar la nota
+    const noteContent = document.getElementById('new-note-content');
+    if (noteContent) {
+        noteContent.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                createNote();
+            }
+        });
+    } else {
+        console.warn('Elemento de contenido de nota no encontrado');
+    }
+
     // Eventos para configuración del lector
-    document.getElementById('toggle-settings').addEventListener('click', function () {
-        const modal = new bootstrap.Modal(document.getElementById('settings-modal'));
-        modal.show();
+    addSafeEventListener('toggle-settings', 'click', function () {
+        const modalElement = document.getElementById('settings-modal');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            console.warn('Modal de configuración no encontrado');
+        }
     });
 
     // Actualizar vista previa en tiempo real
-    document.getElementById('font-family').addEventListener('change', updatePreview);
-    document.getElementById('font-size').addEventListener('input', updatePreview);
-    document.querySelectorAll('input[name="theme"]').forEach(radio => {
-        radio.addEventListener('change', updatePreview);
-    });
+    const fontFamily = document.getElementById('font-family');
+    if (fontFamily) {
+        fontFamily.addEventListener('change', updatePreview);
+    }
+
+    const fontSize = document.getElementById('font-size');
+    if (fontSize) {
+        fontSize.addEventListener('input', updatePreview);
+    }
+
+    const themeRadios = document.querySelectorAll('input[name="theme"]');
+    if (themeRadios.length > 0) {
+        themeRadios.forEach(radio => {
+            radio.addEventListener('change', updatePreview);
+        });
+    } else {
+        console.warn('No se encontraron radios de tema');
+    }
 
     // Guardar configuración
-    document.getElementById('save-settings').addEventListener('click', saveReaderSettings);
+    addSafeEventListener('save-settings', 'click', saveReaderSettings);
 
-    document.getElementById('toggle-fullscreen').addEventListener('click', function () {
+    // Pantalla completa
+    addSafeEventListener('toggle-fullscreen', 'click', function () {
         const elem = document.getElementById('book-container');
+        if (!elem) {
+            console.warn('Contenedor del libro no encontrado');
+            return;
+        }
+
         if (!document.fullscreenElement) {
             elem.requestFullscreen().catch(err => {
                 console.error(`Error al entrar en pantalla completa: ${err.message}`);
@@ -1248,14 +1406,19 @@ function setupEventListeners() {
     let touchStartX = 0;
     let touchEndX = 0;
 
-    document.getElementById('book-container').addEventListener('touchstart', function (e) {
-        touchStartX = e.changedTouches[0].screenX;
-    });
+    const bookContainer = document.getElementById('book-container');
+    if (bookContainer) {
+        bookContainer.addEventListener('touchstart', function (e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
 
-    document.getElementById('book-container').addEventListener('touchend', function (e) {
-        touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
-    });
+        bookContainer.addEventListener('touchend', function (e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+    } else {
+        console.warn('Contenedor del libro no encontrado para eventos táctiles');
+    }
 
     function handleSwipe() {
         const minSwipeDistance = 50;
@@ -1286,13 +1449,16 @@ function setupEventListeners() {
                 goToPage(totalPages);
                 break;
             case '+':
-                document.getElementById('zoom-in').click();
+                const zoomInBtn = document.getElementById('zoom-in');
+                if (zoomInBtn) zoomInBtn.click();
                 break;
             case '-':
-                document.getElementById('zoom-out').click();
+                const zoomOutBtn = document.getElementById('zoom-out');
+                if (zoomOutBtn) zoomOutBtn.click();
                 break;
             case 'f':
-                document.getElementById('toggle-fullscreen').click();
+                const fullscreenBtn = document.getElementById('toggle-fullscreen');
+                if (fullscreenBtn) fullscreenBtn.click();
                 break;
         }
     });
@@ -1300,6 +1466,10 @@ function setupEventListeners() {
     // Evento para pantalla completa
     document.addEventListener('fullscreenchange', function () {
         const bookContainer = document.getElementById('book-container');
+        if (!bookContainer) {
+            console.warn('Contenedor del libro no encontrado para evento de pantalla completa');
+            return;
+        }
 
         if (document.fullscreenElement) {
             bookContainer.classList.add('fullscreen-mode');

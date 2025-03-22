@@ -270,32 +270,29 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="font-family" class="form-label fw-medium">Fuente</label>
-                        <select class="form-select" id="font-family">
-                            <option value="Arial">Arial</option>
-                            <option value="Georgia">Georgia</option>
-                            <option value="Times New Roman">Times New Roman</option>
-                            <option value="Verdana">Verdana</option>
-                            <option value="Courier New">Courier New</option>
+                        <label class="form-label fw-medium">Vista Previa del Tema</label>
+                        <div id="preview-container" class="p-3 border rounded">
+                            <div id="theme-preview" class="d-flex align-items-center justify-content-center" style="height: 100px;">
+                                <i class="fas fa-book fa-2x"></i>
+                                <span class="ms-2">Vista previa del tema</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="default-zoom" class="form-label fw-medium">Zoom Predeterminado</label>
+                        <select class="form-select" id="default-zoom">
+                            <option value="page">Ajustar a la página</option>
+                            <option value="width">Ajustar al ancho</option>
+                            <option value="1.0">100%</option>
+                            <option value="1.2">120%</option>
+                            <option value="1.5">150%</option>
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="font-size" class="form-label fw-medium">Tamaño de Fuente</label>
-                        <div class="d-flex align-items-center gap-2">
-                            <input type="range" class="form-range flex-grow-1" id="font-size" min="12" max="24" step="1" value="16">
-                            <span id="font-size-value" class="badge bg-primary">16px</span>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">Vista Previa</label>
-                        <div id="preview-container" class="p-3 border rounded">
-                            <p id="preview-text" style="margin-bottom: 0; font-family: Arial; font-size: 16px;">
-                                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.
-                            </p>
-                        </div>
-                    </div>
+                    <!-- Campo oculto para mantener compatibilidad con el controlador -->
+                    <input type="hidden" id="font-family" value="Arial">
+                    <input type="hidden" id="font-size" value="16">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -304,6 +301,7 @@
             </div>
         </div>
     </div>
+
 </div>
 
 @section Styles {
