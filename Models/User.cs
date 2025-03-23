@@ -19,8 +19,11 @@ namespace EReaderApp.Models
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
-        public string? ProfilePicture { get; set; } // Optional Profile Picture
+        public string? ProfilePicture { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now; // Default to current time
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [Required]
+        public string Role { get; set; } = "User"; // Default role is User, can be "Admin" for administrators
     }
 }

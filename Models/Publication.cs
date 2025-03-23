@@ -22,7 +22,7 @@ namespace EReaderApp.Models
         public int FKIdUser { get; set; }
 
         [ForeignKey("FKIdUser")]
-        public User User { get; set; }
+        public User? User { get; set; } // Made nullable to avoid validation error
 
         // Add these missing properties
         public DateTime CreatedAt { get; set; } = DateTime.Now;
@@ -30,5 +30,8 @@ namespace EReaderApp.Models
         // Navigation property for likes
         [NotMapped] // This ensures it's not trying to create a DB column
         public ICollection<PublicationLike> Likes { get; set; } = new List<PublicationLike>();
+
+        [NotMapped]
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     }
 }

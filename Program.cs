@@ -29,6 +29,11 @@ namespace EReaderApp
                     options.SlidingExpiration = true;
                 });
 
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
+            });
+
             // Configure session (BEFORE builder.Build())
             builder.Services.AddDistributedMemoryCache();
             builder.Services.AddSession(options =>

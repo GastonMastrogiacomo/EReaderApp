@@ -82,19 +82,21 @@
                 @foreach (var book in recommendedBooks)
                 {
                     <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
-                        <div class="book-card h-100">
+                        <div class="book-card">
                             <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook">
-                                @if (!string.IsNullOrEmpty(book.ImageLink))
-                                {
-                                    <div class="book-cover" style="background-image: url('@book.ImageLink');"></div>
-                                }
-                                else
-                                {
-                                    <div class="book-cover bg-light d-flex align-items-center justify-content-center">
-                                        <i class="fas fa-book fa-2x text-secondary"></i>
-                                    </div>
-                                }
-                                <div class="book-info p-2">
+                                <div class="book-cover-container">
+                                    @if (!string.IsNullOrEmpty(book.ImageLink))
+                                    {
+                                        <div class="book-cover" style="background-image: url('@book.ImageLink');"></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="book-cover bg-light d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-book fa-2x text-secondary"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="book-info">
                                     <h6 class="book-title text-truncate">@book.Title</h6>
                                     <p class="book-author text-muted small mb-0">@book.Author</p>
                                 </div>
@@ -117,19 +119,21 @@
                 @foreach (var book in popularBooks)
                 {
                     <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
-                        <div class="book-card h-100">
+                        <div class="book-card">
                             <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook">
-                                @if (!string.IsNullOrEmpty(book.ImageLink))
-                                {
-                                    <div class="book-cover" style="background-image: url('@book.ImageLink');"></div>
-                                }
-                                else
-                                {
-                                    <div class="book-cover bg-light d-flex align-items-center justify-content-center">
-                                        <i class="fas fa-book fa-2x text-secondary"></i>
-                                    </div>
-                                }
-                                <div class="book-info p-2">
+                                <div class="book-cover-container">
+                                    @if (!string.IsNullOrEmpty(book.ImageLink))
+                                    {
+                                        <div class="book-cover" style="background-image: url('@book.ImageLink');"></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="book-cover bg-light d-flex align-items-center justify-content-center">
+                                            <i class="fas fa-book fa-2x text-secondary"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="book-info">
                                     <h6 class="book-title text-truncate">@book.Title</h6>
                                     <p class="book-author text-muted small mb-0">@book.Author</p>
 

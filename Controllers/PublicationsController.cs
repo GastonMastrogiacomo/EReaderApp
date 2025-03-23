@@ -9,6 +9,8 @@ using EReaderApp.Data;
 using EReaderApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.IO; // Added missing import
+using Microsoft.AspNetCore.Http; // Added for IFormFile
 
 namespace EReaderApp.Controllers
 {
@@ -24,14 +26,39 @@ namespace EReaderApp.Controllers
         // GET: Publications
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Publications.Include(p => p.User);
-            return View(await applicationDbContext.ToListAsync());
+            var publications = await _context.Publications
+                .Include(p => p.User)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+
+            // Count likes and comments for each publication
+            foreach (var publication in publications)
+            {
+                publication.Likes = await _context.PublicationLikes
+                    .Where(pl => pl.FKIdPublication == publication.IdPublication)
+                    .ToListAsync();
+
+                // Check if current user has liked this publication
+                if (User.Identity.IsAuthenticated)
+                {
+                    int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                    ViewData[$"UserLiked_{publication.IdPublication}"] =
+                        publication.Likes.Any(l => l.FKIdUser == userId);
+                }
+
+                // Count comments
+                ViewData[$"CommentsCount_{publication.IdPublication}"] =
+                    await _context.Comments.CountAsync(c => c.FKIdPublication == publication.IdPublication);
+            }
+
+            return View(publications);
         }
+
 
         // GET: Publications/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.Publications == null)
+            if (id == null)
             {
                 return NotFound();
             }
@@ -39,55 +66,63 @@ namespace EReaderApp.Controllers
             var publication = await _context.Publications
                 .Include(p => p.User)
                 .FirstOrDefaultAsync(m => m.IdPublication == id);
+
             if (publication == null)
             {
                 return NotFound();
             }
 
-            return View(publication);
-        }
-        /*
-        // GET: Publications/Create
-        public IActionResult Create()
-        {
-            ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email");
-            return View();
-        }
-       
-        // POST: Publications/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("IdPublication,Title,Content,PubImageUrl,FKIdUser")] Publication publication)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(publication);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", publication.FKIdUser);
-            return View(publication);
-        }
-        */
+            // Get comments for this publication
+            var comments = await _context.Comments
+                .Include(c => c.User)
+                .Where(c => c.FKIdPublication == id)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
 
-        [Authorize]
-        public async Task<IActionResult> Create()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        [Authorize]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Publication publication, IFormFile imageFile)
-        {
-            if (ModelState.IsValid)
+            // Check if current user has liked this publication
+            bool userHasLiked = false;
+            if (User.Identity.IsAuthenticated)
             {
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                publication.FKIdUser = userId;
+                userHasLiked = await _context.PublicationLikes
+                    .AnyAsync(pl => pl.FKIdPublication == id.Value && pl.FKIdUser == userId);
+            }
 
+            // Get like count
+            int likeCount = await _context.PublicationLikes
+                .CountAsync(pl => pl.FKIdPublication == id.Value);
+
+            ViewBag.Comments = comments;
+            ViewBag.UserHasLiked = userHasLiked;
+            ViewBag.LikeCount = likeCount;
+
+            return View(publication);
+        }
+
+
+        [Authorize]
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Publication publication, IFormFile? imageFile)
+        {
+            // Set the user ID before model validation
+            if (User.Identity.IsAuthenticated)
+            {
+                publication.FKIdUser = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                // Clear the model state error for FKIdUser since we're setting it manually
+                ModelState.Remove("FKIdUser");
+                ModelState.Remove("User"); // Clear User validation error too
+            }
+
+            // Now check if the model is valid
+            if (ModelState.IsValid)
+            {
                 // Handle image upload if provided
                 if (imageFile != null && imageFile.Length > 0)
                 {
@@ -109,10 +144,16 @@ namespace EReaderApp.Controllers
                     publication.PubImageUrl = $"/uploads/publications/{fileName}";
                 }
 
+                // Set creation timestamp
+                publication.CreatedAt = DateTime.Now;
+
                 _context.Add(publication);
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Publication created successfully!";
                 return RedirectToAction(nameof(Index));
             }
+
+            // If we got this far, something failed - redisplay form
             return View(publication);
         }
 
@@ -233,14 +274,71 @@ namespace EReaderApp.Controllers
             {
                 _context.Publications.Remove(publication);
             }
-            
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
         private bool PublicationExists(int id)
         {
-          return (_context.Publications?.Any(e => e.IdPublication == id)).GetValueOrDefault();
+            return (_context.Publications?.Any(e => e.IdPublication == id)).GetValueOrDefault();
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddComment(int publicationId, string content)
+        {
+            if (string.IsNullOrEmpty(content))
+            {
+                TempData["ErrorMessage"] = "Comment cannot be empty";
+                return RedirectToAction(nameof(Details), new { id = publicationId });
+            }
+
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            var comment = new Comment
+            {
+                FKIdPublication = publicationId,
+                FKIdUser = userId,
+                Content = content,
+                CreatedAt = DateTime.Now
+            };
+
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Comment added successfully";
+            return RedirectToAction(nameof(Details), new { id = publicationId });
+        }
+
+        // POST: Publications/DeleteComment
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteComment(int commentId, int publicationId)
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+
+            if (comment == null)
+            {
+                return NotFound();
+            }
+
+            // Check if user is authorized to delete (either comment author or admin)
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            string userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (comment.FKIdUser != userId && userRole != "Admin")
+            {
+                return Forbid();
+            }
+
+            _context.Comments.Remove(comment);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Comment deleted successfully";
+            return RedirectToAction(nameof(Details), new { id = publicationId });
         }
     }
 }

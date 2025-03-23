@@ -43,6 +43,9 @@ body {
     overflow: hidden;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     background-color: white;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
     .book-card:hover {
@@ -50,11 +53,38 @@ body {
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     }
 
+    .book-card a {
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+.book-cover-container {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    padding-bottom: 140%; /* Maintain aspect ratio (7:10 is common for books) */
+}
+
 .book-cover {
-    height: 200px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.book-info {
+    padding: 12px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .book-title {
@@ -65,11 +95,6 @@ body {
 
 .book-author {
     font-size: 0.8rem;
-}
-
-.book-card a {
-    text-decoration: none;
-    color: inherit;
 }
 
 /* Category Cards */
@@ -177,6 +202,12 @@ body {
         color: #6c757d;
     }
 
+/* Alert Messages */
+.alert {
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
 /* Footer */
 .footer {
     background-color: #f8f9fa;
@@ -194,11 +225,19 @@ body {
     }
 
 /* Media Queries */
-@media (max-width: 768px) {
-    .book-cover {
-        height: 160px;
+@media (max-width: 1200px) {
+    .book-cover-container {
+        padding-bottom: 150%;
     }
+}
 
+@media (max-width: 992px) {
+    .book-cover-container {
+        padding-bottom: 140%;
+    }
+}
+
+@media (max-width: 768px) {
     .hero-section {
         text-align: center;
         padding: 2rem 0;
@@ -207,10 +246,14 @@ body {
         .hero-section .btn {
             margin-bottom: 0.5rem;
         }
+
+    .book-cover-container {
+        padding-bottom: 130%;
+    }
 }
 
 @media (max-width: 576px) {
-    .book-cover {
-        height: 140px;
+    .book-cover-container {
+        padding-bottom: 120%;
     }
 }

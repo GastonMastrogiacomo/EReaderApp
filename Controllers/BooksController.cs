@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using EReaderApp.Data;
 using EReaderApp.Models;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EReaderApp.Controllers
 {
@@ -29,26 +30,6 @@ namespace EReaderApp.Controllers
                           View(await _context.Books.ToListAsync()) :
                           Problem("Entity set 'ApplicationDbContext.Books'  is null.");
         }
-
-        // GET: Books/Details/5
-        /*
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null || _context.Books == null)
-            {
-                return NotFound();
-            }
-
-            var book = await _context.Books
-                .FirstOrDefaultAsync(m => m.IdBook == id);
-            if (book == null)
-            {
-                return NotFound();
-            }
-
-            return View(book);
-        }
-        */
 
         // GET: Books/Create
 
@@ -92,12 +73,14 @@ namespace EReaderApp.Controllers
             return View(book);
         }
 
+        [Authorize(Policy = "RequireAdminRole")]
         public IActionResult Create()
         {
             return View();
         }
 
         [HttpPost]
+        [Authorize(Policy = "RequireAdminRole")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Book book, IFormFile? file)
         {

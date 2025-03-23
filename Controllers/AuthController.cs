@@ -38,7 +38,8 @@ namespace EReaderApp.Controllers
             {
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.NameIdentifier, user.IdUser.ToString())
+                new Claim(ClaimTypes.NameIdentifier, user.IdUser.ToString()),
+                new Claim(ClaimTypes.Role, user.Role) // Add role claim
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -90,6 +91,13 @@ namespace EReaderApp.Controllers
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Index", "Home");
+        }
+
+        // Add AccessDenied action to handle unauthorized access
+        public IActionResult AccessDenied(string returnUrl = null)
+        {
+            TempData["ErrorMessage"] = "You don't have permission to access this resource.";
             return RedirectToAction("Index", "Home");
         }
 

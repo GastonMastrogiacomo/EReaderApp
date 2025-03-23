@@ -24,6 +24,8 @@ namespace EReaderApp.Data
         public DbSet<Bookmark> BookMarks { get; set; }
         public DbSet<ReadingState> ReadingStates { get; set; }
         public DbSet<ReadingActivity> ReadingActivities { get; set; }
+        public DbSet<Comment> Comments { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -115,6 +117,18 @@ namespace EReaderApp.Data
                 .HasOne(ra => ra.Book)
                 .WithMany()
                 .HasForeignKey(ra => ra.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.FKIdUser)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.Publication)
+                .WithMany()
+                .HasForeignKey(c => c.FKIdPublication)
                 .OnDelete(DeleteBehavior.Cascade);
 
         }
