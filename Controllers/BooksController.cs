@@ -249,6 +249,48 @@ namespace EReaderApp.Controllers
             return View(await books.ToListAsync());
         }
 
+        // GET: Books/ViewDetails/5
+        public async Task<IActionResult> ViewDetails(int id)
+        {
+            var book = await _context.Books
+                .FirstOrDefaultAsync(m => m.IdBook == id);
+
+            if (book == null)
+            {
+                return NotFound();
+            }
+
+            // Get categories for this book
+            var categories = await _context.BookCategories
+                .Where(bc => bc.FKIdBook == id)
+                .Include(bc => bc.Category)
+                .Select(bc => bc.Category)
+                .ToListAsync();
+
+            // Get reviews for this book
+            var reviews = await _context.Reviews
+                .Where(r => r.FKIdBook == id)
+                .Include(r => r.User)
+                .OrderByDescending(r => r.IdReview)
+                .ToListAsync();
+
+            // If user is authenticated, get their libraries for "Add to Library" functionality
+            if (User.Identity.IsAuthenticated)
+            {
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var userLibraries = await _context.Libraries
+                    .Where(l => l.FKIdUser == userId)
+                    .ToListAsync();
+                ViewBag.UserLibraries = userLibraries;
+            }
+
+            ViewBag.Categories = categories;
+            ViewBag.Reviews = reviews;
+
+            return View(book);
+        }
+
+
         private bool BookExists(int id)
         {
           return (_context.Books?.Any(e => e.IdBook == id)).GetValueOrDefault();

@@ -1,0 +1,418 @@
+﻿@model EReaderApp.Models.Book
+@{
+    ViewData["Title"] = Model.Title;
+    var categories = ViewBag.Categories as List<EReaderApp.Models.Category>;
+    var reviews = ViewBag.Reviews as List<EReaderApp.Models.Review>;
+    var userLibraries = ViewBag.UserLibraries as List<EReaderApp.Models.Library>;
+}
+
+<style>
+    .book-cover-large {
+        height: 400px;
+        width: 100%;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .book-title {
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    #book-description {
+        line-height: 1.6;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="row">
+        <!-- Book cover and action buttons column -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                <div class="position-relative">
+                    <!-- Default image if no cover is available -->
+                    <div id="book-cover" class="book-cover-large bg-light d-flex align-items-center justify-content-center"
+                         style="@(string.IsNullOrEmpty(Model.ImageLink) ? "" : $"background-image: url('{Model.ImageLink}'); background-size: cover;")">
+                        @if (string.IsNullOrEmpty(Model.ImageLink))
+                        {
+                            <i class="fas fa-book fa-4x text-secondary opacity-50"></i>
+                        }
+                    </div>
+
+                    <!-- Book rating badge if available -->
+                    @if (Model.Score.HasValue)
+                    {
+                        <div class="position-absolute top-0 end-0 m-2 bg-primary text-white p-2 rounded-circle">
+                            <span class="fw-bold">@Model.Score</span>
+                        </div>
+                    }
+                </div>
+
+                <!-- Action buttons -->
+                <div class="card-body p-3">
+                    <div class="d-grid gap-2">
+                        @if (!string.IsNullOrEmpty(Model.PdfPath))
+                        {
+                            <a asp-controller="Reader" asp-action="Read" asp-route-id="@Model.IdBook" class="btn btn-primary">
+                                <i class="fas fa-book-open me-2"></i> Read Book
+                            </a>
+                        }
+
+                        @if (User.Identity.IsAuthenticated && userLibraries != null && userLibraries.Any())
+                        {
+                            <div class="dropdown">
+                                <button class="btn btn-outline-primary dropdown-toggle w-100" type="button"
+                                        id="addToLibraryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-bookmark me-2"></i> Add to Library
+                                </button>
+                                <ul class="dropdown-menu w-100" aria-labelledby="addToLibraryDropdown">
+                                    @foreach (var library in userLibraries)
+                                    {
+                                        <li>
+                                            <form asp-controller="Libraries" asp-action="AddToLibrary" method="post" class="d-inline">
+                                                <input type="hidden" name="bookId" value="@Model.IdBook" />
+                                                <input type="hidden" name="libraryId" value="@library.IdLibrary" />
+                                                <button type="submit" class="dropdown-item">@library.ListName</button>
+                                            </form>
+                                        </li>
+                                    }
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#newLibraryModal">
+                                            <i class="fas fa-plus me-2"></i> Create New Library
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                        else if (User.Identity.IsAuthenticated)
+                        {
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newLibraryModal">
+                                <i class="fas fa-bookmark me-2"></i> Add to New Library
+                            </button>
+                        }
+                        else
+                        {
+                            <a asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Url.Action("ViewDetails", "Books", new { id = Model.IdBook })"
+                               class="btn btn-outline-primary">
+                                <i class="fas fa-bookmark me-2"></i> Login to Save Book
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Book details column -->
+        <div class="col-md-8">
+            <h1 class="book-title mb-2">@Model.Title</h1>
+            @if (!string.IsNullOrEmpty(Model.Subtitle))
+            {
+                <h4 class="text-muted mb-3">@Model.Subtitle</h4>
+            }
+
+            <div class="mb-4">
+                <h5>
+                    <span class="fw-bold">By @Model.Author</span>
+                    @if (!string.IsNullOrEmpty(Model.Editorial))
+                    {
+                        <span class="text-muted"> • @Model.Editorial</span>
+                    }
+                </h5>
+
+                <!-- Categories -->
+                @if (categories != null && categories.Any())
+                {
+                    <div class="mb-3">
+                        @foreach (var category in categories)
+                        {
+                            <a href="@Url.Action("Search", "Books", new { categoryId = category.IdCategory })"
+                               class="badge rounded-pill bg-primary text-decoration-none me-1">
+                                @category.CategoryName
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Description -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>About this Book</h5>
+                </div>
+                <div class="card-body">
+                    <div id="book-description" class="mb-3">
+                        @if (!string.IsNullOrEmpty(Model.Description))
+                        {
+                            <p>@Model.Description</p>
+                        }
+                        else
+                        {
+                            <p class="text-muted fst-italic">No description available. Additional information will be loaded if available.</p>
+                        }
+                    </div>
+
+                    <!-- Details section -->
+                    <div class="row mt-4" id="book-details">
+                        @if (Model.PageCount.HasValue)
+                        {
+                            <div class="col-md-4 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-file me-2 text-primary"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Pages</small>
+                                        <span>@Model.PageCount</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <div id="additional-details"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reviews section -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-star me-2 text-primary"></i>Reviews</h5>
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addReviewModal">
+                            <i class="fas fa-plus me-1"></i> Add Review
+                        </button>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (reviews != null && reviews.Any())
+                    {
+                        foreach (var review in reviews)
+                        {
+                            <div class="mb-3 pb-3 border-bottom">
+                                <div class="d-flex mb-2">
+                                    <div class="flex-shrink-0">
+                                        @if (!string.IsNullOrEmpty(review.User?.ProfilePicture))
+                                        {
+                                            <img src="@review.User.ProfilePicture" class="rounded-circle me-2" width="40" height="40" alt="User" style="object-fit: cover;">
+                                        }
+                                        else
+                                        {
+                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">@review.User.Name</h6>
+                                        <small class="text-muted">@(review.IdReview != 0 ? "Verified Reader" : "")</small>
+                                    </div>
+                                </div>
+                                <p class="mb-0">@review.Comment</p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="far fa-comment-dots fa-3x text-muted mb-3"></i>
+                            <p class="mb-0 text-muted">No reviews yet. Be the first to share your thoughts!</p>
+                            @if (!User.Identity.IsAuthenticated)
+                            {
+                                <a asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Url.Action("ViewDetails", "Books", new { id = Model.IdBook })"
+                                   class="btn btn-outline-primary mt-2">
+                                    Login to Write a Review
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Review Modal -->
+@if (User.Identity.IsAuthenticated)
+{
+    <div class="modal fade" id="addReviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-controller="Reviews" asp-action="Create" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Write a Review</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="FKIdBook" value="@Model.IdBook" />
+                        <input type="hidden" name="FKIdUser" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value" />
+
+                        <div class="mb-3">
+                            <label for="review-content" class="form-label">Your Review</label>
+                            <textarea id="review-content" name="Comment" class="form-control" rows="5" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit Review</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- New Library Modal -->
+@if (User.Identity.IsAuthenticated)
+{
+    <div class="modal fade" id="newLibraryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-controller="Libraries" asp-action="Create" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create New Library</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="FKIdUser" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value" />
+                        <div class="mb-3">
+                            <label for="library-name" class="form-label">Library Name</label>
+                            <input type="text" id="library-name" name="ListName" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Library</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fetch additional book information from Google Books API
+        const bookTitle = '@Model.Title';
+        const bookAuthor = '@Model.Author';
+
+        fetchBookDetails(bookTitle, bookAuthor);
+    });
+
+    async function fetchBookDetails(title, author) {
+        try {
+            // Construct search query
+            const query = `intitle:${encodeURIComponent(title)}+inauthor:${encodeURIComponent(author)}`;
+            const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`;
+
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            if (data.items && data.items.length > 0) {
+                const bookInfo = data.items[0].volumeInfo;
+                updateBookDetails(bookInfo);
+            }
+        } catch (error) {
+            console.error('Error fetching book details:', error);
+        }
+    }
+
+    function updateBookDetails(bookInfo) {
+        // Update book cover if we don't have one already
+        const bookCoverElement = document.getElementById('book-cover');
+        if (bookCoverElement && !bookCoverElement.style.backgroundImage && bookInfo.imageLinks) {
+            if (bookInfo.imageLinks.thumbnail) {
+                bookCoverElement.style.backgroundImage = `url('${bookInfo.imageLinks.thumbnail.replace('http:', 'https:')}')`;
+                bookCoverElement.style.backgroundSize = 'cover';
+                bookCoverElement.innerHTML = '';
+            }
+        }
+
+        // Update description if we don't have one already
+        const descriptionElement = document.getElementById('book-description');
+        if (descriptionElement && descriptionElement.querySelector('.text-muted') && bookInfo.description) {
+            descriptionElement.innerHTML = `<p>${bookInfo.description}</p>`;
+        }
+
+        // Add additional details
+        const additionalDetailsElement = document.getElementById('additional-details');
+        if (additionalDetailsElement) {
+            let additionalHTML = '';
+
+            // Add published date
+            if (bookInfo.publishedDate) {
+                additionalHTML += `
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                            <div>
+                                <small class="text-muted d-block">Published</small>
+                                <span>${bookInfo.publishedDate}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Add publisher
+            if (bookInfo.publisher) {
+                additionalHTML += `
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-building me-2 text-primary"></i>
+                            <div>
+                                <small class="text-muted d-block">Publisher</small>
+                                <span>${bookInfo.publisher}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Add language
+            if (bookInfo.language) {
+                const languages = {
+                    'en': 'English',
+                    'es': 'Spanish',
+                    'fr': 'French',
+                    'de': 'German',
+                    'it': 'Italian',
+                    'pt': 'Portuguese'
+                };
+
+                additionalHTML += `
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-language me-2 text-primary"></i>
+                            <div>
+                                <small class="text-muted d-block">Language</small>
+                                <span>${languages[bookInfo.language] || bookInfo.language}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Add ISBN
+            if (bookInfo.industryIdentifiers) {
+                const isbn = bookInfo.industryIdentifiers.find(id => id.type === 'ISBN_13' || id.type === 'ISBN_10');
+                if (isbn) {
+                    additionalHTML += `
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-barcode me-2 text-primary"></i>
+                                <div>
+                                    <small class="text-muted d-block">${isbn.type.replace('_', ' ')}</small>
+                                    <span>${isbn.identifier}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            additionalDetailsElement.innerHTML = additionalHTML;
+        }
+    }
+</script>

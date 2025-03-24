@@ -75,8 +75,8 @@
                                     <span class="ms-1">(@book.Score.Value.ToString("F1"))</span>
                                 </div>
                             }
-                            <a href="@Url.Action("Details", new { id = book.IdBook })" class="btn btn-primary">View Details</a>
-                            <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook" class="btn btn-success">Read PDF</a>
+                            <a href="@Url.Action("ViewDetails", new { id = book.IdBook })" class="btn btn-primary">View Details</a>
+                            <a asp-controller="Books" asp-action="ViewDetails" asp-route-id="@book.IdBook" class="btn btn-success">Read PDF</a>
                         </div>
                     </div>
                 </div>
