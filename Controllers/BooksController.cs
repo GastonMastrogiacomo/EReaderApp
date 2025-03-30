@@ -267,25 +267,41 @@ namespace EReaderApp.Controllers
                 .Select(bc => bc.Category)
                 .ToListAsync();
 
-            // Get reviews for this book
+            // Get reviews for this book with user info
             var reviews = await _context.Reviews
                 .Where(r => r.FKIdBook == id)
                 .Include(r => r.User)
-                .OrderByDescending(r => r.IdReview)
+                .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
+
+            // Calculate review statistics
+            int totalReviews = reviews.Count;
+            double averageRating = totalReviews > 0 ? reviews.Average(r => r.Rating) : 0;
+            Dictionary<int, int> ratingDistribution = new Dictionary<int, int>();
+            for (int i = 1; i <= 5; i++)
+            {
+                ratingDistribution[i] = reviews.Count(r => r.Rating == i);
+            }
 
             // If user is authenticated, get their libraries for "Add to Library" functionality
             if (User.Identity.IsAuthenticated)
             {
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                int userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
                 var userLibraries = await _context.Libraries
                     .Where(l => l.FKIdUser == userId)
                     .ToListAsync();
                 ViewBag.UserLibraries = userLibraries;
+
+                // Check if user has already reviewed this book
+                var userReview = reviews.FirstOrDefault(r => r.FKIdUser == userId);
+                ViewBag.UserReview = userReview;
             }
 
             ViewBag.Categories = categories;
             ViewBag.Reviews = reviews;
+            ViewBag.TotalReviews = totalReviews;
+            ViewBag.AverageRating = averageRating;
+            ViewBag.RatingDistribution = ratingDistribution;
 
             return View(book);
         }

@@ -1,0 +1,127 @@
+﻿@model List<EReaderApp.Models.Review>
+@{
+    var totalReviews = Model.Count;
+    var averageRating = ViewBag.AverageRating ?? 0.0;
+    var ratingDistribution = ViewBag.RatingDistribution as Dictionary<int, int> ?? new Dictionary<int, int>();
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-star text-warning me-2"></i>Reseñas de lectores</h5>
+        <span class="badge bg-primary rounded-pill">@totalReviews reseña@(totalReviews != 1 ? "s" : "")</span>
+    </div>
+
+    <div class="card-body">
+        @if (totalReviews > 0)
+        {
+            <div class="row mb-4">
+                <div class="col-md-4 text-center mb-3 mb-md-0">
+                    <div class="d-flex flex-column justify-content-center h-100">
+                        <h2 class="display-4 fw-bold mb-0">@averageRating.ToString("0.0")</h2>
+                        <div class="rating-stars mb-2">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                if (i <= Math.Floor(averageRating))
+                                {
+                                    <i class="fas fa-star text-warning"></i>
+                                }
+                                else if (i - 0.5 <= averageRating)
+                                {
+                                    <i class="fas fa-star-half-alt text-warning"></i>
+                                }
+                                else
+                                {
+                                    <i class="far fa-star text-warning"></i>
+                                }
+                            }
+                        </div>
+                        <p class="text-muted">@totalReviews reseña@(totalReviews != 1 ? "s" : "")</p>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="rating-bars">
+                        @for (int i = 5; i >= 1; i--)
+                        {
+                            int count = ratingDistribution.ContainsKey(i) ? ratingDistribution[i] : 0;
+                            int percentage = totalReviews > 0 ? (count * 100) / totalReviews : 0;
+
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="me-2" style="width: 60px;">
+                                    @for (int j = 0; j < i; j++)
+                                    {
+                                        <i class="fas fa-star text-warning small"></i>
+                                    }
+                                </div>
+                                <div class="progress flex-grow-1" style="height: 10px;">
+                                    <div class="progress-bar bg-warning"
+                                         role="progressbar"
+                                         style="width: @percentage%;"
+                                         aria-valuenow="@percentage"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100"></div>
+                                </div>
+                                <div class="ms-2" style="width: 40px;">
+                                    @count
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <hr />
+
+            <div class="reviews-list">
+                @foreach (var review in Model)
+                {
+                    <div class="review-item">
+                        <div class="d-flex mb-2">
+                            <div class="flex-shrink-0">
+                                @if (!string.IsNullOrEmpty(review.User?.ProfilePicture))
+                                {
+                                    <img src="@review.User.ProfilePicture" class="rounded-circle me-2"
+                                         width="40" height="40" alt="@review.User.Name" style="object-fit: cover;">
+                                }
+                                else
+                                {
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
+                                         style="width: 40px; height: 40px;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                }
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center">
+                                    <span class="review-user me-2">@review.User.Name</span>
+                                    <span class="review-date">@review.CreatedAt.ToString("dd MMM yyyy")</span>
+                                </div>
+                                <div class="review-rating">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        if (i <= review.Rating)
+                                        {
+                                            <i class="fas fa-star text-warning"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="far fa-star text-warning"></i>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <p class="review-comment mb-0">@review.Comment</p>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-4">
+                <i class="far fa-comment-dots fa-3x text-muted mb-3"></i>
+                <p class="mb-0 text-muted">No hay reseñas todavía. ¡Sé el primero en compartir tu opinión!</p>
+            </div>
+        }
+    </div>
+</div>

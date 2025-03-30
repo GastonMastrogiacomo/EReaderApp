@@ -1,0 +1,187 @@
+﻿@model EReaderApp.Models.Book
+@{
+    var bookId = Model.IdBook;
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0"><i class="fas fa-star text-warning me-2"></i>Escribe una reseña</h5>
+    </div>
+    <div class="card-body">
+        <div id="review-form-container">
+            @if (!User.Identity.IsAuthenticated)
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <a asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Url.Action("ViewDetails", "Books", new { id = bookId })">Inicia sesión</a> para escribir una reseña.
+                </div>
+            }
+            else
+            {
+                <form id="review-form" asp-controller="Reviews" asp-action="SubmitReview" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="bookId" value="@bookId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Tu calificación</label>
+                        <div class="star-rating mb-3">
+                            <input type="radio" id="star5" name="rating" value="5" required />
+                            <label for="star5" title="5 estrellas"><i class="far fa-star"></i></label>
+                            <input type="radio" id="star4" name="rating" value="4" />
+                            <label for="star4" title="4 estrellas"><i class="far fa-star"></i></label>
+                            <input type="radio" id="star3" name="rating" value="3" />
+                            <label for="star3" title="3 estrellas"><i class="far fa-star"></i></label>
+                            <input type="radio" id="star2" name="rating" value="2" />
+                            <label for="star2" title="2 estrellas"><i class="far fa-star"></i></label>
+                            <input type="radio" id="star1" name="rating" value="1" />
+                            <label for="star1" title="1 estrella"><i class="far fa-star"></i></label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="review-comment" class="form-label">Tu comentario</label>
+                        <textarea class="form-control" id="review-comment" name="comment" rows="4" required
+                                  placeholder="Comparte tu opinión sobre este libro..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Publicar reseña
+                        </button>
+                    </div>
+                </form>
+
+                <div id="existing-review" style="display: none;">
+                    <div class="alert alert-info">
+                        <p><strong>Tu reseña:</strong></p>
+                        <div class="mb-2" id="user-rating-display"></div>
+                        <p id="user-review-text"></p>
+                        <button id="edit-review-btn" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit me-1"></i>Editar tu reseña
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Only run this if user is authenticated
+            if (@Json.Serialize(User.Identity.IsAuthenticated)) {
+                checkExistingReview();
+
+                // Setup star rating interaction
+                setupStarRating();
+
+                // Handle edit review button click
+                const editReviewBtn = document.getElementById('edit-review-btn');
+                if (editReviewBtn) {
+                    editReviewBtn.addEventListener('click', function() {
+                        document.getElementById('existing-review').style.display = 'none';
+                        document.getElementById('review-form').style.display = 'block';
+                    });
+                }
+            }
+        });
+
+        // Function to check if the user has already reviewed this book
+        function checkExistingReview() {
+            fetch(`/Reviews/UserReview?bookId=@bookId`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.hasReview) {
+                        // Show existing review
+                        document.getElementById('existing-review').style.display = 'block';
+                        document.getElementById('review-form').style.display = 'none';
+
+                        // Fill in the user's review
+                        document.getElementById('user-review-text').textContent = data.comment;
+
+                        // Display the rating
+                        const ratingDisplay = document.getElementById('user-rating-display');
+                        ratingDisplay.innerHTML = '';
+                        for (let i = 1; i <= 5; i++) {
+                            const starIcon = document.createElement('i');
+                            starIcon.className = i <= data.rating ? 'fas fa-star text-warning' : 'far fa-star text-warning';
+                            ratingDisplay.appendChild(starIcon);
+                            // Add a small space between stars
+                            if (i < 5) {
+                                ratingDisplay.appendChild(document.createTextNode(' '));
+                            }
+                        }
+
+                        // Fill the form with existing data for editing
+                        document.querySelector(`input[name="rating"][value="${data.rating}"]`).checked = true;
+                        document.getElementById('review-comment').value = data.comment;
+
+                        // Update the star display in the form
+                        updateStarDisplay(data.rating);
+                    }
+                })
+                .catch(error => console.error('Error checking for existing review:', error));
+        }
+
+        // Function to set up star rating interaction
+        function setupStarRating() {
+            const starLabels = document.querySelectorAll('.star-rating label');
+            const starInputs = document.querySelectorAll('.star-rating input');
+
+            // Update stars when a radio button is checked
+            starInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    const rating = parseInt(this.value);
+                    updateStarDisplay(rating);
+                });
+            });
+
+            // Handle hovering over stars
+            starLabels.forEach((label, index) => {
+                const stars = 5 - index;
+
+                label.addEventListener('mouseenter', function() {
+                    // Fill stars up to the hovered one
+                    starLabels.forEach((innerLabel, innerIndex) => {
+                        const innerStar = innerLabel.querySelector('i');
+                        if (innerIndex >= index) {
+                            innerStar.className = 'fas fa-star';
+                        } else {
+                            innerStar.className = 'far fa-star';
+                        }
+                    });
+                });
+
+                label.addEventListener('mouseleave', function() {
+                    // Restore the state based on the selected rating
+                    const checkedInput = document.querySelector('.star-rating input:checked');
+                    if (checkedInput) {
+                        updateStarDisplay(parseInt(checkedInput.value));
+                    } else {
+                        // If nothing is selected, clear all stars
+                        starLabels.forEach(innerLabel => {
+                            innerLabel.querySelector('i').className = 'far fa-star';
+                        });
+                    }
+                });
+            });
+        }
+
+        // Function to update the star display based on rating
+        function updateStarDisplay(rating) {
+            const starLabels = document.querySelectorAll('.star-rating label');
+
+            starLabels.forEach((label, index) => {
+                const stars = 5 - index;
+                const star = label.querySelector('i');
+
+                if (stars <= rating) {
+                    star.className = 'fas fa-star';
+                } else {
+                    star.className = 'far fa-star';
+                }
+            });
+        }
+    </script>
+}
