@@ -55,8 +55,13 @@ namespace EReaderApp
             }
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
-            app.UseRouting();
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                OnPrepareResponse = ctx =>
+                {
+                    ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=86400");
+                }
+            }); app.UseRouting();
 
             // Authentication middleware
             app.UseAuthentication();

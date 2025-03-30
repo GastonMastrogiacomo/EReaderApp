@@ -1,266 +1,736 @@
-/* Estilos generales del lector */
+/* 
+ * E-READER UNIFICADO - ESTILOS CSS
+ * Combina los estilos de kindle-reader.css y pdf-reader.css en un único archivo
+ */
+
+/* ==============================
+ * 1. VARIABLES GLOBALES
+ * ============================== */
+:root {
+    /* Colores principales - Modificados para favorecer tema claro */
+    --reader-bg-color: #ffffff !important; /* Cambiado de #f6f6f6 a blanco puro */
+    --reader-page-color: #ffffff !important; /* Cambiado de #fffff8 a blanco puro */
+    --reader-text-color: #333333 !important;
+    --reader-border-color: #ddd;
+    --reader-shadow-color: rgba(0, 0, 0, 0.08);
+    --reader-primary-color: #4361ee;
+    --reader-secondary-color: #6c757d;
+    /* Variables para temas */
+    --theme-light-bg: #ffffff;
+    --theme-light-text: #333333;
+    --theme-sepia-bg: #f4ecd8;
+    --theme-sepia-text: #5f4b32;
+    --theme-dark-bg: #333333;
+    --theme-dark-text: #f8f9fa;
+}
+
+/* ==============================
+ * 2. CONTENEDOR PRINCIPAL
+ * ============================== */
 .reader-container {
+    background-color: var(--reader-bg-color);
+    border-radius: 10px;
+    overflow: hidden;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 60px);
-    overflow: hidden;
-    position: relative;
 }
 
+/* ==============================
+ * 3. BARRA SUPERIOR - ESTILO KINDLE
+ * ============================== */
+.kindle-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--reader-border-color);
+    background-color: var(--reader-bg-color);
+    font-size: 0.85rem;
+}
+
+.kindle-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.book-title {
+    font-weight: 500;
+    margin-right: 0.5rem;
+}
+
+.book-author {
+    color: #666;
+}
+
+.kindle-controls {
+    display: flex;
+    align-items: center;
+}
+
+.btn-icon {
+    border: none;
+    background: transparent;
+    padding: 0.25rem 0.5rem;
+    color: var(--reader-text-color);
+}
+
+    .btn-icon:hover {
+        background-color: #e3e3e3;
+        border-radius: 50%;
+    }
+
+/* ==============================
+ * 4. BARRA DE PROGRESO
+ * ============================== */
+.kindle-progress {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 1rem;
+    border-bottom: 1px solid var(--reader-border-color);
+    background-color: var(--reader-bg-color);
+    font-size: 0.7rem;
+    color: #666;
+}
+
+.progress-text {
+    margin-right: 0.5rem;
+    min-width: 40px;
+}
+
+.kindle-progress .progress {
+    flex-grow: 1;
+    height: 3px;
+    background-color: #ddd;
+    border-radius: 0;
+    margin: 0;
+}
+
+.kindle-progress .progress-bar {
+    background-color: var(--reader-primary-color);
+    transition: width 0.5s ease;
+}
+
+/* Estilo general para la barra de progreso */
+.progress {
+    height: 6px;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: var(--reader-primary-color);
+    transition: width 0.3s ease;
+}
+
+/* ==============================
+ * 5. PANEL DE CONTROLES
+ * ============================== */
+#reader-controls-panel {
+    margin: 0;
+    border-radius: 8px;
+    border-bottom: 1px solid var(--reader-border-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    background-color: var(--reader-page-color);
+    transition: all 0.3s ease;
+}
+
+    #reader-controls-panel .btn-outline-secondary {
+        border-color: #ccc;
+        color: #666;
+    }
+
+        #reader-controls-panel .btn-outline-secondary:hover {
+            background-color: #f8f8f8;
+            color: #333;
+        }
+
+/* Mejoras para los controles del lector */
+.reader-controls {
+    border-radius: 8px;
+    background-color: var(--reader-page-color);
+    box-shadow: 0 2px 4px var(--reader-shadow-color);
+    transition: all 0.3s ease;
+}
+
+    .reader-controls:hover {
+        box-shadow: 0 4px 8px var(--reader-shadow-color);
+    }
+
+    .reader-controls .btn-outline-secondary {
+        border-color: #ced4da;
+        color: var(--reader-secondary-color);
+    }
+
+        .reader-controls .btn-outline-secondary:hover {
+            background-color: #f8f9fa;
+            color: var(--reader-primary-color);
+        }
+
+    .reader-controls .input-group-text {
+        background-color: #f8f9fa;
+        border-color: #ced4da;
+    }
+
+/* ==============================
+ * 6. LAYOUT PRINCIPAL
+ * ============================== */
 .reader-layout {
     display: flex;
-    flex: 1;
+    flex-direction: row;
+    flex-grow: 1;
     position: relative;
-    overflow: hidden;
+    height: calc(100vh - 80px);
+    gap: 1rem;
+    min-height: 80vh;
 }
 
+/* ==============================
+ * 7. PANELES LATERALES
+ * ============================== */
+#side-panel, #notes-panel {
+    flex: 0 0 300px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: sticky;
+    top: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--reader-shadow-color);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+/* ==============================
+ * 8. CONTENEDOR DEL LIBRO
+ * ============================== */
 #book-container {
-    flex: 1;
-    overflow: auto;
-    position: relative;
+    flex-grow: 1;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--reader-shadow-color);
+    background-color: var(--reader-bg-color);
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 400px;
-    background-color: #f8f9fa;
-    transition: background-color 0.3s ease;
+    justify-content: center;
+    position: relative;
+    height: 100%;
+    transition: all 0.3s ease;
+    min-height: 80vh;
+    overflow: hidden;
 }
 
-    /* Estilos para diferentes temas */
-    #book-container.theme-light,
-    .theme-light {
-        background-color: #ffffff;
-        color: #333333;
-    }
+#book-view {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: auto;
+    padding: 1rem;
+}
 
-    #book-container.theme-sepia,
-    .theme-sepia {
-        background-color: #f8f3e6;
-        color: #5b4636;
-    }
-
-    #book-container.theme-dark,
-    .theme-dark {
-        background-color: #222222;
-        color: #e0e0e0;
-    }
-
-/* Modo de página única */
+/* ==============================
+ * 9. ESTILOS DE PÁGINA
+ * ============================== */
+/* Contenedor de página única */
 #single-page-container {
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    padding: 20px;
-    transition: all 0.2s ease-out;
-}
-
-.book-page {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: white;
+    max-width: 100%;
     transition: all 0.3s ease;
 }
 
 .single-page {
-    margin: 0 auto;
+    box-shadow: 0 4px 8px var(--reader-shadow-color);
+    background-color: var(--reader-page-color);
+    transition: all 0.3s ease;
+    border-radius: 4px;
 }
 
-/* Panel lateral */
-#side-panel {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 300px;
-    max-height: calc(100% - 20px);
-    z-index: 100;
-    overflow: auto;
+/* Contenedor de doble página */
+#double-page-container {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    max-width: 100%;
+    perspective: 1500px;
     transition: all 0.3s ease;
 }
 
-/* Panel de notas */
-#notes-panel {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 320px;
-    max-height: calc(100% - 20px);
-    z-index: 100;
-    overflow: auto;
+.book-page {
+    background-color: var(--reader-page-color);
+    box-shadow: 0 1px 5px var(--reader-shadow-color);
     transition: all 0.3s ease;
 }
 
-/* Estilo para las notas */
-.note-item {
+.left-page, .right-page {
+    max-height: calc(100vh - 100px);
+    background-color: var(--reader-page-color);
     transition: all 0.3s ease;
+    box-shadow: 0 4px 8px var(--reader-shadow-color);
+    margin: 0;
 }
 
-    .note-item:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.left-page {
+    border-radius: 4px 0 0 4px;
+    box-shadow: -2px 4px 8px var(--reader-shadow-color);
+}
+
+.right-page {
+    border-radius: 0 4px 4px 0;
+    box-shadow: 2px 4px 8px var(--reader-shadow-color);
+}
+
+/* Lomo del libro */
+.book-spine {
+    width: 4px;
+    background: linear-gradient(to right, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.05) 100%);
+    align-self: stretch;
+    position: relative;
+}
+
+    .book-spine::before, .book-spine::after {
+        content: "";
+        position: absolute;
+        height: 100%;
+        width: 1px;
+        background-color: rgba(0,0,0,0.1);
     }
 
-.note-content {
-    white-space: pre-wrap;
+    .book-spine::before {
+        left: 0;
+    }
+
+    .book-spine::after {
+        right: 0;
+    }
+
+/* Canvas de páginas */
+.page-canvas {
+    display: block; /* Elimina espacio extra bajo el canvas */
+    max-width: 100%;
+    height: auto;
+    filter: none !important; /* Asegurar que no haya filtros por defecto */
 }
 
-/* Animaciones para cambio de página */
+/* ==============================
+ * 10. ANIMACIONES DE PÁGINA
+ * ============================== */
 .page-turning-next {
-    animation: turningNext 0.3s forwards;
+    animation: turnPageNext 0.3s ease-in-out;
 }
 
 .page-turning-prev {
-    animation: turningPrev 0.3s forwards;
+    animation: turnPagePrev 0.3s ease-in-out;
 }
 
-@keyframes turningNext {
+@keyframes turnPageNext {
     0% {
-        opacity: 1;
         transform: translateX(0);
+        opacity: 1;
     }
 
     50% {
+        transform: translateX(-20px);
         opacity: 0.5;
-        transform: translateX(-10px);
     }
 
     100% {
-        opacity: 1;
         transform: translateX(0);
+        opacity: 1;
     }
 }
 
-@keyframes turningPrev {
+@keyframes turnPagePrev {
     0% {
-        opacity: 1;
         transform: translateX(0);
+        opacity: 1;
     }
 
     50% {
+        transform: translateX(20px);
         opacity: 0.5;
-        transform: translateX(10px);
     }
 
     100% {
-        opacity: 1;
         transform: translateX(0);
+        opacity: 1;
     }
 }
 
-/* Estilos para el modal de configuración */
-#preview-container.theme-light {
-    background-color: #ffffff;
-    color: #333333;
-    border-color: #dee2e6;
+/* Animación para el doble página */
+@keyframes turnDoublePageNext {
+    0% {
+        transform: rotateY(0deg);
+        transform-origin: left;
+    }
+
+    100% {
+        transform: rotateY(-15deg);
+        transform-origin: left;
+    }
 }
 
-#preview-container.theme-sepia {
-    background-color: #f8f3e6;
-    color: #5b4636;
-    border-color: #d0c9b8;
+@keyframes turnDoublePagePrev {
+    0% {
+        transform: rotateY(0deg);
+        transform-origin: right;
+    }
+
+    100% {
+        transform: rotateY(15deg);
+        transform-origin: right;
+    }
 }
 
-#preview-container.theme-dark {
-    background-color: #222222;
-    color: #e0e0e0;
-    border-color: #444444;
+/* ==============================
+ * 11. TEMAS DEL LECTOR
+ * ============================== */
+/* Tema claro - Mayor especificidad y !important para forzar este tema */
+html body .theme-light,
+body #book-container.theme-light,
+.theme-light {
+    background-color: var(--theme-light-bg) !important;
+    color: var(--theme-light-text) !important;
 }
 
-/* Estilos para pantalla completa */
+.theme-sepia {
+    background-color: var(--theme-sepia-bg);
+    color: var(--theme-sepia-text);
+}
+
+.theme-dark {
+    background-color: var(--theme-dark-bg);
+    color: var(--theme-dark-text);
+}
+
+/* Tema claro para las páginas del libro - Alta especificidad */
+html body .theme-light .book-page,
+body #book-container.theme-light .book-page {
+    background-color: var(--theme-light-bg) !important;
+    color: var(--theme-light-text) !important;
+}
+
+.theme-sepia .book-page {
+    background-color: var(--theme-sepia-bg);
+    color: var(--theme-sepia-text);
+}
+
+.theme-dark .book-page {
+    background-color: var(--theme-dark-bg);
+    color: var(--theme-dark-text);
+}
+
+/* Reglas específicas para canvas en tema claro */
+html body .theme-light .page-canvas {
+    filter: none !important;
+    -webkit-filter: none !important;
+}
+
+.theme-sepia .page-canvas {
+    filter: sepia(0.5);
+}
+
+.theme-dark .page-canvas {
+    filter: invert(0.85) hue-rotate(180deg);
+}
+
+/* Reglas específicas para los contenedores de página en tema claro */
+html body .theme-light #single-page-container,
+html body .theme-light #double-page-container,
+html body .theme-light .single-page,
+html body .theme-light .left-page,
+html body .theme-light .right-page {
+    background-color: var(--theme-light-bg) !important;
+}
+
+/* Asegurar que #book-container siempre tenga el tema claro por defecto */
+#book-container {
+    background-color: var(--theme-light-bg) !important;
+    color: var(--theme-light-text) !important;
+}
+
+/* ==============================
+ * 12. MENÚ DE TEMAS
+ * ============================== */
+.theme-menu {
+    position: absolute;
+    right: 10px;
+    top: 50px;
+    z-index: 1000;
+    display: none;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 0.75rem;
+    width: 150px;
+}
+
+.theme-option {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+}
+
+    .theme-option:hover {
+        background-color: #f5f5f5;
+    }
+
+    .theme-option:last-child {
+        margin-bottom: 0;
+    }
+
+.theme-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    border: 1px solid #ddd;
+}
+
+.light-theme {
+    background-color: #fff;
+}
+
+.sepia-theme {
+    background-color: #f4ecd8;
+}
+
+.dark-theme {
+    background-color: #333;
+}
+
+.theme-option.active {
+    background-color: #f0f0f0;
+    font-weight: 500;
+}
+
+/* ==============================
+ * 13. MODO PANTALLA COMPLETA
+ * ============================== */
 .fullscreen-mode {
-    min-height: 100vh;
-}
-
-/* Indicador de carga de página */
-#page-loading-indicator {
-    z-index: 10;
-}
-
-/* Estilos para TOC (Tabla de Contenidos) */
-.toc-item {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: all 0.2s ease;
-}
-
-    .toc-item:hover {
-        background-color: #f0f0f0;
-    }
-
-    .toc-item.active {
-        background-color: #e9ecef;
-        border-left: 3px solid #4361ee;
-    }
-
-/* Estilos para dispositivos móviles */
-@media (max-width: 768px) {
-    #side-panel, #notes-panel {
-        width: 90%;
-        max-width: 320px;
-    }
-
-    .reader-controls .btn-group-sm .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-
-    #current-page-input {
-        width: 40px !important;
-    }
-}
-
-/* Transición de modo */
-.mode-transition {
-    transition: opacity 0.3s ease;
-    opacity: 0.3;
-}
-
-/* Estilos para marcadores */
-.bookmark-item {
-    transition: all 0.2s ease;
-}
-
-    .bookmark-item:hover {
-        background-color: #f0f0f0;
-    }
-
-    .bookmark-item.active {
-        background-color: #e9ecef;
-        border-left: 3px solid #4361ee;
-    }
-
-/* Botones de navegación */
-.reader-controls .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Tooltips personalizados */
-.tooltip {
-    z-index: 1070;
-    opacity: 0.9;
-}
-
-/* Notificaciones */
-.notification-toast {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: 9999;
-    max-width: 350px;
-    animation: fadeInUp 0.3s ease;
+    background-color: var(--reader-bg-color);
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
 }
 
-@keyframes fadeInUp {
+    .fullscreen-mode #book-container {
+        height: 100vh;
+        width: 100vw;
+        max-width: none;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .fullscreen-mode #book-view {
+        height: 100%;
+        width: 100%;
+        padding: 0;
+    }
+
+    .fullscreen-mode .kindle-top-bar,
+    .fullscreen-mode .kindle-progress,
+    .fullscreen-mode #reader-controls-panel {
+        display: none !important;
+    }
+
+    .fullscreen-mode::after {
+        content: "Presiona ESC para salir";
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-size: 12px;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+    }
+
+    .fullscreen-mode:hover::after {
+        opacity: 1;
+    }
+
+/* ==============================
+ * 14. INDICADOR DE CARGA
+ * ============================== */
+#loading-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+}
+
+/* ==============================
+ * 15. MARCADORES Y TOC
+ * ============================== */
+.toc-item, .bookmark-item {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+    .toc-item:hover, .bookmark-item:hover {
+        background-color: rgba(0, 0, 0, 0.03);
+        border-left-color: var(--reader-primary-color);
+    }
+
+    .toc-item.active, .bookmark-item.active {
+        background-color: rgba(67, 97, 238, 0.05);
+        border-left-color: var(--reader-primary-color);
+    }
+
+/* ==============================
+ * 16. NOTAS
+ * ============================== */
+.note-item {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+    .note-item:hover {
+        border-left-color: var(--reader-primary-color);
+    }
+
+/* ==============================
+ * 17. NOTIFICACIONES
+ * ============================== */
+.notification-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 250px;
+    max-width: 350px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+}
+
+@keyframes slideIn {
     from {
+        transform: translateX(100%);
         opacity: 0;
-        transform: translateY(20px);
     }
 
     to {
+        transform: translateX(0);
         opacity: 1;
-        transform: translateY(0);
     }
 }
 
-/* Estilos para la barra de progreso */
-#reading-progress {
-    transition: width 0.3s ease;
-    height: 4px;
-    background-color: #4361ee;
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+/* ==============================
+ * 18. RESPONSIVE
+ * ============================== */
+@media (max-width: 992px) {
+    .reader-layout {
+        flex-direction: column;
+    }
+
+    #side-panel, #notes-panel {
+        flex: none;
+        width: 100%;
+        max-height: 300px;
+    }
+
+    #double-page-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .left-page, .right-page {
+        border-radius: 4px;
+        box-shadow: 0 2px 4px var(--reader-shadow-color);
+    }
+
+    .book-spine {
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.05) 100%);
+    }
+
+        .book-spine::before, .book-spine::after {
+            width: 100%;
+            height: 1px;
+        }
+
+    .reader-controls .row {
+        flex-direction: column;
+    }
+}
+
+/* ==============================
+ * 19. FORZAR TEMA CLARO
+ * ============================== */
+/* Reglas con máxima especificidad para sobrescribir cualquier tema oscuro */
+body:not(.theme-sepia):not(.theme-dark) .page-canvas,
+body:not(.theme-sepia):not(.theme-dark) #book-container,
+body:not(.theme-sepia):not(.theme-dark) .book-page,
+body:not(.theme-sepia):not(.theme-dark) #single-page-container,
+body:not(.theme-sepia):not(.theme-dark) #double-page-container {
+    filter: none !important;
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+/* Si el usuario no ha seleccionado explícitamente sepia o dark, forzar light */
+body:not(.theme-sepia):not(.theme-dark) {
+    --reader-bg-color: #ffffff !important;
+    --reader-page-color: #ffffff !important;
+    --reader-text-color: #333333 !important;
+}
+
+@media (max-width: 768px) {
+    .kindle-title {
+        max-width: 200px;
+    }
+
+    #reader-controls-panel .btn-group {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 576px) {
+    .reader-controls .btn-group {
+        flex-wrap: wrap;
+    }
+
+    .reader-container {
+        padding: 0.5rem;
+    }
+
+    #book-view {
+        padding: 0.5rem;
+    }
 }

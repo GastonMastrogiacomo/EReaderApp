@@ -9,16 +9,31 @@ let scale = 1.0;
 let bookmarks = [];
 let tocItems = [];
 let notes = [];
-const bookId = document.getElementById('book-container').dataset.bookId || 1;
+
+// Nuevas variables para el modo de doble página
+let viewMode = 'double'; // Valores posibles: 'single', 'double', 'scroll'
+let currentLeftPage = 1;
+let currentRightPage = 2;
+let pagesRendering = false;
+let pageNumPending = null;
+
+// Variables para zoom y ajustes
 let isFitWidth = false;
 let isFitPage = false;
-let pageRendering = false;
-let pageNumPending = null;
+
+let renderTaskLeft = null;
+let renderTaskRight = null;
+let renderTaskSingle = null;
+
+// Variables para configuración del lector
 let readerSettings = {
     theme: 'light',
     fontFamily: 'Arial',
-    fontSize: 16
+    fontSize: 16,
+    viewMode: 'double'
 };
+
+const bookId = document.getElementById('book-container')?.dataset.bookId || 1;
 
 // Función de inicialización
 document.addEventListener('DOMContentLoaded', function () {
@@ -46,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (pdfDoc) {
             if (isFitWidth) fitToWidth();
             else if (isFitPage) fitToPage();
-            else renderCurrentPage();
+            else renderCurrentPages();
         }
     }, 300));
 });
@@ -57,6 +72,7 @@ async function loadPDF() {
         // Mostrar indicador de carga
         document.getElementById('loading-indicator').style.display = 'block';
         document.getElementById('single-page-container').style.display = 'none';
+        document.getElementById('double-page-container').style.display = 'none';
 
         // Obtener ruta del PDF del atributo data-pdf-path
         const pdfPath = document.querySelector('#book-container').dataset.pdfPath;
@@ -87,17 +103,19 @@ async function loadPDF() {
         // Intentar cargar posición guardada
         loadPosition();
 
-        // O renderizar página inicial
-        if (currentPage < 1) {
-            currentPage = 1;
-            renderCurrentPage();
+        // Mostrar u ocultar los contenedores según el modo de vista
+        updateViewModeDisplay();
+
+        // Calcular las páginas actuales para modo doble página
+        if (viewMode === 'double') {
+            calculateDoublePagesForPage(currentPage);
         }
+
+        // Renderizar la página actual según el modo
+        renderCurrentPages();
 
         // Ocultar indicador de carga
         document.getElementById('loading-indicator').style.display = 'none';
-
-        // Mostrar el contenedor de página única
-        document.getElementById('single-page-container').style.display = 'flex';
     } catch (error) {
         console.error('Error al cargar el PDF:', error);
         document.getElementById('loading-indicator').innerHTML = `
@@ -108,7 +126,339 @@ async function loadPDF() {
     }
 }
 
-// Cargar tabla de contenidos
+// Calcular páginas para modo doble
+function calculateDoublePagesForPage(page) {
+    // Para el modo de doble página, queremos que la página izquierda sea impar
+    // y la derecha sea par
+    if (page % 2 === 0) {
+        currentLeftPage = page - 1;
+    } else {
+        currentLeftPage = page;
+    }
+
+    currentRightPage = currentLeftPage + 1;
+
+    // Ajustar si estamos fuera de rango
+    if (currentLeftPage < 1) {
+        currentLeftPage = 1;
+        currentRightPage = 2;
+    }
+
+    if (currentRightPage > totalPages) {
+        currentRightPage = null; // Indica página en blanco
+    }
+
+    // Actualizar página actual para mantener coherencia
+    currentPage = currentLeftPage;
+}
+
+// Renderizar las páginas actuales
+async function renderCurrentPages() {
+    if (!pdfDoc) return;
+
+    // Actualizar la UI según el modo de vista
+    updateViewModeDisplay();
+
+    // Manejar el renderizado según el modo de vista
+    if (viewMode === 'single') {
+        return renderSinglePage();
+    } else if (viewMode === 'double') {
+        return renderDoublePages();
+    } else if (viewMode === 'scroll') {
+        return renderScrollMode();
+    }
+}
+
+// Renderizar en modo página única
+async function renderSinglePage() {
+    pagesRendering = true;
+
+    try {
+        // Ocultar temporalmente para evitar parpadeos
+        document.getElementById('single-page-container').style.opacity = '0.5';
+
+        const canvas = document.getElementById('single-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        await renderPage(currentPage, canvas);
+
+        // Mostrar el contenedor
+        document.getElementById('single-page-container').style.opacity = '1';
+
+        // Actualizar número de página actual
+        document.getElementById('current-page-input').value = currentPage;
+        document.getElementById('bookmark-page').textContent = currentPage;
+
+        // Actualizar elemento activo en TOC
+        updateActiveTocItem();
+
+        // Actualizar estado de botones de navegación
+        updateNavigationButtons();
+
+        // Actualizar URL con número de página
+        if (history.replaceState) {
+            history.replaceState(null, null, `#${currentPage}`);
+        }
+
+        // Actualizar la barra de progreso
+        updateProgressBar();
+
+        // Guardar posición en localStorage
+        savePosition();
+
+        // Comprobar si hay una página pendiente
+        pagesRendering = false;
+        if (pageNumPending !== null) {
+            const num = pageNumPending;
+            pageNumPending = null;
+            goToPage(num);
+        }
+    } catch (error) {
+        console.error(`Error al renderizar página ${currentPage}: `, error);
+        pagesRendering = false;
+        document.getElementById('single-page-container').style.opacity = '1';
+        showNotification('Error al renderizar la página', 'danger');
+    }
+}
+
+// Renderizar en modo doble página
+async function renderDoublePages() {
+    pagesRendering = true;
+
+    try {
+        // Temporarily hide to avoid flickering
+        document.getElementById('double-page-container').style.opacity = '0.5';
+
+        // Clear canvases
+        const leftCanvas = document.getElementById('left-canvas');
+        const rightCanvas = document.getElementById('right-canvas');
+        const leftCtx = leftCanvas.getContext('2d');
+        const rightCtx = rightCanvas.getContext('2d');
+        leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+        rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
+
+        // Render both pages sequentially to avoid race conditions
+        await renderPage(currentLeftPage, leftCanvas);
+
+        // Only render right page if it exists
+        if (currentRightPage && currentRightPage <= totalPages) {
+            await renderPage(currentRightPage, rightCanvas);
+        } else {
+            // If no right page, show a blank page
+            await renderBlankPage(rightCanvas);
+        }
+
+        // Show container
+        document.getElementById('double-page-container').style.opacity = '1';
+
+        // Update current page (show both pages)
+        document.getElementById('current-page-input').value = currentLeftPage;
+        document.getElementById('bookmark-page').textContent = currentPage;
+
+        // Update active TOC item
+        updateActiveTocItem();
+
+        // Update navigation button states
+        updateNavigationButtons();
+
+        // Update URL with page number
+        if (history.replaceState) {
+            history.replaceState(null, null, `#${currentLeftPage}`);
+        }
+
+        // Update progress bar
+        updateProgressBar();
+
+        // Save position in localStorage
+        savePosition();
+
+        pagesRendering = false;
+        if (pageNumPending !== null) {
+            const num = pageNumPending;
+            pageNumPending = null;
+            goToPage(num);
+        }
+    } catch (error) {
+        if (error.message !== 'Rendering cancelled') {
+            console.error(`Error al renderizar páginas ${currentLeftPage}-${currentRightPage}: `, error);
+        }
+        pagesRendering = false;
+        document.getElementById('double-page-container').style.opacity = '1';
+        showNotification('Error al renderizar las páginas', 'danger');
+    }
+}
+
+// 4. Add initialization code to connect everything
+document.addEventListener('DOMContentLoaded', function () {
+    // The original initialization will run, but we need to make sure our fixes
+    // are applied. Let's set a short timeout to ensure the original code has run.
+    setTimeout(() => {
+        console.log("Applying PDF Reader fixes...");
+        // We can override specific functions here if needed
+    }, 100);
+});
+
+// Renderizar página en modo de desplazamiento (scroll)
+async function renderScrollMode() {
+    // Esta es una implementación básica, se podría mejorar para cargar solo las páginas visibles
+    pagesRendering = true;
+
+    try {
+        // Por ahora, simplemente redirige al modo de página única
+        viewMode = 'single';
+        await renderSinglePage();
+
+        // Mostrar notificación
+        showNotification('El modo de desplazamiento está en desarrollo. Se ha cambiado a modo de página única.', 'info');
+    } catch (error) {
+        console.error(`Error al renderizar modo scroll: `, error);
+        pagesRendering = false;
+        showNotification('Error al renderizar en modo desplazamiento', 'danger');
+    }
+}
+
+// Renderizar una página en un canvas
+async function renderPage(pageNum, canvas) {
+    try {
+        // Cancel any existing render task for this canvas
+        if (canvas.id === 'left-canvas' && renderTaskLeft) {
+            await renderTaskLeft.cancel();
+            renderTaskLeft = null;
+        } else if (canvas.id === 'right-canvas' && renderTaskRight) {
+            await renderTaskRight.cancel();
+            renderTaskRight = null;
+        } else if (canvas.id === 'single-canvas' && renderTaskSingle) {
+            await renderTaskSingle.cancel();
+            renderTaskSingle = null;
+        }
+
+        // Obtain the page
+        const page = await pdfDoc.getPage(pageNum);
+
+        // Get container dimensions
+        const container = document.getElementById('book-container');
+        const containerWidth = container.clientWidth - 40; // margin
+        const containerHeight = container.clientHeight - 40; // margin
+
+        // Get original viewport
+        const viewport = page.getViewport({ scale: 1.0 });
+
+        // Calculate appropriate scale
+        let pageScale = scale;
+
+        if (isFitWidth) {
+            // Adjust to width, considering mode
+            if (viewMode === 'double') {
+                pageScale = (containerWidth / 2 - 5) / viewport.width;
+            } else {
+                pageScale = containerWidth / viewport.width;
+            }
+        } else if (isFitPage) {
+            // Adjust to page
+            let scaleX;
+            if (viewMode === 'double') {
+                scaleX = (containerWidth / 2 - 5) / viewport.width;
+            } else {
+                scaleX = containerWidth / viewport.width;
+            }
+
+            const scaleY = containerHeight / viewport.height;
+            pageScale = Math.min(scaleX, scaleY);
+        } else {
+            // Verify scale isn't too large
+            const maxScaleX = containerWidth / viewport.width;
+            const maxScaleY = containerHeight / viewport.height;
+            const maxScale = Math.min(maxScaleX, maxScaleY);
+
+            if (scale > maxScale * 1.5) {
+                pageScale = maxScale * 1.5;
+            }
+        }
+
+        const scaledViewport = page.getViewport({ scale: pageScale });
+
+        // Setup canvas dimensions
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
+
+        // Setup page container dimensions
+        const pageDiv = canvas.parentElement;
+        pageDiv.style.width = `${scaledViewport.width}px`;
+        pageDiv.style.height = `${scaledViewport.height}px`;
+
+        // Apply theme
+        applyThemeToElement(pageDiv);
+
+        // Create render context
+        const renderContext = {
+            canvasContext: canvas.getContext('2d'),
+            viewport: scaledViewport
+        };
+
+        // Store the render task reference based on canvas ID
+        const renderTask = page.render(renderContext);
+
+        if (canvas.id === 'left-canvas') {
+            renderTaskLeft = renderTask;
+        } else if (canvas.id === 'right-canvas') {
+            renderTaskRight = renderTask;
+        } else if (canvas.id === 'single-canvas') {
+            renderTaskSingle = renderTask;
+        }
+
+        // Wait for rendering to complete
+        await renderTask.promise;
+
+        // Update zoom buttons state
+        document.getElementById('zoom-in').disabled = scale >= 2.0;
+        document.getElementById('zoom-out').disabled = scale <= 0.5;
+
+        return page;
+    } catch (error) {
+        // Only log non-cancellation errors
+        if (error.message !== 'Rendering cancelled') {
+            console.error(`Error al renderizar página ${pageNum}: `, error);
+        }
+        throw error;
+    }
+}
+
+function getElementSafely(id) {
+    const element = document.getElementById(id);
+    return element;
+}
+
+// Renderizar una página en blanco
+function renderBlankPage(canvas) {
+    return new Promise((resolve) => {
+        const ctx = canvas.getContext('2d');
+
+        // Usar las dimensiones de la página izquierda como referencia
+        const leftCanvas = document.getElementById('left-canvas');
+
+        if (leftCanvas.width > 0 && leftCanvas.height > 0) {
+            canvas.width = leftCanvas.width;
+            canvas.height = leftCanvas.height;
+
+            // Dibujar fondo blanco
+            ctx.fillStyle = getComputedStyle(document.documentElement)
+                .getPropertyValue('--reader-page-color').trim() || '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else {
+            // Si no hay referencia, usar dimensiones estándar
+            canvas.width = 595; // Tamaño A4 estándar en puntos
+            canvas.height = 842;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        resolve();
+    });
+}
+
+// Función para cargar la tabla de contenidos del PDF
 async function loadTableOfContents() {
     try {
         // Intentar obtener el outline del PDF
@@ -122,14 +472,22 @@ async function loadTableOfContents() {
             renderTableOfContents();
         } else {
             // No hay tabla de contenidos
-            document.getElementById('toc-loading').style.display = 'none';
-            document.getElementById('toc-empty').style.display = 'block';
+            const tocLoading = document.getElementById('toc-loading');
+            const tocEmpty = document.getElementById('toc-empty');
+
+            if (tocLoading) tocLoading.style.display = 'none';
+            if (tocEmpty) tocEmpty.style.display = 'block';
         }
     } catch (error) {
         console.error('Error al cargar la tabla de contenidos:', error);
-        document.getElementById('toc-loading').style.display = 'none';
-        document.getElementById('toc-empty').style.display = 'block';
-        document.getElementById('toc-empty').textContent = 'Error al cargar la tabla de contenidos';
+        const tocLoading = document.getElementById('toc-loading');
+        const tocEmpty = document.getElementById('toc-empty');
+
+        if (tocLoading) tocLoading.style.display = 'none';
+        if (tocEmpty) {
+            tocEmpty.style.display = 'block';
+            tocEmpty.textContent = 'Error al cargar la tabla de contenidos';
+        }
     }
 }
 
@@ -182,12 +540,15 @@ async function processTocItems(outline, level = 0) {
 // Renderizar tabla de contenidos
 function renderTableOfContents() {
     const tocList = document.getElementById('toc-list');
+    if (!tocList) return;
 
     // Ocultar indicador de carga
-    document.getElementById('toc-loading').style.display = 'none';
+    const tocLoading = document.getElementById('toc-loading');
+    if (tocLoading) tocLoading.style.display = 'none';
 
     if (tocItems.length === 0) {
-        document.getElementById('toc-empty').style.display = 'block';
+        const tocEmpty = document.getElementById('toc-empty');
+        if (tocEmpty) tocEmpty.style.display = 'block';
         return;
     }
 
@@ -252,12 +613,24 @@ function updateActiveTocItem() {
         const pageText = item.querySelector('small');
         if (pageText) {
             const pageNum = parseInt(pageText.textContent.replace('Pág. ', ''));
-            if (pageNum === currentPage) {
+
+            // Determinar si la página actual está en un rango visible según el modo
+            let isActive = false;
+
+            if (viewMode === 'single') {
+                isActive = pageNum === currentPage;
+            } else if (viewMode === 'double') {
+                isActive = (pageNum === currentLeftPage || pageNum === currentRightPage);
+            } else {
+                isActive = pageNum === currentPage;
+            }
+
+            if (isActive) {
                 item.classList.add('active');
 
                 // Scroll para mostrar el elemento activo
                 const panel = document.getElementById('toc-content');
-                if (panel.scrollTop !== undefined) {
+                if (panel && typeof panel.scrollTop !== 'undefined') {
                     panel.scrollTop = item.offsetTop - panel.offsetTop - 10;
                 }
             }
@@ -265,148 +638,116 @@ function updateActiveTocItem() {
     });
 }
 
-// Sistema de cola para renderizado
-function queueRenderPage(num) {
-    if (pageRendering) {
-        pageNumPending = num;
-    } else {
-        renderCurrentPage();
-    }
-}
-
-// Renderizar la página actual
-async function renderCurrentPage() {
-    if (!pdfDoc) return;
-
-    pageRendering = true;
-
-    try {
-        // Modo página única siempre
-        // Ocultar temporalmente para evitar parpadeos
-        document.getElementById('single-page-container').style.opacity = '0.5';
-
-        const canvas = document.getElementById('single-canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        await renderPage(currentPage, canvas);
-
-        // Mostrar el contenedor
-        document.getElementById('single-page-container').style.opacity = '1';
-
-        // Actualizar número de página actual
-        document.getElementById('current-page-input').value = currentPage;
-        document.getElementById('bookmark-page').textContent = currentPage;
-
-        // Actualizar elemento activo en TOC
-        updateActiveTocItem();
-
-        // Actualizar estado de botones de navegación
-        document.getElementById('prev-page').disabled = currentPage <= 1;
-        document.getElementById('first-page').disabled = currentPage <= 1;
-        document.getElementById('next-page').disabled = currentPage >= totalPages;
-        document.getElementById('last-page').disabled = currentPage >= totalPages;
-
-        // Actualizar URL con número de página
-        if (history.replaceState) {
-            history.replaceState(null, null, `#${currentPage}`);
+// Función para actualizar la visualización según el modo seleccionado
+function updateViewModeDisplay() {
+    // Actualizar el texto del botón
+    const viewModeText = document.getElementById('view-mode-text');
+    if (viewModeText) {
+        if (viewMode === 'single') {
+            viewModeText.textContent = 'Página única';
+        } else if (viewMode === 'double') {
+            viewModeText.textContent = 'Doble página';
         }
-
-        // Actualizar la barra de progreso
-        updateProgressBar();
-
-        // Guardar posición en localStorage
-        savePosition();
-
-        // Comprobar si hay una página pendiente
-        pageRendering = false;
-        if (pageNumPending !== null) {
-            const num = pageNumPending;
-            pageNumPending = null;
-            goToPage(num);
-        }
-    } catch (error) {
-        console.error(`Error al renderizar página ${currentPage}: `, error);
-        pageRendering = false;
-        document.getElementById('single-page-container').style.opacity = '1';
-        showNotification('Error al renderizar la página', 'danger');
     }
-}
 
-// Renderizar una página específica en un canvas
-async function renderPage(pageNum, canvas) {
-    try {
-        // Obtener la página
-        const page = await pdfDoc.getPage(pageNum);
+    // Actualizar el modo seleccionado en configuración
+    const settingsViewMode = document.getElementById('settings-view-mode');
+    if (settingsViewMode) {
+        settingsViewMode.value = viewMode;
+    }
 
-        // Obtener dimensiones del contenedor
-        const container = document.getElementById('book-container');
-        const containerWidth = container.clientWidth - 40; // margen
-        const containerHeight = container.clientHeight - 40; // margen
+    // Mostrar u ocultar los contenedores adecuados
+    const singleContainer = document.getElementById('single-page-container');
+    const doubleContainer = document.getElementById('double-page-container');
 
-        // Obtener viewport original
-        const viewport = page.getViewport({ scale: 1.0 });
+    if (viewMode === 'single') {
+        singleContainer.style.display = 'flex';
+        doubleContainer.style.display = 'none';
+    } else if (viewMode === 'double') {
+        singleContainer.style.display = 'none';
+        doubleContainer.style.display = 'flex';
+    }
 
-        // Calcular la escala adecuada
-        let pageScale = scale;
-
-        if (isFitWidth) {
-            // Ajustar al ancho
-            pageScale = containerWidth / viewport.width;
-        } else if (isFitPage) {
-            // Ajustar a la página
-            const scaleX = containerWidth / viewport.width;
-            const scaleY = containerHeight / viewport.height;
-
-            pageScale = Math.min(scaleX, scaleY);
+    // Resaltar el tema activo
+    document.querySelectorAll('.theme-option').forEach(option => {
+        if (option.dataset.theme === readerSettings.theme) {
+            option.classList.add('active');
         } else {
-            // Verificar que la escala no sea demasiado grande
-            const maxScaleX = containerWidth / viewport.width;
-            const maxScaleY = containerHeight / viewport.height;
-            const maxScale = Math.min(maxScaleX, maxScaleY);
-
-            if (scale > maxScale * 1.5) {
-                pageScale = maxScale * 1.5;
-            }
+            option.classList.remove('active');
         }
-
-        const scaledViewport = page.getViewport({ scale: pageScale });
-
-        // Configurar dimensiones del canvas
-        canvas.width = scaledViewport.width;
-        canvas.height = scaledViewport.height;
-
-        // Configurar dimensiones del contenedor de la página
-        const pageDiv = canvas.parentElement;
-        pageDiv.style.width = `${scaledViewport.width}px`;
-        pageDiv.style.height = `${scaledViewport.height}px`;
-
-        // Aplicar configuración de tema
-        applyTheme(pageDiv);
-
-        // Renderizar
-        const renderContext = {
-            canvasContext: canvas.getContext('2d'),
-            viewport: scaledViewport
-        };
-
-        await page.render(renderContext).promise;
-
-        // Actualizar estado de botones de zoom
-        document.getElementById('zoom-in').disabled = scale >= 2.0;
-        document.getElementById('zoom-out').disabled = scale <= 0.5;
-
-        return page;
-    } catch (error) {
-        console.error(`Error al renderizar página ${pageNum}: `, error);
-        throw error;
-    }
+    });
 }
 
-// Función para aplicar el tema al lector
-function applyTheme(element) {
+// Función para cambiar de modo de visualización
+function changeViewMode(mode) {
+    if (mode === viewMode) return;
+
+    viewMode = mode;
+
+    // Guardar preferencia en localStorage
+    localStorage.setItem(`viewMode_${bookId}`, viewMode);
+    readerSettings.viewMode = viewMode;
+
+    // Recalcular páginas para el modo doble
+    if (viewMode === 'double') {
+        calculateDoublePagesForPage(currentPage);
+    }
+
+    // Actualizar visualización
+    renderCurrentPages();
+}
+
+// Aplic ar tema a un elemento específico
+function applyThemeToElement(element) {
     element.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
     element.classList.add(`theme-${readerSettings.theme}`);
+}
+
+// Aplicar tema general
+function applyTheme() {
+    console.log("Aplicando tema:", readerSettings.theme);
+
+    // Aplicar tema al contenedor principal
+    const bookContainer = document.getElementById('book-container');
+    if (bookContainer) {
+        bookContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+        bookContainer.classList.add(`theme-${readerSettings.theme}`);
+
+        // También aplicar como atributo de datos para CSS
+        bookContainer.dataset.theme = readerSettings.theme;
+    }
+
+    // Aplicar filtros según el tema
+    const canvases = document.querySelectorAll('.page-canvas');
+    canvases.forEach(canvas => {
+        if (readerSettings.theme === 'sepia') {
+            canvas.style.filter = 'sepia(0.5)';
+        } else if (readerSettings.theme === 'dark') {
+            canvas.style.filter = 'invert(0.85) hue-rotate(180deg)';
+        } else {
+            canvas.style.filter = 'none';
+        }
+    });
+
+    // Actualizar estado de opciones de tema
+    document.querySelectorAll('.theme-option').forEach(option => {
+        if (option.dataset.theme === readerSettings.theme) {
+            option.classList.add('active');
+        } else {
+            option.classList.remove('active');
+        }
+    });
+
+    // Aplicar tema a la vista previa
+    updatePreview();
+
+
+    if (readerSettings.theme === 'light') {
+        document.querySelectorAll('canvas').forEach(canvas => {
+            canvas.style.removeProperty('filter');
+            canvas.style.filter = 'none';
+        });
+    }
 }
 
 // Función para ajustar al ancho
@@ -414,27 +755,61 @@ function fitToWidth() {
     isFitWidth = true;
     isFitPage = false;
 
+    scale = 1.0; // Reset scale
     document.getElementById('zoom-text').textContent = 'Ancho';
-    renderCurrentPage();
+    renderCurrentPages();
 }
 
 // Función para ajustar a la página
 function fitToPage() {
     isFitWidth = false;
     isFitPage = true;
+
+    scale = 1.0; // Reset scale
     document.getElementById('zoom-text').textContent = 'Página';
-    renderCurrentPage();
+    renderCurrentPages();
 }
 
 // Actualizar la barra de progreso
 function updateProgressBar() {
-    const progress = (currentPage / totalPages) * 100;
+    let progress;
+
+    if (viewMode === 'single') {
+        progress = (currentPage / totalPages) * 100;
+    } else if (viewMode === 'double') {
+        progress = (currentLeftPage / totalPages) * 100;
+    } else {
+        progress = (currentPage / totalPages) * 100;
+    }
+
     const progressBar = document.getElementById('reading-progress');
     progressBar.style.width = `${progress}%`;
     progressBar.setAttribute('aria-valuenow', progress);
 }
 
-// Funciones de navegación
+// Actualizar estado de botones de navegación
+function updateNavigationButtons() {
+    // Determinar si estamos en la primera o última página según el modo
+    let isFirstPage, isLastPage;
+
+    if (viewMode === 'single') {
+        isFirstPage = currentPage <= 1;
+        isLastPage = currentPage >= totalPages;
+    } else if (viewMode === 'double') {
+        isFirstPage = currentLeftPage <= 1;
+        isLastPage = currentRightPage === null || currentRightPage >= totalPages;
+    } else {
+        isFirstPage = currentPage <= 1;
+        isLastPage = currentPage >= totalPages;
+    }
+
+    document.getElementById('prev-page').disabled = isFirstPage;
+    document.getElementById('first-page').disabled = isFirstPage;
+    document.getElementById('next-page').disabled = isLastPage;
+    document.getElementById('last-page').disabled = isLastPage;
+}
+
+// Navegación - ir a una página específica
 function goToPage(pageNum) {
     if (!pageNum || pageNum < 1 || pageNum > totalPages) return;
 
@@ -444,17 +819,49 @@ function goToPage(pageNum) {
     animatePageTurn(direction);
 
     currentPage = pageNum;
-    queueRenderPage(currentPage);
+
+    // Actualizar las páginas para modo doble página
+    if (viewMode === 'double') {
+        calculateDoublePagesForPage(currentPage);
+    }
+
+    if (pagesRendering) {
+        pageNumPending = currentPage;
+    } else {
+        renderCurrentPages();
+    }
 }
 
+// Navegación - página anterior
 function previousPage() {
     if (currentPage <= 1) return;
-    goToPage(currentPage - 1);
+
+    if (viewMode === 'single') {
+        goToPage(currentPage - 1);
+    } else if (viewMode === 'double') {
+        // En modo doble, retroceder 2 páginas o a la página anterior disponible
+        goToPage(Math.max(1, currentLeftPage - 2));
+    } else {
+        goToPage(currentPage - 1);
+    }
 }
 
+// Navegación - página siguiente
 function nextPage() {
     if (currentPage >= totalPages) return;
-    goToPage(currentPage + 1);
+
+    if (viewMode === 'single') {
+        goToPage(currentPage + 1);
+    } else if (viewMode === 'double') {
+        // En modo doble, avanzar 2 páginas o a la siguiente disponible
+        if (currentRightPage && currentRightPage < totalPages) {
+            goToPage(currentRightPage + 1);
+        } else {
+            goToPage(totalPages);
+        }
+    } else {
+        goToPage(currentPage + 1);
+    }
 }
 
 // Indicador de carga para cambios de página
@@ -483,10 +890,21 @@ function hidePageLoadingIndicator() {
 
 // Animación de cambio de página
 function animatePageTurn(direction) {
-    const container = document.getElementById('single-page-container');
-    container.classList.add(`page-turning-${direction}`);
+    // Determinar qué contenedor animar según el modo de vista
+    let container;
+
+    if (viewMode === 'single') {
+        container = document.getElementById('single-page-container');
+        container.classList.add(`page-turning-${direction}`);
+    } else if (viewMode === 'double') {
+        container = document.getElementById('double-page-container');
+        container.classList.add(`page-turning-${direction}`);
+    }
+
     setTimeout(() => {
-        container.classList.remove(`page-turning-${direction}`);
+        if (container) {
+            container.classList.remove(`page-turning-${direction}`);
+        }
         hidePageLoadingIndicator();
     }, 300);
 }
@@ -497,7 +915,7 @@ function setZoom(newScale) {
     isFitWidth = false;
     isFitPage = false;
     document.getElementById('zoom-text').textContent = `${Math.round(scale * 100)}%`;
-    renderCurrentPage();
+    renderCurrentPages();
 }
 
 // Función para mostrar notificaciones
@@ -522,7 +940,9 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.classList.remove('show');
         setTimeout(() => {
-            document.body.removeChild(notification);
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
         }, 150);
     }, 3000);
 }
@@ -531,8 +951,13 @@ function showNotification(message, type = 'info') {
 function loadBookmarks() {
     const savedBookmarks = localStorage.getItem(`bookmarks_${bookId}`);
     if (savedBookmarks) {
-        bookmarks = JSON.parse(savedBookmarks);
-        renderBookmarks();
+        try {
+            bookmarks = JSON.parse(savedBookmarks);
+            renderBookmarks();
+        } catch (e) {
+            console.error('Error al cargar marcadores:', e);
+            bookmarks = [];
+        }
     }
 }
 
@@ -568,6 +993,7 @@ function saveBookmark() {
 
 function renderBookmarks() {
     const bookmarksList = document.getElementById('bookmarks-list');
+    if (!bookmarksList) return;
 
     if (bookmarks.length === 0) {
         bookmarksList.innerHTML = `
@@ -634,6 +1060,9 @@ function deleteBookmark(id) {
 function savePosition() {
     localStorage.setItem(`position_${bookId}`, JSON.stringify({
         page: currentPage,
+        leftPage: currentLeftPage,
+        rightPage: currentRightPage,
+        viewMode: viewMode,
         scale: scale,
         fitWidth: isFitWidth,
         fitPage: isFitPage,
@@ -649,6 +1078,9 @@ function loadPosition() {
             const position = JSON.parse(savedPosition);
 
             currentPage = position.page || 1;
+            currentLeftPage = position.leftPage || 1;
+            currentRightPage = position.rightPage || 2;
+            viewMode = position.viewMode || localStorage.getItem(`viewMode_${bookId}`) || 'double';
             scale = position.scale || 1.0;
 
             isFitWidth = position.fitWidth || false;
@@ -664,19 +1096,494 @@ function loadPosition() {
         } catch (e) {
             console.error('Error al cargar la posición guardada:', e);
             currentPage = 1;
+            currentLeftPage = 1;
+            currentRightPage = 2;
+            viewMode = 'double';
             scale = 1.0;
         }
-    }
+    } else {
+        // Si no hay posición guardada, usar valores predeterminados
+        // o preferencias guardadas
+        const savedViewMode = localStorage.getItem(`viewMode_${bookId}`);
+        if (savedViewMode) {
+            viewMode = savedViewMode;
+        } else {
+            viewMode = 'double';
+        }
 
-    renderCurrentPage();
+        currentPage = 1;
+        currentLeftPage = 1;
+        currentRightPage = 2;
+    }
 }
 
-// Funciones para notas
+// Funciones para cargar y guardar configuración
+async function loadReaderSettings() {
+    try {
+        // Configurar tema por defecto a 'light' (claro)
+        readerSettings = {
+            theme: 'light',
+            fontFamily: 'Arial',
+            fontSize: 16,
+            viewMode: 'double'
+        };
+
+        // Primero, intentar cargar configuración del almacenamiento local
+        const savedSettings = localStorage.getItem(`settings_${bookId}`);
+        if (savedSettings) {
+            try {
+                const settings = JSON.parse(savedSettings);
+                // Sobreescribir las configuraciones predeterminadas con las guardadas
+                readerSettings = { ...readerSettings, ...settings };
+                console.log("Tema cargado desde localStorage:", readerSettings.theme);
+            } catch (e) {
+                console.error('Error al analizar la configuración local:', e);
+            }
+        } else {
+            console.log("No se encontró configuración guardada, usando tema predeterminado: light");
+        }
+
+        // Luego, intentar cargar desde el servidor si el usuario está autenticado
+        if (document.querySelector('#antiforgery-form')) {
+            try {
+                const response = await fetch('/ReaderSettings/GetSettings');
+                if (response.ok) {
+                    const serverSettings = await response.json();
+                    // Combinar con la configuración local, dando prioridad a la del servidor
+                    readerSettings = { ...readerSettings, ...serverSettings };
+                    console.log("Tema actualizado desde servidor:", readerSettings.theme);
+
+                    // Guardar la configuración combinada en local
+                    localStorage.setItem(`settings_${bookId}`, JSON.stringify(readerSettings));
+                }
+            } catch (serverError) {
+                console.error('Error al obtener configuración del servidor:', serverError);
+                // Continuar con configuración local en caso de error
+            }
+        }
+
+        // Aplicar configuración inmediatamente
+        applyTheme();
+
+        // Actualizar controles en el modal de configuración (si existe)
+        const themeRadio = document.querySelector(`input[name="theme"][value="${readerSettings.theme}"]`);
+        if (themeRadio) themeRadio.checked = true;
+
+        const viewModeSelect = document.getElementById('settings-view-mode');
+        if (viewModeSelect) viewModeSelect.value = readerSettings.viewMode || viewMode;
+
+        // Configurar el zoom según las preferencias guardadas
+        const savedZoom = localStorage.getItem(`zoom_${bookId}`);
+        if (savedZoom) {
+            try {
+                const zoomConfig = JSON.parse(savedZoom);
+                if (zoomConfig.fitWidth) {
+                    fitToWidth();
+                    const defaultZoom = document.getElementById('default-zoom');
+                    if (defaultZoom) defaultZoom.value = 'width';
+                } else if (zoomConfig.fitPage) {
+                    fitToPage();
+                    const defaultZoom = document.getElementById('default-zoom');
+                    if (defaultZoom) defaultZoom.value = 'page';
+                } else {
+                    setZoom(zoomConfig.scale || 1.0);
+                    const defaultZoom = document.getElementById('default-zoom');
+                    if (defaultZoom) defaultZoom.value = zoomConfig.scale || '1.0';
+                }
+            } catch (e) {
+                console.error('Error al analizar la configuración de zoom:', e);
+            }
+        } else {
+            // Si no hay configuración de zoom, usar ajuste a página por defecto
+            const defaultZoom = document.getElementById('default-zoom');
+            if (defaultZoom) defaultZoom.value = 'page';
+            fitToPage();
+        }
+
+        // Actualizar vista previa
+        updatePreview();
+
+        // Asegurarse de que el tema se aplica al contenedor principal
+        document.querySelectorAll('.theme-option').forEach(option => {
+            if (option.dataset.theme === readerSettings.theme) {
+                option.classList.add('active');
+            } else {
+                option.classList.remove('active');
+            }
+        });
+
+        // Forzar la aplicación del tema al contenedor del libro
+        const bookContainer = document.getElementById('book-container');
+        if (bookContainer) {
+            bookContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+            bookContainer.classList.add(`theme-${readerSettings.theme}`);
+        }
+    } catch (error) {
+        console.error('Error al cargar la configuración del lector:', error);
+        // En caso de error, asegurarse de usar tema claro
+        readerSettings.theme = 'light';
+        applyTheme();
+    }
+}
+
+// Actualizar vista previa del tema en la configuración
+function updatePreview() {
+    const previewContainer = document.getElementById('preview-container');
+    const previewElement = document.getElementById('theme-preview');
+
+    if (!previewContainer || !previewElement) return;
+
+    // Obtener el tema seleccionado
+    const selectedTheme = document.querySelector('input[name="theme"]:checked')?.value || readerSettings.theme || 'light';
+
+    // Limpiar clases anteriores
+    previewContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+
+    // Aplicar tema
+    previewContainer.classList.add(`theme-${selectedTheme}`);
+
+    // Aplicar estilos según el tema
+    if (selectedTheme === 'light') {
+        previewElement.style.backgroundColor = 'var(--theme-light-bg)';
+        previewElement.style.color = 'var(--theme-light-text)';
+    } else if (selectedTheme === 'sepia') {
+        previewElement.style.backgroundColor = 'var(--theme-sepia-bg)';
+        previewElement.style.color = 'var(--theme-sepia-text)';
+    } else if (selectedTheme === 'dark') {
+        previewElement.style.backgroundColor = 'var(--theme-dark-bg)';
+        previewElement.style.color = 'var(--theme-dark-text)';
+    }
+}
+
+// Guardar configuración del lector
+async function saveReaderSettings() {
+    const theme = document.querySelector('input[name="theme"]:checked')?.value || readerSettings.theme || 'light';
+    const viewModeValue = document.getElementById('settings-view-mode')?.value || viewMode;
+    const defaultZoom = document.getElementById('default-zoom')?.value || 'page';
+
+    // Actualizar configuración
+    readerSettings.theme = theme;
+    readerSettings.viewMode = viewModeValue;
+
+    // Guardar localmente
+    localStorage.setItem(`settings_${bookId}`, JSON.stringify(readerSettings));
+
+    // Guardar configuración de zoom
+    const zoomConfig = {
+        scale: 1.0,
+        fitWidth: false,
+        fitPage: false
+    };
+
+    // Aplicar el zoom según la opción seleccionada
+    if (defaultZoom === 'width') {
+        zoomConfig.fitWidth = true;
+    } else if (defaultZoom === 'page') {
+        zoomConfig.fitPage = true;
+    } else {
+        zoomConfig.scale = parseFloat(defaultZoom);
+    }
+
+    localStorage.setItem(`zoom_${bookId}`, JSON.stringify(zoomConfig));
+
+    try {
+        // Guardar en el servidor si está autenticado
+        if (document.querySelector('#antiforgery-form')) {
+            // Obtener el token de antiforgery
+            const token = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]')?.value;
+
+            // Verificar si tenemos el token
+            if (token) {
+                // Usar FormData para compatibilidad con ASP.NET Core
+                const formData = new FormData();
+                formData.append('theme', theme);
+                formData.append('fontFamily', readerSettings.fontFamily || 'Arial');
+                formData.append('fontSize', readerSettings.fontSize || '16');
+
+                await fetch('/ReaderSettings/UpdateSettings', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    body: formData
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error al guardar configuración en el servidor:', error);
+        // No mostrar error al usuario, ya se guardó localmente
+    }
+
+    // Cambiar el modo de visualización si es necesario
+    if (viewModeValue !== viewMode) {
+        changeViewMode(viewModeValue);
+    } else {
+        // Si solo cambió el tema, aplicarlo
+        applyTheme();
+    }
+
+    // Aplicar zoom
+    if (defaultZoom === 'width') {
+        fitToWidth();
+    } else if (defaultZoom === 'page') {
+        fitToPage();
+    } else {
+        setZoom(parseFloat(defaultZoom));
+    }
+
+    // Cerrar el modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('settings-modal'));
+    if (modal) modal.hide();
+
+    showNotification('Configuración guardada correctamente', 'success');
+}
+
+// Esta función es un reemplazo seguro para renderizar las páginas cuando hay errores
+// Maneja correctamente los casos donde faltan elementos o funciones
+async function safeRenderDoublePages() {
+    pagesRendering = true;
+
+    try {
+        // Ocultar temporalmente para evitar parpadeos
+        const doublePageContainer = document.getElementById('double-page-container');
+        if (doublePageContainer) {
+            doublePageContainer.style.opacity = '0.5';
+        }
+
+        // Limpiar los canvas
+        const leftCanvas = document.getElementById('left-canvas');
+        const rightCanvas = document.getElementById('right-canvas');
+
+        if (!leftCanvas || !rightCanvas) {
+            console.error('No se encontraron los canvas necesarios');
+            pagesRendering = false;
+            return;
+        }
+
+        const leftCtx = leftCanvas.getContext('2d');
+        const rightCtx = rightCanvas.getContext('2d');
+        leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+        rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
+
+        // Renderizar ambas páginas
+        const leftPromise = renderPage(currentLeftPage, leftCanvas);
+
+        // Solo renderizar la página derecha si existe
+        let rightPromise;
+        if (currentRightPage && currentRightPage <= totalPages) {
+            rightPromise = renderPage(currentRightPage, rightCanvas);
+        } else {
+            // Si no hay página derecha, mostrar una página en blanco
+            rightPromise = renderBlankPage(rightCanvas);
+        }
+
+        await Promise.all([leftPromise, rightPromise]);
+
+        // Mostrar el contenedor
+        if (doublePageContainer) {
+            doublePageContainer.style.opacity = '1';
+        }
+
+        // Actualizar número de página actual (mostrar ambas páginas)
+        const pageInput = document.getElementById('current-page-input');
+        const bookmarkPage = document.getElementById('bookmark-page');
+
+        if (pageInput) pageInput.value = currentLeftPage;
+        if (bookmarkPage) bookmarkPage.textContent = currentPage;
+
+        // Actualizar elemento activo en TOC
+        if (typeof updateActiveTocItem === 'function') {
+            updateActiveTocItem();
+        }
+
+        // Actualizar estado de botones de navegación
+        if (typeof updateNavigationButtons === 'function') {
+            updateNavigationButtons();
+        } else {
+            // Implementación de respaldo básica
+            const prevBtn = document.getElementById('prev-page');
+            const nextBtn = document.getElementById('next-page');
+            const firstBtn = document.getElementById('first-page');
+            const lastBtn = document.getElementById('last-page');
+
+            if (prevBtn) prevBtn.disabled = currentLeftPage <= 1;
+            if (firstBtn) firstBtn.disabled = currentLeftPage <= 1;
+            if (nextBtn) nextBtn.disabled = currentRightPage > totalPages;
+            if (lastBtn) lastBtn.disabled = currentRightPage > totalPages;
+        }
+
+        // Actualizar URL con número de página
+        if (history.replaceState) {
+            history.replaceState(null, null, `#${currentLeftPage}`);
+        }
+
+        // Actualizar la barra de progreso
+        const progressBar = document.getElementById('reading-progress');
+        if (progressBar) {
+            const progress = (currentLeftPage / totalPages) * 100;
+            progressBar.style.width = `${progress}%`;
+            progressBar.setAttribute('aria-valuenow', progress);
+        }
+
+        // Guardar posición en localStorage si la función existe
+        if (typeof savePosition === 'function') {
+            savePosition();
+        } else {
+            // Implementación de respaldo básica
+            localStorage.setItem(`position_${bookId}`, JSON.stringify({
+                page: currentPage,
+                leftPage: currentLeftPage,
+                rightPage: currentRightPage,
+                viewMode: viewMode,
+                timestamp: new Date().toISOString()
+            }));
+        }
+
+        pagesRendering = false;
+        if (pageNumPending !== null) {
+            const num = pageNumPending;
+            pageNumPending = null;
+            goToPage(num);
+        }
+    } catch (error) {
+        console.error(`Error al renderizar páginas ${currentLeftPage}-${currentRightPage}: `, error);
+        pagesRendering = false;
+        const doublePageContainer = document.getElementById('double-page-container');
+        if (doublePageContainer) {
+            doublePageContainer.style.opacity = '1';
+        }
+
+        // Mostrar notificación si la función existe
+        if (typeof showNotification === 'function') {
+            showNotification('Error al renderizar las páginas. Reintentando...', 'danger');
+        } else {
+            // Crear una notificación básica
+            alert('Error al renderizar las páginas. Por favor, recarga la página.');
+        }
+
+        // Intentar recuperarse del error
+        setTimeout(() => {
+            // Intentar cargar solo la página izquierda como respaldo
+            const leftCanvas = document.getElementById('left-canvas');
+            if (leftCanvas && pdfDoc) {
+                renderPage(currentLeftPage, leftCanvas).catch(e =>
+                    console.error('Error en recuperación:', e));
+            }
+        }, 1000);
+    }
+}
+
+// Función para renderizar una página en blanco (versión robusta)
+function safeRenderBlankPage(canvas) {
+    return new Promise((resolve) => {
+        if (!canvas) {
+            console.error('Canvas no encontrado para página en blanco');
+            resolve();
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+
+        // Usar las dimensiones de la página izquierda como referencia o usar valores por defecto
+        const leftCanvas = document.getElementById('left-canvas');
+
+        let width = 595; // Ancho A4 por defecto
+        let height = 842; // Alto A4 por defecto
+
+        if (leftCanvas && leftCanvas.width > 0 && leftCanvas.height > 0) {
+            width = leftCanvas.width;
+            height = leftCanvas.height;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Intentar obtener el color del tema o usar un color por defecto
+        let bgColor = '#ffffff';
+        try {
+            bgColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--reader-page-color').trim() || '#ffffff';
+        } catch (e) {
+            console.warn('No se pudo obtener el color del tema:', e);
+        }
+
+        // Dibujar fondo
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        resolve();
+    });
+}
+
+// Reemplazar renderCurrentPages para asegurarse de manejar todos los errores
+async function safeRenderCurrentPages() {
+    if (!pdfDoc) return;
+
+    try {
+        // Actualizar la UI según el modo de vista
+        if (typeof updateViewModeDisplay === 'function') {
+            updateViewModeDisplay();
+        } else {
+            // Implementación básica de respaldo
+            const singleContainer = document.getElementById('single-page-container');
+            const doubleContainer = document.getElementById('double-page-container');
+
+            if (viewMode === 'single') {
+                if (singleContainer) singleContainer.style.display = 'flex';
+                if (doubleContainer) doubleContainer.style.display = 'none';
+            } else if (viewMode === 'double') {
+                if (singleContainer) singleContainer.style.display = 'none';
+                if (doubleContainer) doubleContainer.style.display = 'flex';
+            }
+        }
+
+        // Manejar el renderizado según el modo de vista
+        if (viewMode === 'single') {
+            if (typeof renderSinglePage === 'function') {
+                return renderSinglePage();
+            } else {
+                console.error('Función renderSinglePage no definida, usando modo doble como respaldo');
+                return safeRenderDoublePages();
+            }
+        } else if (viewMode === 'double') {
+            return safeRenderDoublePages();
+        } else if (viewMode === 'scroll') {
+            if (typeof renderScrollMode === 'function') {
+                return renderScrollMode();
+            } else {
+                console.error('Función renderScrollMode no definida, usando modo doble como respaldo');
+                return safeRenderDoublePages();
+            }
+        }
+    } catch (error) {
+        console.error('Error en renderCurrentPages:', error);
+        // Intentar modo básico como último recurso
+        try {
+            const leftCanvas = document.getElementById('left-canvas');
+            if (leftCanvas && pdfDoc) {
+                leftCanvas.style.display = 'block';
+                const page = await pdfDoc.getPage(currentPage);
+                const viewport = page.getViewport({ scale: 1.0 });
+                leftCanvas.width = viewport.width;
+                leftCanvas.height = viewport.height;
+                await page.render({
+                    canvasContext: leftCanvas.getContext('2d'),
+                    viewport: viewport
+                }).promise;
+            }
+        } catch (e) {
+            console.error('Error en recuperación de emergencia:', e);
+        }
+    }
+}
+
 // Funciones para notas
 async function loadNotes() {
     try {
         // Mostrar indicador de carga en el panel de notas
         const notesList = document.getElementById('notes-list');
+        if (!notesList) return;
+
         notesList.innerHTML = `
             <div class="text-center p-3">
                 <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -691,7 +1598,6 @@ async function loadNotes() {
 
         if (response.ok) {
             notes = await response.json();
-            console.log('Notas cargadas:', notes);
             renderNotes();
         } else {
             console.error('Error al cargar las notas:', response.statusText);
@@ -704,17 +1610,21 @@ async function loadNotes() {
         }
     } catch (error) {
         console.error('Error al cargar las notas:', error);
-        document.getElementById('notes-list').innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle me-2"></i>
-                Error al cargar las notas: ${error.message}
-            </div>
-        `;
+        const notesList = document.getElementById('notes-list');
+        if (notesList) {
+            notesList.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error al cargar las notas: ${error.message}
+                </div>
+            `;
+        }
     }
 }
 
 function renderNotes() {
     const notesList = document.getElementById('notes-list');
+    if (!notesList) return;
 
     if (notes.length === 0) {
         notesList.innerHTML = `
@@ -763,20 +1673,342 @@ function renderNotes() {
         const editButton = noteElement.querySelector('.edit-note');
         const deleteButton = noteElement.querySelector('.delete-note');
 
-        editButton.addEventListener('click', () => {
-            editNote(note);
-        });
+        if (editButton) {
+            editButton.addEventListener('click', () => {
+                editNote(note);
+            });
+        }
 
-        deleteButton.addEventListener('click', () => {
-            deleteNote(note.id);
-        });
+        if (deleteButton) {
+            deleteButton.addEventListener('click', () => {
+                deleteNote(note.id);
+            });
+        }
 
         notesList.appendChild(noteElement);
     });
 }
 
+// Utilidad para debounce de eventos
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+}
 
-// Función corregida para crear notas
+// Configurar todos los eventos
+function setupEventListeners() {
+    // Función auxiliar para agregar event listeners de manera segura
+    function addSafeEventListener(elementId, eventType, handler) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.addEventListener(eventType, handler);
+        }
+    }
+
+    // Navegación de páginas
+    addSafeEventListener('first-page', 'click', () => goToPage(1));
+    addSafeEventListener('prev-page', 'click', previousPage);
+    addSafeEventListener('next-page', 'click', nextPage);
+    addSafeEventListener('last-page', 'click', () => goToPage(totalPages));
+
+    // Input de página actual
+    addSafeEventListener('current-page-input', 'change', function () {
+        const page = parseInt(this.value);
+        if (page >= 1 && page <= totalPages) {
+            goToPage(page);
+        }
+    });
+
+    // Controles de zoom
+    addSafeEventListener('zoom-in', 'click', () => {
+        setZoom(Math.min(scale + 0.15, 2.0));
+    });
+
+    addSafeEventListener('zoom-out', 'click', () => {
+        setZoom(Math.max(scale - 0.15, 0.5));
+    });
+
+    // Presets de zoom
+    const zoomPresets = document.querySelectorAll('.zoom-preset');
+    if (zoomPresets.length > 0) {
+        zoomPresets.forEach(preset => {
+            preset.addEventListener('click', function () {
+                setZoom(parseFloat(this.dataset.zoom));
+            });
+        });
+    }
+
+    // Opciones de ajuste
+    addSafeEventListener('zoom-fit-width', 'click', fitToWidth);
+    addSafeEventListener('zoom-fit-page', 'click', fitToPage);
+
+    // Configurar eventos para opciones de modo de visualización
+    document.querySelectorAll('.view-mode-option').forEach(option => {
+        option.addEventListener('click', function () {
+            changeViewMode(this.dataset.mode);
+        });
+    });
+
+    // Botón de marcadores
+    addSafeEventListener('bookmark-button', 'click', function () {
+        const bookmarkPage = document.getElementById('bookmark-page');
+        if (bookmarkPage) {
+            bookmarkPage.textContent = currentPage;
+        }
+        const modalElement = document.getElementById('bookmark-modal');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
+    });
+
+    // Guardar marcador
+    addSafeEventListener('save-bookmark', 'click', saveBookmark);
+
+    // Toggle de paneles laterales
+    addSafeEventListener('toggle-bookmarks', 'click', function () {
+        const panel = document.getElementById('side-panel');
+        const bookmarksTab = document.getElementById('bookmarks-tab');
+        const notesPanel = document.getElementById('notes-panel');
+
+        if (panel && bookmarksTab) {
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                bookmarksTab.click();
+
+                // Ocultar otros paneles
+                if (notesPanel) {
+                    notesPanel.style.display = 'none';
+                }
+            } else {
+                if (bookmarksTab.classList.contains('active')) {
+                    panel.style.display = 'none';
+                } else {
+                    bookmarksTab.click();
+                }
+            }
+        }
+    });
+
+    addSafeEventListener('toggle-toc', 'click', function () {
+        const panel = document.getElementById('side-panel');
+        const tocTab = document.getElementById('toc-tab');
+        const notesPanel = document.getElementById('notes-panel');
+
+        if (panel && tocTab) {
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                tocTab.click();
+
+                // Ocultar otros paneles
+                if (notesPanel) {
+                    notesPanel.style.display = 'none';
+                }
+            } else {
+                if (tocTab.classList.contains('active')) {
+                    panel.style.display = 'none';
+                } else {
+                    tocTab.click();
+                }
+            }
+        }
+    });
+
+    // Botones para cerrar paneles
+    addSafeEventListener('close-side-panel', 'click', function () {
+        const panel = document.getElementById('side-panel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
+    });
+
+    addSafeEventListener('close-side-panel-toc', 'click', function () {
+        const panel = document.getElementById('side-panel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
+    });
+
+    // Eventos para notas
+    addSafeEventListener('toggle-notes', 'click', function () {
+        const panel = document.getElementById('notes-panel');
+        const sidePanel = document.getElementById('side-panel');
+
+        if (panel) {
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                // Ocultar otros paneles si están abiertos
+                if (sidePanel) {
+                    sidePanel.style.display = 'none';
+                }
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+    });
+
+    addSafeEventListener('close-notes-panel', 'click', function () {
+        const panel = document.getElementById('notes-panel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
+    });
+
+    addSafeEventListener('save-new-note', 'click', createNote);
+
+    // Permitir usar Ctrl+Enter para guardar la nota
+    const noteContent = document.getElementById('new-note-content');
+    if (noteContent) {
+        noteContent.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                createNote();
+            }
+        });
+    }
+
+    // Eventos para configuración del lector (handle missing settings elements)
+    const themeButton = document.getElementById('theme-button');
+    if (themeButton) {
+        themeButton.addEventListener('click', function () {
+            // Use the kindle-reader.js theme menu functionality
+            const themeMenu = document.getElementById('theme-menu');
+            if (themeMenu) {
+                if (themeMenu.style.display === 'block') {
+                    themeMenu.style.display = 'none';
+                } else {
+                    themeMenu.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    // Guardar configuración
+    addSafeEventListener('save-settings', 'click', saveReaderSettings);
+
+    // Pantalla completa
+    addSafeEventListener('toggle-fullscreen', 'click', function () {
+        const elem = document.documentElement;
+
+        if (!document.fullscreenElement) {
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE11 */
+                document.msExitFullscreen();
+            }
+        }
+    });
+
+    // Gestos táctiles para dispositivos móviles
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    const bookContainer = document.getElementById('book-container');
+    if (bookContainer) {
+        bookContainer.addEventListener('touchstart', function (e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        bookContainer.addEventListener('touchend', function (e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+    }
+
+    function handleSwipe() {
+        const minSwipeDistance = 50;
+        if (touchEndX < touchStartX - minSwipeDistance) {
+            nextPage();
+        }
+
+        if (touchEndX > touchStartX + minSwipeDistance) {
+            previousPage();
+        }
+    }
+
+    // Teclado
+    document.addEventListener('keydown', function (e) {
+        // No capturar teclas si el foco está en un input o textarea
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        switch (e.key) {
+            case 'ArrowLeft':
+                previousPage();
+                break;
+            case 'ArrowRight':
+                nextPage();
+                break;
+            case 'Home':
+                goToPage(1);
+                break;
+            case 'End':
+                goToPage(totalPages);
+                break;
+            case '+':
+                setZoom(Math.min(scale + 0.15, 2.0));
+                break;
+            case '-':
+                setZoom(Math.max(scale - 0.15, 0.5));
+                break;
+            case 'f':
+                const fullscreenBtn = document.getElementById('toggle-fullscreen');
+                if (fullscreenBtn) fullscreenBtn.click();
+                break;
+        }
+    });
+
+    // Evento para pantalla completa - Versión mejorada
+    document.addEventListener('fullscreenchange', function () {
+        const bookContainer = document.getElementById('book-container');
+        const kindleTopBar = document.querySelector('.kindle-top-bar');
+        const kindleProgress = document.querySelector('.kindle-progress');
+        const readerControlsPanel = document.getElementById('reader-controls-panel');
+
+        if (document.fullscreenElement) {
+            // Activar modo fullscreen
+            if (bookContainer) bookContainer.classList.add('fullscreen-mode');
+
+            // Ocultar elementos del navbar
+            if (kindleTopBar) kindleTopBar.style.display = 'none';
+            //if (kindleProgress) kindleProgress.style.display = 'none';
+            //if (readerControlsPanel) readerControlsPanel.style.display = 'none';
+
+            showNotification('Presiona ESC para salir de pantalla completa', 'info');
+        } else {
+            // Desactivar modo fullscreen
+            if (bookContainer) bookContainer.classList.remove('fullscreen-mode');
+
+            // Restaurar elementos del navbar
+            if (kindleTopBar) kindleTopBar.style.display = 'flex';
+            if (kindleProgress) kindleProgress.style.display = 'flex';
+
+            // Controles se mantienen ocultos para ser consistente con la UX
+            // El usuario puede mostrarlos usando el botón de toggle
+        }
+
+        // Re-renderizar para ajustar tamaño
+        if (pdfDoc) {
+            if (isFitWidth) fitToWidth();
+            else if (isFitPage) fitToPage();
+            else renderCurrentPages();
+        }
+    });
+}
+
+// Función para crear notas
 async function createNote() {
     const content = document.getElementById('new-note-content').value.trim();
     if (!content) {
@@ -786,10 +2018,7 @@ async function createNote() {
 
     // Mostrar indicador de carga
     const saveButton = document.getElementById('save-new-note');
-    if (!saveButton) {
-        console.error('Botón de guardar nota no encontrado');
-        return;
-    }
+    if (!saveButton) return;
 
     const originalText = saveButton.innerHTML;
     saveButton.disabled = true;
@@ -805,33 +2034,16 @@ async function createNote() {
         // Verificar si tenemos el token
         if (!token) {
             console.error('No se pudo encontrar el token de antiforgery');
-            console.log('Formulario:', document.getElementById('antiforgery-form'));
-            console.log('Token input:', document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]'));
-
-            // Intenta encontrar el token de otra manera
-            const allTokens = document.querySelectorAll('input[name="__RequestVerificationToken"]');
-            console.log('Todos los tokens encontrados:', allTokens);
-
             showNotification('Error de autenticación al guardar la nota', 'danger');
-
-            // Restaurar el botón
             saveButton.disabled = false;
             saveButton.innerHTML = originalText;
             return;
         }
 
-        console.log('Token encontrado:', token);
-        console.log('Creando nota para el libro ID:', bookId);
-
         // Crear un objeto FormData
         const formData = new FormData();
         formData.append('bookId', bookId);
         formData.append('content', content);
-
-        // Debug de FormData
-        for (let pair of formData.entries()) {
-            console.log(pair[0] + ': ' + pair[1]);
-        }
 
         // Realizar la solicitud al servidor con FormData
         const response = await fetch('/Notes/CreateNote', {
@@ -849,7 +2061,6 @@ async function createNote() {
         // Analizar la respuesta
         if (response.ok) {
             const result = await response.json();
-            console.log('Respuesta del servidor:', result);
 
             if (result.success) {
                 notes.push(result.note);
@@ -857,12 +2068,9 @@ async function createNote() {
                 document.getElementById('new-note-content').value = '';
                 showNotification('Nota guardada correctamente', 'success');
             } else {
-                console.error('Error de respuesta del servidor:', result);
                 showNotification('Error al guardar la nota: ' + (result.message || 'Respuesta inválida'), 'danger');
             }
         } else {
-            const errorText = await response.text();
-            console.error('Error al guardar la nota - Respuesta:', response.status, errorText);
             showNotification(`Error al guardar la nota (${response.status})`, 'danger');
         }
     } catch (error) {
@@ -875,8 +2083,11 @@ async function createNote() {
     }
 }
 
-function editNote(note) {
+// Función para editar nota
+async function editNote(note) {
     const noteElement = document.querySelector(`.note-item[data-note-id="${note.id}"]`);
+    if (!noteElement) return;
+
     const contentElement = noteElement.querySelector('.note-content');
     const currentContent = contentElement.textContent;
 
@@ -954,8 +2165,6 @@ function editNote(note) {
                 renderNotes();
                 showNotification('Nota actualizada correctamente', 'success');
             } else {
-                const errorText = await response.text();
-                console.error('Error al actualizar la nota:', errorText);
                 showNotification('Error al actualizar la nota', 'danger');
                 renderNotes();
             }
@@ -967,6 +2176,7 @@ function editNote(note) {
     });
 }
 
+// Función para eliminar nota
 async function deleteNote(id) {
     if (!confirm('¿Estás seguro de que deseas eliminar esta nota?')) {
         return;
@@ -1001,500 +2211,12 @@ async function deleteNote(id) {
             renderNotes();
             showNotification('Nota eliminada correctamente', 'success');
         } else {
-            const errorText = await response.text();
-            console.error('Error al eliminar la nota:', errorText);
             showNotification('Error al eliminar la nota', 'danger');
         }
     } catch (error) {
         console.error('Error al eliminar la nota:', error);
         showNotification('Error al eliminar la nota', 'danger');
     }
-}
-
-// Funciones para la configuración del lector
-async function loadReaderSettings() {
-    try {
-        const response = await fetch('/ReaderSettings/GetSettings');
-        if (response.ok) {
-            const settings = await response.json();
-            readerSettings = settings;
-
-            // Aplicar configuración
-            applyReaderSettings();
-
-            // Actualizar controles en el modal
-            document.querySelector(`input[name="theme"][value="${settings.theme}"]`).checked = true;
-
-            // Configurar el zoom según las preferencias guardadas
-            const savedZoom = localStorage.getItem(`zoom_${bookId}`);
-            if (savedZoom) {
-                const zoomConfig = JSON.parse(savedZoom);
-                if (zoomConfig.fitWidth) {
-                    fitToWidth();
-                    document.getElementById('default-zoom').value = 'width';
-                } else if (zoomConfig.fitPage) {
-                    fitToPage();
-                    document.getElementById('default-zoom').value = 'page';
-                } else {
-                    setZoom(zoomConfig.scale || 1.0);
-                    document.getElementById('default-zoom').value = zoomConfig.scale || '1.0';
-                }
-            } else {
-                document.getElementById('default-zoom').value = 'page';
-                fitToPage();
-            }
-
-            updatePreview();
-        }
-    } catch (error) {
-        console.error('Error al cargar la configuración del lector:', error);
-    }
-}
-
-function applyReaderSettings() {
-    // Aplicar tema al contenedor
-    const bookContainer = document.getElementById('book-container');
-    bookContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
-    bookContainer.classList.add(`theme-${readerSettings.theme}`);
-
-    // Aplicar filtros según el tema
-    const canvas = document.getElementById('single-canvas');
-    if (readerSettings.theme === 'sepia') {
-        canvas.style.filter = 'sepia(0.5)';
-    } else if (readerSettings.theme === 'dark') {
-        canvas.style.filter = 'invert(0.85) hue-rotate(180deg)';
-    } else {
-        canvas.style.filter = 'none';
-    }
-}
-
-function updatePreview() {
-    const previewContainer = document.getElementById('preview-container');
-    const previewElement = document.getElementById('theme-preview');
-
-    // Aplicar tema
-    const theme = document.querySelector('input[name="theme"]:checked').value;
-
-    previewContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
-    previewContainer.classList.add(`theme-${theme}`);
-
-    // Aplicar estilo según el tema
-    if (theme === 'light') {
-        previewElement.style.backgroundColor = '#ffffff';
-        previewElement.style.color = '#333333';
-    } else if (theme === 'sepia') {
-        previewElement.style.backgroundColor = '#f4ecd8';
-        previewElement.style.color = '#5f4b32';
-    } else if (theme === 'dark') {
-        previewElement.style.backgroundColor = '#333333';
-        previewElement.style.color = '#eeeeee';
-    }
-}
-
-async function saveReaderSettings() {
-    const theme = document.querySelector('input[name="theme"]:checked').value;
-    const defaultZoom = document.getElementById('default-zoom').value;
-
-    try {
-        // Obtener el token de antiforgery del formulario oculto
-        const token = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]')?.value;
-
-        // Verificar si tenemos el token
-        if (!token) {
-            console.error('No se pudo encontrar el token de antiforgery');
-            showNotification('Error de autenticación al guardar la configuración', 'danger');
-            return;
-        }
-
-        // Usar FormData para compatibilidad con ASP.NET Core
-        const formData = new FormData();
-        formData.append('theme', theme);
-        formData.append('fontFamily', 'Arial'); // Valor por defecto aunque no se use
-        formData.append('fontSize', '16'); // Valor por defecto aunque no se use
-
-        const response = await fetch('/ReaderSettings/UpdateSettings', {
-            method: 'POST',
-            headers: {
-                'RequestVerificationToken': token
-            },
-            body: formData
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-
-            // Guardar la configuración localmente para uso inmediato
-            readerSettings = {
-                theme: theme,
-                fontFamily: 'Arial', // Valor por defecto aunque no se use
-                fontSize: 16 // Valor por defecto aunque no se use
-            };
-
-            // Guardar la configuración de zoom en localStorage
-            const zoomConfig = {
-                scale: 1.0,
-                fitWidth: false,
-                fitPage: false
-            };
-
-            // Aplicar el zoom según la opción seleccionada
-            if (defaultZoom === 'width') {
-                zoomConfig.fitWidth = true;
-                fitToWidth();
-            } else if (defaultZoom === 'page') {
-                zoomConfig.fitPage = true;
-                fitToPage();
-            } else {
-                zoomConfig.scale = parseFloat(defaultZoom);
-                setZoom(zoomConfig.scale);
-            }
-
-            localStorage.setItem(`zoom_${bookId}`, JSON.stringify(zoomConfig));
-
-            // Aplicar la configuración
-            applyReaderSettings();
-
-            // Cerrar el modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('settings-modal'));
-            modal.hide();
-
-            showNotification('Configuración guardada correctamente', 'success');
-        } else {
-            const errorText = await response.text();
-            console.error('Error al guardar la configuración:', errorText);
-            showNotification('Error al guardar la configuración', 'danger');
-        }
-    } catch (error) {
-        console.error('Error al guardar la configuración del lector:', error);
-        showNotification('Error al guardar la configuración', 'danger');
-    }
-}
-
-// Configurar eventos
-function setupEventListeners() {
-    // Función auxiliar para agregar event listeners de manera segura
-    function addSafeEventListener(elementId, eventType, handler) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.addEventListener(eventType, handler);
-        } else {
-            console.warn(`Elemento con id "${elementId}" no encontrado en el DOM`);
-        }
-    }
-
-    // Navegación de páginas
-    addSafeEventListener('first-page', 'click', () => goToPage(1));
-    addSafeEventListener('prev-page', 'click', previousPage);
-    addSafeEventListener('next-page', 'click', nextPage);
-    addSafeEventListener('last-page', 'click', () => goToPage(totalPages));
-
-    // Input de página actual
-    addSafeEventListener('current-page-input', 'change', function () {
-        const page = parseInt(this.value);
-        if (page >= 1 && page <= totalPages) {
-            goToPage(page);
-        }
-    });
-
-    // Controles de zoom
-    addSafeEventListener('zoom-in', 'click', () => {
-        setZoom(Math.min(scale + 0.15, 2.0));
-    });
-
-    addSafeEventListener('zoom-out', 'click', () => {
-        setZoom(Math.max(scale - 0.15, 0.5));
-    });
-
-    // Presets de zoom
-    const zoomPresets = document.querySelectorAll('.zoom-preset');
-    if (zoomPresets.length > 0) {
-        zoomPresets.forEach(preset => {
-            preset.addEventListener('click', function () {
-                setZoom(parseFloat(this.dataset.zoom));
-            });
-        });
-    } else {
-        console.warn('No se encontraron elementos con la clase "zoom-preset"');
-    }
-
-    // Opciones de ajuste
-    addSafeEventListener('zoom-fit-width', 'click', fitToWidth);
-    addSafeEventListener('zoom-fit-page', 'click', fitToPage);
-
-    // Botón de marcadores
-    addSafeEventListener('bookmark-button', 'click', function () {
-        const bookmarkPage = document.getElementById('bookmark-page');
-        if (bookmarkPage) {
-            bookmarkPage.textContent = currentPage;
-        }
-        const modalElement = document.getElementById('bookmark-modal');
-        if (modalElement) {
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-        } else {
-            console.warn('Elemento modal de marcadores no encontrado');
-        }
-    });
-
-    // Guardar marcador
-    addSafeEventListener('save-bookmark', 'click', saveBookmark);
-
-    // Toggle de paneles laterales
-    addSafeEventListener('toggle-bookmarks', 'click', function () {
-        const panel = document.getElementById('side-panel');
-        const bookmarksTab = document.getElementById('bookmarks-tab');
-        const notesPanel = document.getElementById('notes-panel');
-
-        if (!panel || !bookmarksTab) {
-            console.warn('Elementos del panel lateral o pestañas no encontrados');
-            return;
-        }
-
-        if (panel.style.display === 'none') {
-            panel.style.display = 'block';
-            bookmarksTab.click();
-
-            // Ocultar otros paneles
-            if (notesPanel) {
-                notesPanel.style.display = 'none';
-            }
-        } else {
-            if (bookmarksTab.classList.contains('active')) {
-                panel.style.display = 'none';
-            } else {
-                bookmarksTab.click();
-            }
-        }
-    });
-
-    addSafeEventListener('toggle-toc', 'click', function () {
-        const panel = document.getElementById('side-panel');
-        const tocTab = document.getElementById('toc-tab');
-        const notesPanel = document.getElementById('notes-panel');
-
-        if (!panel || !tocTab) {
-            console.warn('Elementos del panel lateral o pestañas no encontrados');
-            return;
-        }
-
-        if (panel.style.display === 'none') {
-            panel.style.display = 'block';
-            tocTab.click();
-
-            // Ocultar otros paneles
-            if (notesPanel) {
-                notesPanel.style.display = 'none';
-            }
-        } else {
-            if (tocTab.classList.contains('active')) {
-                panel.style.display = 'none';
-            } else {
-                tocTab.click();
-            }
-        }
-    });
-
-    // Botones para cerrar paneles
-    addSafeEventListener('close-side-panel', 'click', function () {
-        const panel = document.getElementById('side-panel');
-        if (panel) {
-            panel.style.display = 'none';
-        }
-    });
-
-    addSafeEventListener('close-side-panel-toc', 'click', function () {
-        const panel = document.getElementById('side-panel');
-        if (panel) {
-            panel.style.display = 'none';
-        }
-    });
-
-    // Eventos para notas
-    addSafeEventListener('toggle-notes', 'click', function () {
-        const panel = document.getElementById('notes-panel');
-        const sidePanel = document.getElementById('side-panel');
-
-        if (!panel) {
-            console.warn('Panel de notas no encontrado');
-            return;
-        }
-
-        if (panel.style.display === 'none') {
-            panel.style.display = 'block';
-            // Ocultar otros paneles si están abiertos
-            if (sidePanel) {
-                sidePanel.style.display = 'none';
-            }
-        } else {
-            panel.style.display = 'none';
-        }
-    });
-
-    addSafeEventListener('close-notes-panel', 'click', function () {
-        const panel = document.getElementById('notes-panel');
-        if (panel) {
-            panel.style.display = 'none';
-        }
-    });
-
-    addSafeEventListener('save-new-note', 'click', createNote);
-
-    // Permitir usar Ctrl+Enter para guardar la nota
-    const noteContent = document.getElementById('new-note-content');
-    if (noteContent) {
-        noteContent.addEventListener('keydown', function (e) {
-            if (e.ctrlKey && e.key === 'Enter') {
-                createNote();
-            }
-        });
-    } else {
-        console.warn('Elemento de contenido de nota no encontrado');
-    }
-
-    // Eventos para configuración del lector
-    addSafeEventListener('toggle-settings', 'click', function () {
-        const modalElement = document.getElementById('settings-modal');
-        if (modalElement) {
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-        } else {
-            console.warn('Modal de configuración no encontrado');
-        }
-    });
-
-    // Actualizar vista previa en tiempo real
-    const fontFamily = document.getElementById('font-family');
-    if (fontFamily) {
-        fontFamily.addEventListener('change', updatePreview);
-    }
-
-    const fontSize = document.getElementById('font-size');
-    if (fontSize) {
-        fontSize.addEventListener('input', updatePreview);
-    }
-
-    const themeRadios = document.querySelectorAll('input[name="theme"]');
-    if (themeRadios.length > 0) {
-        themeRadios.forEach(radio => {
-            radio.addEventListener('change', updatePreview);
-        });
-    } else {
-        console.warn('No se encontraron radios de tema');
-    }
-
-    // Guardar configuración
-    addSafeEventListener('save-settings', 'click', saveReaderSettings);
-
-    // Pantalla completa
-    addSafeEventListener('toggle-fullscreen', 'click', function () {
-        const elem = document.getElementById('book-container');
-        if (!elem) {
-            console.warn('Contenedor del libro no encontrado');
-            return;
-        }
-
-        if (!document.fullscreenElement) {
-            elem.requestFullscreen().catch(err => {
-                console.error(`Error al entrar en pantalla completa: ${err.message}`);
-            });
-        } else {
-            document.exitFullscreen();
-        }
-    });
-
-    // Gestos táctiles para dispositivos móviles
-    let touchStartX = 0;
-    let touchEndX = 0;
-
-    const bookContainer = document.getElementById('book-container');
-    if (bookContainer) {
-        bookContainer.addEventListener('touchstart', function (e) {
-            touchStartX = e.changedTouches[0].screenX;
-        });
-
-        bookContainer.addEventListener('touchend', function (e) {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        });
-    } else {
-        console.warn('Contenedor del libro no encontrado para eventos táctiles');
-    }
-
-    function handleSwipe() {
-        const minSwipeDistance = 50;
-        if (touchEndX < touchStartX - minSwipeDistance) {
-            nextPage();
-        }
-
-        if (touchEndX > touchStartX + minSwipeDistance) {
-            previousPage();
-        }
-    }
-
-    // Teclado
-    document.addEventListener('keydown', function (e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-        switch (e.key) {
-            case 'ArrowLeft':
-                previousPage();
-                break;
-            case 'ArrowRight':
-                nextPage();
-                break;
-            case 'Home':
-                goToPage(1);
-                break;
-            case 'End':
-                goToPage(totalPages);
-                break;
-            case '+':
-                const zoomInBtn = document.getElementById('zoom-in');
-                if (zoomInBtn) zoomInBtn.click();
-                break;
-            case '-':
-                const zoomOutBtn = document.getElementById('zoom-out');
-                if (zoomOutBtn) zoomOutBtn.click();
-                break;
-            case 'f':
-                const fullscreenBtn = document.getElementById('toggle-fullscreen');
-                if (fullscreenBtn) fullscreenBtn.click();
-                break;
-        }
-    });
-
-    // Evento para pantalla completa
-    document.addEventListener('fullscreenchange', function () {
-        const bookContainer = document.getElementById('book-container');
-        if (!bookContainer) {
-            console.warn('Contenedor del libro no encontrado para evento de pantalla completa');
-            return;
-        }
-
-        if (document.fullscreenElement) {
-            bookContainer.classList.add('fullscreen-mode');
-            showNotification('Presiona ESC para salir de pantalla completa', 'info');
-        } else {
-            bookContainer.classList.remove('fullscreen-mode');
-        }
-
-        // Re-renderizar para ajustar tamaño
-        if (pdfDoc) {
-            if (isFitWidth) fitToWidth();
-            else if (isFitPage) fitToPage();
-            else renderCurrentPage();
-        }
-    });
-}
-
-// Función de debounce para eventos rápidos
-function debounce(func, wait) {
-    let timeout;
-    return function (...args) {
-        const context = this;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(context, args), wait);
-    };
 }
 
 // Al iniciar el documento, cargar la página después de un breve retraso
@@ -1507,7 +2229,7 @@ setTimeout(() => {
     }
 
     if (!localStorage.getItem(`visited_${bookId}`)) {
-        showNotification('Usa las flechas del teclado o desliza para cambiar de página', 'info');
+        showNotification('Use las flechas del teclado o deslice para cambiar de página', 'info');
         localStorage.setItem(`visited_${bookId}`, 'true');
     }
 }, 500);

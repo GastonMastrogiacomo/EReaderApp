@@ -5,36 +5,24 @@
 }
 
 <div class="reader-container">
-    <!-- Header con información del libro -->
-    <div class="reader-header bg-light p-3 mb-2 border-bottom shadow-sm">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h3 class="mb-0">@Model.Title</h3>
-                <p class="text-muted mb-0">por @Model.Author</p>
-            </div>
-            <div class="d-flex align-items-center">
-                <div id="bookmark-button" class="me-2" title="Agregar marcador">
-                    <button class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-bookmark"></i>
-                    </button>
-                </div>
-                <div id="download-button" class="me-2" title="Descargar PDF">
-                    <a href="@Model.PdfPath" download class="btn btn-outline-success btn-sm">
-                        <i class="fas fa-download"></i>
-                    </a>
-                </div>
-                <a href="@Url.Action("Index", "Home", new { id = Model.IdBook })" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-arrow-left me-1"></i> Volver al Inicio
-                </a>
-            </div>
+    <!-- Barra de navegación superior minimalista estilo Kindle -->
+    <div class="kindle-top-bar">
+        <div class="kindle-title">
+            <span class="book-title">@Model.Title</span>
+            <span class="book-author">@Model.Author</span>
+        </div>
+        <div class="kindle-controls">
+            <button id="toggle-controls" class="btn btn-sm btn-icon" title="Mostrar/Ocultar controles">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
         </div>
     </div>
 
-    <!-- Controles principales del lector -->
-    <div class="reader-controls bg-light p-2 mb-2 rounded shadow-sm">
+    <!-- Panel de controles colapsable (inicialmente oculto en dispositivos grandes) -->
+    <div id="reader-controls-panel" class="reader-controls bg-light p-2 mb-2 rounded shadow-sm" style="display: none;">
         <div class="row g-2 align-items-center">
             <!-- Navegación de páginas -->
-            <div class="col-lg-5 col-md-12 d-flex align-items-center mb-2 mb-lg-0">
+            <div class="col-lg-4 col-md-12 d-flex align-items-center mb-2 mb-lg-0">
                 <div class="btn-group me-2" role="group">
                     <button id="first-page" class="btn btn-sm btn-outline-secondary" title="Primera página">
                         <i class="fas fa-angle-double-left"></i>
@@ -43,7 +31,7 @@
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <div class="input-group input-group-sm">
-                        <input type="number" id="current-page-input" class="form-control text-center" style="width: 60px;" min="1" value="1">
+                        <input type="number" id="current-page-input" class="form-control text-center" style="width: 50px;" min="1" value="1">
                         <span class="input-group-text">/ <span id="page-count">0</span></span>
                     </div>
                     <button id="next-page" class="btn btn-sm btn-outline-secondary" title="Página siguiente">
@@ -55,7 +43,7 @@
                 </div>
             </div>
 
-            <!-- Controles de zoom -->
+            <!-- Controles de zoom y vista -->
             <div class="col-lg-4 col-md-6 d-flex align-items-center mb-2 mb-lg-0">
                 <div class="btn-group me-2" role="group">
                     <button id="zoom-out" class="btn btn-sm btn-outline-secondary" title="Reducir">
@@ -79,35 +67,77 @@
                     <button id="zoom-in" class="btn btn-sm btn-outline-secondary" title="Ampliar">
                         <i class="fas fa-search-plus"></i>
                     </button>
+
+                    <!-- Selector de modo de visualización - Solo las opciones necesarias -->
+                    <div class="dropdown ms-2">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" id="view-mode" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="view-mode-text">Doble página</span>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="view-mode">
+                            <li><a class="dropdown-item view-mode-option" data-mode="single">Página única</a></li>
+                            <li><a class="dropdown-item view-mode-option" data-mode="double">Doble página</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
             <!-- Controles adicionales -->
-            <div class="col-lg-3 col-md-6 d-flex align-items-center justify-content-end">
+            <div class="col-lg-4 col-md-6 d-flex align-items-center justify-content-end">
                 <div class="btn-group" role="group">
+                    <button id="toggle-toc" class="btn btn-sm btn-outline-secondary" title="Tabla de contenidos">
+                        <i class="fas fa-list"></i>
+                    </button>
                     <button id="toggle-bookmarks" class="btn btn-sm btn-outline-secondary" title="Marcadores">
                         <i class="fas fa-bookmark"></i>
                     </button>
-                    <button id="toggle-toc" class="btn btn-sm btn-outline-secondary" title="Tabla de contenidos">
-                        <i class="fas fa-list"></i>
+                    <button id="bookmark-button" class="btn btn-sm btn-outline-secondary" title="Agregar marcador">
+                        <i class="fas fa-plus"></i>
                     </button>
                     <button id="toggle-notes" class="btn btn-sm btn-outline-secondary" title="Mis Notas">
                         <i class="fas fa-sticky-note"></i>
                     </button>
-                    <button id="toggle-settings" class="btn btn-sm btn-outline-secondary" title="Configuración">
-                        <i class="fas fa-cog"></i>
+                    <button id="theme-button" class="btn btn-sm btn-outline-secondary" title="Cambiar tema">
+                        <i class="fas fa-adjust"></i>
                     </button>
+                    <a href="@Model.PdfPath" download class="btn btn-sm btn-outline-secondary" title="Descargar libro">
+                        <i class="fas fa-download"></i>
+                    </a>
                     <button id="toggle-fullscreen" class="btn btn-sm btn-outline-secondary" title="Pantalla completa">
                         <i class="fas fa-expand"></i>
                     </button>
+                    <a href="@Url.Action("ViewDetails", "Books", new { id = Model.IdBook })" class="btn btn-sm btn-outline-secondary" title="Detalles del Libro">
+                        <i class="fa-solid fa-circle-info" "></i>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Barra de progreso -->
-    <div class="progress mb-3" style="height: 4px;">
-        <div id="reading-progress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="kindle-progress">
+        <div class="progress-text">
+            <span id="progress-percentage">0%</span>
+        </div>
+        <div class="progress">
+            <div id="reading-progress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+
+    <!-- Menú de tema (no se muestra inicialmente) -->
+    <div id="theme-menu" class="theme-menu" style="display: none;">
+        <div class="theme-options">
+            <div class="theme-option" data-theme="light">
+                <div class="theme-swatch light-theme"></div>
+                <span>Día</span>
+            </div>
+            <div class="theme-option" data-theme="sepia">
+                <div class="theme-swatch sepia-theme"></div>
+                <span>Sepia</span>
+            </div>
+            <div class="theme-option" data-theme="dark">
+                <div class="theme-swatch dark-theme"></div>
+                <span>Noche</span>
+            </div>
+        </div>
     </div>
 
     <div class="reader-layout">
@@ -193,7 +223,7 @@
             </div>
         </div>
 
-        <!-- Contenedor del libro -->
+        <!-- Contenedor del libro maximizado -->
         <div id="book-container" class="border rounded shadow" data-book-id="@Model.IdBook" data-pdf-path="@Model.PdfPath">
             <div id="loading-indicator" class="text-center p-5">
                 <div class="spinner-border text-primary" role="status">
@@ -203,10 +233,21 @@
             </div>
 
             <div id="book-view">
-                <!-- Modo página única (modo único) -->
+                <!-- Modo página única -->
                 <div id="single-page-container" class="justify-content-center" style="display: none;">
                     <div id="single-page" class="book-page single-page">
                         <canvas id="single-canvas" class="page-canvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Modo doble página -->
+                <div id="double-page-container" class="justify-content-center">
+                    <div id="left-page" class="book-page left-page">
+                        <canvas id="left-canvas" class="page-canvas"></canvas>
+                    </div>
+                    <div class="book-spine"></div>
+                    <div id="right-page" class="book-page right-page">
+                        <canvas id="right-canvas" class="page-canvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -235,81 +276,18 @@
             </div>
         </div>
     </div>
-
-    <!-- Modal para configuración del lector -->
-    <div class="modal fade" id="settings-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-cog me-2"></i>Configuración del Lector</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">Tema</label>
-                        <div class="d-flex gap-2">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="theme" id="theme-light" value="light" checked>
-                                <label class="form-check-label" for="theme-light">
-                                    Claro
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="theme" id="theme-sepia" value="sepia">
-                                <label class="form-check-label" for="theme-sepia">
-                                    Sepia
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="theme" id="theme-dark" value="dark">
-                                <label class="form-check-label" for="theme-dark">
-                                    Oscuro
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">Vista Previa del Tema</label>
-                        <div id="preview-container" class="p-3 border rounded">
-                            <div id="theme-preview" class="d-flex align-items-center justify-content-center" style="height: 100px;">
-                                <i class="fas fa-book fa-2x"></i>
-                                <span class="ms-2">Vista previa del tema</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="default-zoom" class="form-label fw-medium">Zoom Predeterminado</label>
-                        <select class="form-select" id="default-zoom">
-                            <option value="page">Ajustar a la página</option>
-                            <option value="width">Ajustar al ancho</option>
-                            <option value="1.0">100%</option>
-                            <option value="1.2">120%</option>
-                            <option value="1.5">150%</option>
-                        </select>
-                    </div>
-
-                    <!-- Campo oculto para mantener compatibilidad con el controlador -->
-                    <input type="hidden" id="font-family" value="Arial">
-                    <input type="hidden" id="font-size" value="16">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="save-settings">Guardar Cambios</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
 
 @section Styles {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    <link rel="stylesheet" href="~/css/pdf-reader.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/pdf-reader.css")" />
+
+
 }
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf.min.js"></script>
-    <script src="~/js/pdf-reader.js"></script>
+    <script src="@Url.Content("~/js/pdf-reader.js")"></script>  
+    <script src="@Url.Content("~/js/kindle-reader.js")"></script>
+
 }
