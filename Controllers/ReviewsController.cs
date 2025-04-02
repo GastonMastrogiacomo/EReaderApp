@@ -22,6 +22,8 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Reviews
+        [Authorize(Policy = "RequireAdminRole")]
+
         public async Task<IActionResult> Index()
         {
             var applicationDbContext = _context.Reviews.Include(r => r.Book).Include(r => r.User);
@@ -49,6 +51,7 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Reviews/Create
+        [Authorize]
         public IActionResult Create()
         {
             ViewData["FKIdBook"] = new SelectList(_context.Books, "IdBook", "Author");
@@ -134,6 +137,7 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Reviews/Edit/5
+        [Authorize]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Reviews == null)
@@ -146,6 +150,16 @@ namespace EReaderApp.Controllers
             {
                 return NotFound();
             }
+
+            // Check if user is the author of the review or an admin
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            string userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (review.FKIdUser != userId && userRole != "Admin")
+            {
+                return Forbid();
+            }
+
             ViewData["FKIdBook"] = new SelectList(_context.Books, "IdBook", "Author", review.FKIdBook);
             ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", review.FKIdUser);
             return View(review);
@@ -153,12 +167,28 @@ namespace EReaderApp.Controllers
 
         // POST: Reviews/Edit/5
         [HttpPost]
+        [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("IdReview,Comment,Rating,FKIdBook,FKIdUser,CreatedAt")] Review review)
         {
             if (id != review.IdReview)
             {
                 return NotFound();
+            }
+
+            // Check if user is the author of the review or an admin
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            string userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            var originalReview = await _context.Reviews.AsNoTracking().FirstOrDefaultAsync(r => r.IdReview == id);
+            if (originalReview == null)
+            {
+                return NotFound();
+            }
+
+            if (originalReview.FKIdUser != userId && userRole != "Admin")
+            {
+                return Forbid();
             }
 
             if (ModelState.IsValid)
@@ -190,6 +220,7 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Reviews/Delete/5
+        [Authorize]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Reviews == null)
@@ -201,9 +232,19 @@ namespace EReaderApp.Controllers
                 .Include(r => r.Book)
                 .Include(r => r.User)
                 .FirstOrDefaultAsync(m => m.IdReview == id);
+
             if (review == null)
             {
                 return NotFound();
+            }
+
+            // Check if user is the author of the review or an admin
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            string userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (review.FKIdUser != userId && userRole != "Admin")
+            {
+                return Forbid();
             }
 
             return View(review);
@@ -211,6 +252,7 @@ namespace EReaderApp.Controllers
 
         // POST: Reviews/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
@@ -218,9 +260,19 @@ namespace EReaderApp.Controllers
             {
                 return Problem("Entity set 'ApplicationDbContext.Reviews' is null.");
             }
+
             var review = await _context.Reviews.FindAsync(id);
             if (review != null)
             {
+                // Check if user is the author of the review or an admin
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                string userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (review.FKIdUser != userId && userRole != "Admin")
+                {
+                    return Forbid();
+                }
+
                 int bookId = review.FKIdBook;
                 _context.Reviews.Remove(review);
                 await _context.SaveChangesAsync();
@@ -230,6 +282,11 @@ namespace EReaderApp.Controllers
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        private bool ReviewExists(int id)
+        {
+            return (_context.Reviews?.Any(e => e.IdReview == id)).GetValueOrDefault();
         }
 
         // Method to handle review submission from the book details page
@@ -308,11 +365,6 @@ namespace EReaderApp.Controllers
                 comment = review.Comment,
                 rating = review.Rating
             });
-        }
-
-        private bool ReviewExists(int id)
-        {
-            return (_context.Reviews?.Any(e => e.IdReview == id)).GetValueOrDefault();
         }
     }
 }

@@ -1,0 +1,56 @@
+﻿@model User
+@{
+    ViewData["Title"] = "Edit User Role";
+    Layout = "_AdminLayout";
+}
+
+<div class="row">
+    <div class="col-lg-6 mx-auto">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Edit User Role</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4 text-center">
+                    @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                    {
+                        <img src="@Model.ProfilePicture" class="rounded-circle mb-3" width="100" height="100" alt="@Model.Name" style="object-fit: cover;">
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 100px; height: 100px;">
+                            <i class="fas fa-user fa-3x"></i>
+                        </div>
+                    }
+                    <h4>@Model.Name</h4>
+                    <p class="text-muted">@Model.Email</p>
+                    <div class="badge bg-@(Model.Role == "Admin" ? "danger" : "primary") mb-3">Current Role: @Model.Role</div>
+                </div>
+
+                <form asp-action="EditUserRole" method="post">
+                    <input type="hidden" name="id" value="@Model.IdUser" />
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">User Role</label>
+                        <select name="role" id="role" class="form-select">
+                            <option value="User" selected="@(Model.Role == "User")">User</option>
+                            <option value="Admin" selected="@(Model.Role == "Admin")">Admin</option>
+                        </select>
+                        <div class="form-text">
+                            Admin users have full access to all system features and settings.
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a asp-action="Users" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Users
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

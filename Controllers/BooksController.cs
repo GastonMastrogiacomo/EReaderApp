@@ -24,6 +24,7 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Books
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Index()
         {
               return _context.Books != null ? 
@@ -32,7 +33,7 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Books/Create
-
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Details(int id)
         {
             var book = await _context.Books
@@ -124,6 +125,7 @@ namespace EReaderApp.Controllers
 
 
         // GET: Books/Edit/5
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Books == null)
@@ -144,6 +146,7 @@ namespace EReaderApp.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Edit(int id, [Bind("IdBook,Title,Author,Description,ImageLink,Subtitle,Editorial,PageCount,Score,PdfPath")] Book book)
         {
             if (id != book.IdBook)
@@ -175,6 +178,8 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Books/Delete/5
+
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Books == null)
@@ -219,7 +224,7 @@ namespace EReaderApp.Controllers
             return Ok(books);
         }
 
-        // Add to BooksController.cs
+        // Updated Search action method for BooksController.cs
         public async Task<IActionResult> Search(string query, int? categoryId)
         {
             IQueryable<Book> books = _context.Books;
@@ -246,7 +251,28 @@ namespace EReaderApp.Controllers
             ViewBag.CurrentCategory = categoryId;
             ViewBag.SearchQuery = query;
 
-            return View(await books.ToListAsync());
+            // Execute the query to get the books
+            var booksList = await books.ToListAsync();
+
+            // Get review counts and average ratings for each book
+            var bookIds = booksList.Select(b => b.IdBook).ToList();
+            var reviewStats = await _context.Reviews
+                .Where(r => bookIds.Contains(r.FKIdBook))
+                .GroupBy(r => r.FKIdBook)
+                .Select(g => new {
+                    BookId = g.Key,
+                    Count = g.Count(),
+                    AverageRating = g.Average(r => r.Rating)
+                })
+                .ToDictionaryAsync(
+                    x => x.BookId,
+                    x => new { Count = x.Count, AverageRating = x.AverageRating }
+                );
+
+            // Store the review stats in ViewBag
+            ViewBag.ReviewStats = reviewStats;
+
+            return View(booksList);
         }
 
         // GET: Books/ViewDetails/5

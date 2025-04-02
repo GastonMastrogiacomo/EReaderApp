@@ -1,0 +1,103 @@
+﻿@model IEnumerable<User>
+@{
+    ViewData["Title"] = "User Management";
+    Layout = "_AdminLayout";
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">All Users</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover datatable">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Created On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td>@user.IdUser</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    @if (!string.IsNullOrEmpty(user.ProfilePicture))
+                                    {
+                                        <img src="@user.ProfilePicture" class="rounded-circle me-2" width="32" height="32" alt="@user.Name" style="object-fit: cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    }
+                                    <span>@user.Name</span>
+                                </div>
+                            </td>
+                            <td>@user.Email</td>
+                            <td>
+                                <span class="badge bg-@(user.Role == "Admin" ? "danger" : "primary")">@user.Role</span>
+                            </td>
+                            <td>@user.CreatedAt.ToString("MMM dd, yyyy")</td>
+                            <td>
+                                <div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Admin" asp-action="EditUserRole" asp-route-id="@user.IdUser">
+                                                <i class="fas fa-user-shield"></i> Change Role
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Users" asp-action="Edit" asp-route-id="@user.IdUser">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Users" asp-action="Details" asp-route-id="@user.IdUser">
+                                                <i class="fas fa-eye"></i> View Details
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger confirm-delete" asp-controller="Users" asp-action="Delete" asp-route-id="@user.IdUser">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
+
+    <script>
+        $(document).ready(function() {
+            $('.datatable').DataTable({
+                responsive: true,
+                order: [[0, 'desc']],
+                columnDefs: [
+                    { orderable: false, targets: [5] }
+                ]
+            });
+        });
+    </script>
+}

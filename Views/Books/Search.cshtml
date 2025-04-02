@@ -1,82 +1,186 @@
 ﻿@model IEnumerable<EReaderApp.Models.Book>
 @{
-    ViewData["Title"] = "Search Books";
+    ViewData["Title"] = "Browse Books";
     var categories = ViewBag.Categories as List<EReaderApp.Models.Category>;
     var currentCategory = ViewBag.CurrentCategory as int?;
     var searchQuery = ViewBag.SearchQuery as string;
 }
 
-<div class="container">
-    <h1>Search Books</h1>
-    
+
+<div class="container my-4">
     <div class="row mb-4">
         <div class="col-md-8">
-            <form method="get" class="d-flex">
-                <input type="text" name="query" class="form-control" placeholder="Search by title, author, or description" value="@searchQuery" />
-                <button type="submit" class="btn btn-primary ms-2">Search</button>
-            </form>
-        </div>
-        <div class="col-md-4">
-            <form method="get" class="d-flex">
-                <input type="hidden" name="query" value="@searchQuery" />
-                <select name="categoryId" class="form-select" onchange="this.form.submit()">
-                    <option value="">All Categories</option>
-                    @foreach (var category in categories)
-                    {
-                        <option value="@category.IdCategory" selected="@(currentCategory == category.IdCategory)">
-                            @category.CategoryName
-                        </option>
-                    }
-                </select>
-            </form>
+            <h1 class="mb-3">Browse Our Collection</h1>
+            <p class="text-muted">Find your next favorite book from our extensive library</p>
         </div>
     </div>
-    
+
+    <!-- Search and Filter Section with Shadow -->
+    <div class="card shadow-sm mb-5">
+        <div class="card-body p-4">
+            <div class="row">
+                <div class="col-md-8 mb-3 mb-md-0">
+                    <form method="get" class="d-flex">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" name="query" class="form-control border-start-0"
+                                   placeholder="Search by title, author, or description" value="@searchQuery" />
+                            <button type="submit" class="btn btn-primary">
+                                Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-4">
+                    <form method="get">
+                        <input type="hidden" name="query" value="@searchQuery" />
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="fas fa-filter text-muted"></i>
+                            </span>
+                            <select name="categoryId" class="form-select border-start-0" onchange="this.form.submit()">
+                                <option value="">All Categories</option>
+                                @foreach (var category in categories)
+                                {
+                                    @if (currentCategory == category.IdCategory)
+                                    {
+                                        <option value="@category.IdCategory" selected>@category.CategoryName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@category.IdCategory">@category.CategoryName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if (!Model.Any())
     {
-        <div class="alert alert-info">
-            No books found matching your criteria.
+        <div class="alert alert-info shadow-sm">
+            <i class="fas fa-info-circle me-2"></i>
+            No books found matching your criteria. Try adjusting your search or browse all categories.
         </div>
     }
     else
     {
+        <!-- Results Summary -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <span class="text-muted">
+                    Showing @Model.Count() @(Model.Count() == 1 ? "book" : "books")
+                    @if (!string.IsNullOrEmpty(searchQuery))
+                    {
+                        <text>for "<strong>@searchQuery</strong>"</text>
+                    }
+                    @if (currentCategory.HasValue)
+                    {
+                        var categoryName = categories.FirstOrDefault(c => c.IdCategory == currentCategory)?.CategoryName;
+                        <text>in <strong>@categoryName</strong></text>
+                    }
+                </span>
+            </div>
+            <div>
+                <a href="@Url.Action("Search")" class="btn btn-outline-secondary btn-sm @(string.IsNullOrEmpty(searchQuery) && !currentCategory.HasValue ? "d-none" : "")">
+                    <i class="fas fa-times me-1"></i> Clear Filters
+                </a>
+            </div>
+        </div>
+
         <div class="row">
             @foreach (var book in Model)
             {
                 <div class="col-md-3 mb-4">
-                    <div class="card h-100">
-                        @if (!string.IsNullOrEmpty(book.ImageLink))
-                        {
-                            <img src="@book.ImageLink" class="card-img-top" alt="@book.Title" />
-                        }
-                        else
-                        {
-                            <div class="card-img-top bg-light text-center py-5">
-                                <i class="fas fa-book fa-3x text-secondary"></i>
-                            </div>
-                        }
-                        <div class="card-body">
-                            <h5 class="card-title">@book.Title</h5>
-                            <p class="card-text text-muted">@book.Author</p>
-                            @if (book.Score.HasValue)
+                    <div class="card h-100 shadow-sm border-0 book-card">
+                        <div class="book-cover-container">
+                            @if (!string.IsNullOrEmpty(book.ImageLink))
                             {
-                                <div class="mb-2">
-                                    @for (int i = 1; i <= 5; i++)
-                                    {
-                                        if (i <= Math.Round(book.Score.Value))
+                                <img src="@book.ImageLink" class="card-img-top book-cover" alt="@book.Title" />
+                            }
+                            else
+                            {
+                                <div class="default-cover d-flex flex-column justify-content-center align-items-center">
+                                    <i class="fas fa-book fa-3x text-secondary mb-2"></i>
+                                    <span class="text-muted small text-center px-2">@book.Title</span>
+                                </div>
+                            }
+
+                            @if (book.Score.HasValue && book.Score.Value > 0)
+                            {
+                                <div class="book-rating">
+                                    <span class="rating-value">@book.Score.Value.ToString("F1")</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title text-truncate" title="@book.Title">@book.Title</h5>
+                            <p class="card-text text-muted small mb-2">@book.Author</p>
+
+                            <!-- Star Rating -->
+                            <div class="mb-3">
+                                @{
+                                    var reviewStats = ViewBag.ReviewStats as Dictionary<int, dynamic>;
+                                    var hasReviewStats = reviewStats != null && reviewStats.ContainsKey(book.IdBook);
+                                    var reviewCount = hasReviewStats ? reviewStats[book.IdBook].Count : 0;
+                                    var averageRating = hasReviewStats ? reviewStats[book.IdBook].AverageRating : 0;
+                                }
+
+                                @if (hasReviewStats && reviewCount > 0)
+                                {
+                                    <div class="book-rating">
+                                        <span class="rating-value">@averageRating.ToString("F1")</span>
+                                        <span class="rating-count">@reviewCount reviews</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="small text-muted">No reviews yet</span>
+                                }
+                            </div>
+
+                            <!-- Enhanced Book Action Buttons -->
+                            <div class="mt-auto book-actions">
+                                <div class="d-grid gap-2">
+                                    <div class="btn-group" role="group">
+                                        <a href="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })"
+                                           class="btn btn-outline-primary flex-grow-0">
+                                            <i class="fas fa-info-circle"></i>
+                                            <span class="d-none d-lg-inline ms-2">Details</span>
+                                        </a>
+
+                                        <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook"
+                                           class="btn btn-success flex-grow-1">
+                                            <i class="fas fa-book-reader me-1"></i> Read
+                                        </a>
+
+                                        @if (User.Identity.IsAuthenticated)
                                         {
-                                            <i class="fas fa-star text-warning"></i>
+                                            <button type="button" class="btn btn-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#addToLibraryModal"
+                                                    data-book-id="@book.IdBook">
+                                                <i class="fas fa-bookmark"></i>
+                                            </button>
                                         }
                                         else
                                         {
-                                            <i class="far fa-star text-warning"></i>
+                                            <a asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })"
+                                               class="btn btn-primary">
+                                                <i class="fas fa-bookmark"></i>
+                                            </a>
                                         }
-                                    }
-                                    <span class="ms-1">(@book.Score.Value.ToString("F1"))</span>
+                                        <button class="btn btn-outline-secondary" onclick="shareBook(@book.IdBook, '@book.Title.Replace("'", "\\'")'); return false;">
+                                            <i class="fas fa-share-alt"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                            }
-                            <a href="@Url.Action("ViewDetails", new { id = book.IdBook })" class="btn btn-primary">View Details</a>
-                            <a asp-controller="Books" asp-action="ViewDetails" asp-route-id="@book.IdBook" class="btn btn-success">Read PDF</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -84,3 +188,67 @@
         </div>
     }
 </div>
+
+<!-- Add to Library Modal -->
+<div class="modal fade" id="addToLibraryModal" tabindex="-1" aria-labelledby="addToLibraryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addToLibraryModalLabel">Add to Library</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <form id="addToLibraryForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="selectedBookId" name="bookId" value="" />
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label for="librarySelect" class="form-label">Select a library</label>
+                                <button type="button" class="btn btn-sm btn-link create-library-btn p-0">
+                                    <i class="fas fa-plus-circle me-1"></i> Create new
+                                </button>
+                            </div>
+                            <select class="form-select" id="librarySelect" name="libraryId">
+                                <option value="" disabled selected>Choose library...</option>
+                                <!-- Libraries will be loaded dynamically via JS -->
+                            </select>
+                        </div>
+
+                        <div class="mb-3 create-library-form d-none">
+                            <label for="newLibraryName" class="form-label">New library name</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="newLibraryName" name="newLibraryName" placeholder="My Library">
+                                <button class="btn btn-outline-secondary cancel-create-btn" type="button">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-user-lock fa-3x text-muted mb-3"></i>
+                        <p>Please <a asp-controller="Auth" asp-action="Login">sign in</a> to add books to your library.</p>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAddToLibrary">
+                    <i class="fas fa-plus me-2"></i> Add
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container for notifications -->
+<div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+@section Scripts {
+    <script src="~/js/book-interactions.js"></script>
+}

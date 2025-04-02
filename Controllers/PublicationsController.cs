@@ -24,6 +24,7 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Publications
+        // Public access
         public async Task<IActionResult> Index()
         {
             var publications = await _context.Publications
@@ -54,8 +55,8 @@ namespace EReaderApp.Controllers
             return View(publications);
         }
 
-
         // GET: Publications/Details/5
+        // Public access
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -99,13 +100,14 @@ namespace EReaderApp.Controllers
             return View(publication);
         }
 
-
+        // GET: Publications/Create
         [Authorize]
         public IActionResult Create()
         {
             return View();
         }
 
+        // POST: Publications/Create
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -189,6 +191,7 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Publications/Edit/5
+        [Authorize]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Publications == null)
@@ -201,21 +204,47 @@ namespace EReaderApp.Controllers
             {
                 return NotFound();
             }
-            ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", publication.FKIdUser);
+
+            // Check if user is the author or an admin
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            string userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (publication.FKIdUser != userId && userRole != "Admin")
+            {
+                return Forbid();
+            }
+
             return View(publication);
         }
 
         // POST: Publications/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
+        [Authorize]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("IdPublication,Title,Content,PubImageUrl,FKIdUser")] Publication publication)
+        public async Task<IActionResult> Edit(int id, [Bind("IdPublication,Title,Content,PubImageUrl,FKIdUser,CreatedAt")] Publication publication)
         {
             if (id != publication.IdPublication)
             {
                 return NotFound();
             }
+
+            // Check if user is the author or an admin
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            string userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            var originalPublication = await _context.Publications.AsNoTracking().FirstOrDefaultAsync(p => p.IdPublication == id);
+            if (originalPublication == null)
+            {
+                return NotFound();
+            }
+
+            if (originalPublication.FKIdUser != userId && userRole != "Admin")
+            {
+                return Forbid();
+            }
+
+            // Maintain the original user ID
+            publication.FKIdUser = originalPublication.FKIdUser;
 
             if (ModelState.IsValid)
             {
@@ -237,11 +266,11 @@ namespace EReaderApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", publication.FKIdUser);
             return View(publication);
         }
 
         // GET: Publications/Delete/5
+        [Authorize]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Publications == null)
@@ -252,9 +281,19 @@ namespace EReaderApp.Controllers
             var publication = await _context.Publications
                 .Include(p => p.User)
                 .FirstOrDefaultAsync(m => m.IdPublication == id);
+
             if (publication == null)
             {
                 return NotFound();
+            }
+
+            // Check if user is the author or an admin
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            string userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (publication.FKIdUser != userId && userRole != "Admin")
+            {
+                return Forbid();
             }
 
             return View(publication);
@@ -262,6 +301,7 @@ namespace EReaderApp.Controllers
 
         // POST: Publications/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
@@ -269,13 +309,25 @@ namespace EReaderApp.Controllers
             {
                 return Problem("Entity set 'ApplicationDbContext.Publications'  is null.");
             }
+
             var publication = await _context.Publications.FindAsync(id);
-            if (publication != null)
+            if (publication == null)
             {
-                _context.Publications.Remove(publication);
+                return NotFound();
             }
 
+            // Check if user is the author or an admin
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            string userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (publication.FKIdUser != userId && userRole != "Admin")
+            {
+                return Forbid();
+            }
+
+            _context.Publications.Remove(publication);
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 

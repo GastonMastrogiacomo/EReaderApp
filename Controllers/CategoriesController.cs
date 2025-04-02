@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using EReaderApp.Data;
 using EReaderApp.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EReaderApp.Controllers
 {
@@ -20,6 +21,8 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Categories
+        [Authorize(Policy = "RequireAdminRole")]
+
         public async Task<IActionResult> Index()
         {
               return _context.Categories != null ? 
@@ -28,6 +31,8 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Categories/Details/5
+        [Authorize(Policy = "RequireAdminRole")]
+
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null || _context.Categories == null)
@@ -46,6 +51,8 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Categories/Create
+        [Authorize(Policy = "RequireAdminRole")]
+
         public IActionResult Create()
         {
             return View();
@@ -68,6 +75,8 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Categories/Edit/5
+        [Authorize(Policy = "RequireAdminRole")]
+
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Categories == null)
@@ -88,6 +97,8 @@ namespace EReaderApp.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RequireAdminRole")]
+
         public async Task<IActionResult> Edit(int id, [Bind("IdCategory,CategoryName")] Category category)
         {
             if (id != category.IdCategory)
@@ -119,6 +130,8 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Categories/Delete/5
+        [Authorize(Policy = "RequireAdminRole")]
+
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Categories == null)

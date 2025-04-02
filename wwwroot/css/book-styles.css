@@ -1,0 +1,149 @@
+﻿/* Improved Button Group Styles */
+.book-actions .btn-group {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.book-actions .btn {
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border-radius: 0;
+}
+
+    .book-actions .btn:first-child {
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+    }
+
+    .book-actions .btn:last-child {
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+    }
+
+/* Button sizing and proportions */
+.book-actions .btn-outline-primary {
+    width: auto;
+    flex-shrink: 1;
+}
+
+.book-actions .btn-success {
+    flex-grow: 2;
+    font-weight: 500;
+}
+
+.book-actions .btn-primary,
+.book-actions .btn-outline-secondary {
+    width: 42px;
+    flex-shrink: 0;
+}
+
+/* Button colors with better contrast */
+.book-actions .btn-outline-primary {
+    color: #3B82F6;
+    border-color: #3B82F6;
+}
+
+    .book-actions .btn-outline-primary:hover {
+        background-color: #3B82F6;
+        color: white;
+    }
+
+.book-actions .btn-success {
+    background-color: #059669;
+    border-color: #059669;
+}
+
+    .book-actions .btn-success:hover {
+        background-color: #047857;
+        border-color: #047857;
+    }
+
+.book-actions .btn-primary {
+    background-color: #6366F1;
+    border-color: #6366F1;
+}
+
+    .book-actions .btn-primary:hover {
+        background-color: #4F46E5;
+        border-color: #4F46E5;
+    }
+
+.book-actions .btn-outline-secondary {
+    color: #1DA1F2; /* Twitter blue */
+    border-color: #1DA1F2;
+}
+
+    .book-actions .btn-outline-secondary:hover {
+        background-color: #1DA1F2;
+        color: white;
+    }
+
+/* Fix for Safari */
+@media not all and (min-resolution:.001dpcm) {
+    @supports (-webkit-appearance:none) {
+        .book-actions .btn-group {
+            width: 100%;
+            display: flex;
+        }
+    }
+}
+
+/* Mobile optimizations */
+@media (max-width: 767.98px) {
+    .book-actions .btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.875rem;
+    }
+
+    .book-actions .btn-primary,
+    .book-actions .btn-outline-secondary {
+        width: 38px;
+    }
+}
+
+/* Enhanced Book Rating Badge Styles - Add to book-styles.css */
+.book-rating {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 4px;
+    padding: 5px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-weight: bold;
+    font-size: 0.875rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.rating-value {
+    display: flex;
+    align-items: center;
+    line-height: 1;
+}
+
+    .rating-value::after {
+        content: "★";
+        color: #FFD700;
+        margin-left: 2px;
+        font-size: 1rem;
+    }
+
+.rating-count {
+    font-size: 0.7rem;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+    .rating-count::before {
+        content: "(";
+    }
+
+    .rating-count::after {
+        content: ")";
+    }

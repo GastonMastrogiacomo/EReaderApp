@@ -22,14 +22,16 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Users
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Index()
         {
-              return _context.Users != null ? 
-                          View(await _context.Users.ToListAsync()) :
-                          Problem("Entity set 'ApplicationDbContext.Users'  is null.");
+            return _context.Users != null ?
+                        View(await _context.Users.ToListAsync()) :
+                        Problem("Entity set 'ApplicationDbContext.Users'  is null.");
         }
 
         // GET: Users/Details/5
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null || _context.Users == null)
@@ -48,6 +50,7 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Users/Create
+        [Authorize(Policy = "RequireAdminRole")]
         public IActionResult Create()
         {
             return View();
@@ -58,6 +61,7 @@ namespace EReaderApp.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Create([Bind("IdUser,Name,Email,Password,ProfilePicture")] User user)
         {
             if (ModelState.IsValid)
@@ -69,9 +73,8 @@ namespace EReaderApp.Controllers
             return View(user);
         }
 
-
-                
         // GET: Users/Edit/5
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Users == null)
@@ -92,6 +95,7 @@ namespace EReaderApp.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Edit(int id, [Bind("IdUser,Name,Email,Password,ProfilePicture")] User user)
         {
             if (id != user.IdUser)
@@ -122,9 +126,8 @@ namespace EReaderApp.Controllers
             return View(user);
         }
 
-        
-
         // GET: Users/Delete/5
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Users == null)
@@ -145,6 +148,7 @@ namespace EReaderApp.Controllers
         // POST: Users/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             if (_context.Users == null)
@@ -156,14 +160,14 @@ namespace EReaderApp.Controllers
             {
                 _context.Users.Remove(user);
             }
-            
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
         private bool UserExists(int id)
         {
-          return (_context.Users?.Any(e => e.IdUser == id)).GetValueOrDefault();
+            return (_context.Users?.Any(e => e.IdUser == id)).GetValueOrDefault();
         }
 
         [Authorize]
@@ -314,7 +318,6 @@ namespace EReaderApp.Controllers
             }
         }
 
-
         // Add the same password hashing method as in AuthController
         private string HashPassword(string password)
         {
@@ -323,6 +326,5 @@ namespace EReaderApp.Controllers
                 .ComputeHash(System.Text.Encoding.UTF8.GetBytes(password))
             );
         }
-
     }
 }
