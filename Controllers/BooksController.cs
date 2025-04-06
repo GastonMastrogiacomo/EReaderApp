@@ -94,31 +94,62 @@ namespace EReaderApp.Controllers
             // Handle file upload
             if (file != null && file.Length > 0)
             {
-                // Crear la ruta completa del directorio uploads/books-PDF
+                // Create the full path to the uploads/books-PDF directory
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "books-PDF");
 
-                // Asegurar que el directorio existe
+                // Ensure the directory exists
                 if (!Directory.Exists(uploadsFolder))
                 {
                     Directory.CreateDirectory(uploadsFolder);
                 }
 
-                // Generar un nombre de archivo único para evitar colisiones
+                // Generate a unique filename to avoid collisions
                 string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
                 var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
-                // Guardar el archivo
+                // Save the file
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
-                // Guardar la ruta relativa en la base de datos (la que será accesible desde el navegador)
+                // Save the relative path to the database (accessible from the browser)
                 book.PdfPath = "/uploads/books-PDF/" + uniqueFileName;
+            }
+            else
+            {
+                ModelState.AddModelError("file", "Please upload a PDF file for the book.");
+                return View(book);
+            }
+
+            // Ensure book has at least minimal required data
+            if (string.IsNullOrWhiteSpace(book.Title) || string.IsNullOrWhiteSpace(book.Author))
+            {
+                ModelState.AddModelError("", "Book title and author are required.");
+                return View(book);
+            }
+
+            // Initialize any null values to avoid database issues
+            book.Subtitle = book.Subtitle ?? string.Empty;
+            book.Description = book.Description ?? string.Empty;
+            book.ImageLink = book.ImageLink ?? string.Empty;
+            book.Editorial = book.Editorial ?? string.Empty;
+
+            // Ensure numeric fields have valid values
+            if (book.PageCount <= 0)
+            {
+                book.PageCount = null;
+            }
+
+            if (book.Score <= 0)
+            {
+                book.Score = 0;
             }
 
             _context.Add(book);
             await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Book was successfully uploaded!";
             return RedirectToAction(nameof(Index));
         }
 

@@ -189,7 +189,19 @@
                             </div>
                         }
 
-                        <div id="additional-details"></div>
+                        <!-- Publisher info -->
+                        @if (!string.IsNullOrEmpty(Model.Editorial))
+                        {
+                            <div class="col-md-4 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-building me-2 text-primary"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Editorial</small>
+                                        <span>@Model.Editorial</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -229,132 +241,4 @@
             </div>
         </div>
     </div>
-}
-
-@section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Fetch additional book information from Google Books API
-            const bookTitle = '@Model.Title';
-            const bookAuthor = '@Model.Author';
-
-            fetchBookDetails(bookTitle, bookAuthor);
-        });
-
-        async function fetchBookDetails(title, author) {
-            try {
-                // Construct search query
-                const query = `intitle:${encodeURIComponent(title)}+inauthor:${encodeURIComponent(author)}`;
-                const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`;
-
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-
-                if (data.items && data.items.length > 0) {
-                    const bookInfo = data.items[0].volumeInfo;
-                    updateBookDetails(bookInfo);
-                }
-            } catch (error) {
-                console.error('Error fetching book details:', error);
-            }
-        }
-
-        function updateBookDetails(bookInfo) {
-            // Update book cover if we don't have one already
-            const bookCoverElement = document.getElementById('book-cover');
-            if (bookCoverElement && !bookCoverElement.style.backgroundImage && bookInfo.imageLinks) {
-                if (bookInfo.imageLinks.thumbnail) {
-                    bookCoverElement.style.backgroundImage = `url('${bookInfo.imageLinks.thumbnail.replace('http:', 'https:')}')`;
-                    bookCoverElement.style.backgroundSize = 'cover';
-                    bookCoverElement.innerHTML = '';
-                }
-            }
-
-            // Update description if we don't have one already
-            const descriptionElement = document.getElementById('book-description');
-            if (descriptionElement && descriptionElement.querySelector('.text-muted') && bookInfo.description) {
-                descriptionElement.innerHTML = `<p>${bookInfo.description}</p>`;
-            }
-
-            // Add additional details
-            const additionalDetailsElement = document.getElementById('additional-details');
-            if (additionalDetailsElement) {
-                let additionalHTML = '';
-
-                // Add published date
-                if (bookInfo.publishedDate) {
-                    additionalHTML += `
-                        <div class="col-md-4 mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-calendar-alt me-2 text-primary"></i>
-                                <div>
-                                    <small class="text-muted d-block">Publicado</small>
-                                    <span>${bookInfo.publishedDate}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // Add publisher
-                if (bookInfo.publisher) {
-                    additionalHTML += `
-                        <div class="col-md-4 mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-building me-2 text-primary"></i>
-                                <div>
-                                    <small class="text-muted d-block">Editorial</small>
-                                    <span>${bookInfo.publisher}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // Add language
-                if (bookInfo.language) {
-                    const languages = {
-                        'en': 'Inglés',
-                        'es': 'Español',
-                        'fr': 'Francés',
-                        'de': 'Alemán',
-                        'it': 'Italiano',
-                        'pt': 'Portugués'
-                    };
-
-                    additionalHTML += `
-                        <div class="col-md-4 mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-language me-2 text-primary"></i>
-                                <div>
-                                    <small class="text-muted d-block">Idioma</small>
-                                    <span>${languages[bookInfo.language] || bookInfo.language}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // Add ISBN
-                if (bookInfo.industryIdentifiers) {
-                    const isbn = bookInfo.industryIdentifiers.find(id => id.type === 'ISBN_13' || id.type === 'ISBN_10');
-                    if (isbn) {
-                        additionalHTML += `
-                            <div class="col-md-4 mb-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-barcode me-2 text-primary"></i>
-                                    <div>
-                                        <small class="text-muted d-block">${isbn.type.replace('_', ' ')}</small>
-                                        <span>${isbn.identifier}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }
-                }
-
-                additionalDetailsElement.innerHTML = additionalHTML;
-            }
-        }
-    </script>
 }

@@ -3,47 +3,268 @@
     ViewData["Title"] = "Upload New Book";
 }
 
-<h1>Upload New Book</h1>
+<div class="container py-4">
+    <h1 class="mb-4">Upload New Book</h1>
 
-<form asp-action="Create" enctype="multipart/form-data" method="post">
-    @Html.AntiForgeryToken()
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white py-3">
+            <h5 class="mb-0"><i class="fas fa-search me-2"></i>Book Information Lookup</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Enter the book title and author to automatically fetch details from Google Books.</p>
 
-    <div class="form-group">
-        <label asp-for="Title" class="control-label"></label>
-        <input asp-for="Title" class="form-control" required />
-        <span asp-validation-for="Title" class="text-danger"></span>
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label for="book-title-search" class="form-label">Book Title</label>
+                    <input type="text" id="book-title-search" class="form-control" placeholder="Enter book title">
+                </div>
+                <div class="col-md-5">
+                    <label for="book-author-search" class="form-label">Author</label>
+                    <input type="text" id="book-author-search" class="form-control" placeholder="Enter author name">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" id="search-book-btn" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Search
+                    </button>
+                </div>
+            </div>
+
+            <div id="search-status" class="mt-3" style="display: none;">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Searching...</span>
+                    </div>
+                    <span>Searching for book information...</span>
+                </div>
+            </div>
+
+            <div id="search-results" class="mt-3" style="display: none;">
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Book details found! The form below has been populated with the information.
+                </div>
+            </div>
+
+            <div id="search-error" class="mt-3" style="display: none;">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="error-message">No book details found. Please fill in the information manually.</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="form-group">
-        <label asp-for="Author" class="control-label"></label>
-        <input asp-for="Author" class="form-control" required />
-        <span asp-validation-for="Author" class="text-danger"></span>
-    </div>
+    <form asp-action="Create" enctype="multipart/form-data" method="post" id="book-form">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-    <div class="form-group">
-        <label asp-for="Description" class="control-label"></label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-        <span asp-validation-for="Description" class="text-danger"></span>
-    </div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0"><i class="fas fa-book me-2"></i>Book Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Title" class="form-label">Title <span class="text-danger">*</span></label>
+                        <input asp-for="Title" class="form-control" required />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
 
-    <div class="form-group">
-        <label for="pdfFile" class="control-label">Upload PDF</label>
-        <input type="file" name="file" id="pdfFile" class="form-control" accept="application/pdf" />
-    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Author" class="form-label">Author <span class="text-danger">*</span></label>
+                        <input asp-for="Author" class="form-control" required />
+                        <span asp-validation-for="Author" class="text-danger"></span>
+                    </div>
 
-    <br />
-    <div class="form-group">
-        <input type="submit" value="Upload" class="btn btn-primary" />
-    </div>
-</form>
+                    <div class="col-md-12">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
+                    <div class="col-md-6">
+                        <label asp-for="Editorial" class="form-label">Publisher</label>
+                        <input asp-for="Editorial" class="form-control" />
+                        <span asp-validation-for="Editorial" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="ImageLink" class="form-label">Cover Image URL</label>
+                        <input asp-for="ImageLink" class="form-control" />
+                        <span asp-validation-for="ImageLink" class="text-danger"></span>
+                        <div id="cover-preview" class="mt-2" style="display: none;">
+                            <img src="" alt="Book cover preview" class="img-thumbnail" style="max-height: 150px;" />
+                        </div>
+                    </div>
+
+                    <!-- Hidden fields that will be populated by the Google Books API -->
+                    <input type="hidden" asp-for="Subtitle" />
+                    <input type="hidden" asp-for="PageCount" />
+                    <input type="hidden" asp-for="Score" value="0" />
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0"><i class="fas fa-file-pdf me-2"></i>PDF Upload</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="pdfFile" class="form-label">Upload PDF <span class="text-danger">*</span></label>
+                    <input type="file" name="file" id="pdfFile" class="form-control" accept="application/pdf" required />
+                    <div class="form-text">Please upload the book's PDF file (required).</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to List
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-upload me-2"></i>Upload Book
+            </button>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const searchBtn = document.getElementById('search-book-btn');
+            const titleSearchInput = document.getElementById('book-title-search');
+            const authorSearchInput = document.getElementById('book-author-search');
+            const titleInput = document.querySelector('input[name="Title"]');
+            const authorInput = document.querySelector('input[name="Author"]');
+            const descriptionInput = document.querySelector('textarea[name="Description"]');
+            const editorialInput = document.querySelector('input[name="Editorial"]');
+            const imageLinkInput = document.querySelector('input[name="ImageLink"]');
+            const subtitleInput = document.querySelector('input[name="Subtitle"]');
+            const pageCountInput = document.querySelector('input[name="PageCount"]');
+            const searchStatus = document.getElementById('search-status');
+            const searchResults = document.getElementById('search-results');
+            const searchError = document.getElementById('search-error');
+            const errorMessage = document.getElementById('error-message');
+            const coverPreview = document.getElementById('cover-preview');
+            const coverImage = coverPreview.querySelector('img');
+
+            // Connect search fields with form fields for initial sync
+            titleSearchInput.addEventListener('input', function() {
+                titleInput.value = this.value;
+            });
+
+            authorSearchInput.addEventListener('input', function() {
+                authorInput.value = this.value;
+            });
+
+            // Initialize form fields when values change directly
+            titleInput.addEventListener('input', function() {
+                titleSearchInput.value = this.value;
+            });
+
+            authorInput.addEventListener('input', function() {
+                authorSearchInput.value = this.value;
+            });
+
+            // Search button click event
+            searchBtn.addEventListener('click', function() {
+                searchForBook();
+            });
+
+            // Cover image preview when URL changes
+            imageLinkInput.addEventListener('change', updateCoverPreview);
+            imageLinkInput.addEventListener('input', updateCoverPreview);
+
+            function updateCoverPreview() {
+                const imageUrl = imageLinkInput.value.trim();
+                if (imageUrl) {
+                    coverImage.src = imageUrl;
+                    coverPreview.style.display = 'block';
+
+                    // Handle image load error
+                    coverImage.onerror = function() {
+                        coverPreview.style.display = 'none';
+                    }
+                } else {
+                    coverPreview.style.display = 'none';
+                }
+            }
+
+            // Search for book using Google Books API
+            async function searchForBook() {
+                const title = titleSearchInput.value.trim();
+                const author = authorSearchInput.value.trim();
+
+                if (!title) {
+                    alert('Please enter a book title');
+                    return;
+                }
+
+                // Show searching status
+                searchStatus.style.display = 'block';
+                searchResults.style.display = 'none';
+                searchError.style.display = 'none';
+
+                try {
+                    // Construct search query
+                    const query = `intitle:${encodeURIComponent(title)}${author ? '+inauthor:' + encodeURIComponent(author) : ''}`;
+                    const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`;
+
+                    const response = await fetch(apiUrl);
+                    const data = await response.json();
+
+                    // Hide searching status
+                    searchStatus.style.display = 'none';
+
+                    if (data.items && data.items.length > 0) {
+                        const bookInfo = data.items[0].volumeInfo;
+
+                        // Update form fields with book information
+                        titleInput.value = bookInfo.title || title;
+                        authorInput.value = bookInfo.authors ? bookInfo.authors.join(', ') : author;
+                        descriptionInput.value = bookInfo.description || '';
+                        editorialInput.value = bookInfo.publisher || '';
+
+                        // Set image link if available
+                        if (bookInfo.imageLinks) {
+                            // Use the highest quality image available
+                            imageLinkInput.value = bookInfo.imageLinks.extraLarge ||
+                                                  bookInfo.imageLinks.large ||
+                                                  bookInfo.imageLinks.medium ||
+                                                  bookInfo.imageLinks.small ||
+                                                  bookInfo.imageLinks.thumbnail ||
+                                                  bookInfo.imageLinks.smallThumbnail || '';
+
+                            // Update image preview
+                            updateCoverPreview();
+                        }
+
+                        // Set hidden fields
+                        subtitleInput.value = bookInfo.subtitle || '';
+                        pageCountInput.value = bookInfo.pageCount || 0;
+
+                        // Show success message
+                        searchResults.style.display = 'block';
+                    } else {
+                        // Show error message if no results
+                        errorMessage.textContent = 'No book details found. Please fill in the information manually.';
+                        searchError.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Error fetching book details:', error);
+
+                    // Hide searching status and show error
+                    searchStatus.style.display = 'none';
+                    errorMessage.textContent = 'Error searching for book details. Please try again or fill in manually.';
+                    searchError.style.display = 'block';
+                }
+            }
+        });
+    </script>
 }
