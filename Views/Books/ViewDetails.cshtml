@@ -128,11 +128,6 @@
         <!-- Book details column -->
         <div class="col-md-8">
             <h1 class="book-title mb-2">@Model.Title</h1>
-            @if (!string.IsNullOrEmpty(Model.Subtitle))
-            {
-                <h4 class="text-muted mb-3">@Model.Subtitle</h4>
-            }
-
             <div class="mb-4">
                 <h5>
                     <span class="fw-bold">Por @Model.Author</span>

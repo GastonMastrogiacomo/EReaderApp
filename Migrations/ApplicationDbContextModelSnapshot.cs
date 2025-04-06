@@ -52,9 +52,6 @@ namespace EReaderApp.Migrations
                     b.Property<double?>("Score")
                         .HasColumnType("float");
 
-                    b.Property<string>("Subtitle")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

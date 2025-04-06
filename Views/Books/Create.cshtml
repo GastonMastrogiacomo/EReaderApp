@@ -98,7 +98,6 @@
                     </div>
 
                     <!-- Hidden fields that will be populated by the Google Books API -->
-                    <input type="hidden" asp-for="Subtitle" />
                     <input type="hidden" asp-for="PageCount" />
                     <input type="hidden" asp-for="Score" value="0" />
                 </div>
@@ -145,7 +144,6 @@
             const descriptionInput = document.querySelector('textarea[name="Description"]');
             const editorialInput = document.querySelector('input[name="Editorial"]');
             const imageLinkInput = document.querySelector('input[name="ImageLink"]');
-            const subtitleInput = document.querySelector('input[name="Subtitle"]');
             const pageCountInput = document.querySelector('input[name="PageCount"]');
             const searchStatus = document.getElementById('search-status');
             const searchResults = document.getElementById('search-results');
@@ -245,8 +243,6 @@
                             updateCoverPreview();
                         }
 
-                        // Set hidden fields
-                        subtitleInput.value = bookInfo.subtitle || '';
                         pageCountInput.value = bookInfo.pageCount || 0;
 
                         // Show success message

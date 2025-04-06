@@ -130,7 +130,6 @@ namespace EReaderApp.Controllers
             }
 
             // Initialize any null values to avoid database issues
-            book.Subtitle = book.Subtitle ?? string.Empty;
             book.Description = book.Description ?? string.Empty;
             book.ImageLink = book.ImageLink ?? string.Empty;
             book.Editorial = book.Editorial ?? string.Empty;
@@ -178,7 +177,7 @@ namespace EReaderApp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "RequireAdminRole")]
-        public async Task<IActionResult> Edit(int id, [Bind("IdBook,Title,Author,Description,ImageLink,Subtitle,Editorial,PageCount,Score,PdfPath")] Book book)
+        public async Task<IActionResult> Edit(int id, [Bind("IdBook,Title,Author,Description,ImageLink,Editorial,PageCount,Score,PdfPath")] Book book)
         {
             if (id != book.IdBook)
             {

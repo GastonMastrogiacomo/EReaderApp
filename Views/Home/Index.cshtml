@@ -99,6 +99,22 @@
                                 <div class="book-info">
                                     <h6 class="book-title text-truncate">@book.Title</h6>
                                     <p class="book-author text-muted small mb-0">@book.Author</p>
+                                    @if (book.Score.HasValue)
+                                    {
+                                        <div class="small mt-1">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                if (i <= Math.Round(book.Score.Value))
+                                                {
+                                                    <i class="fas fa-star text-warning small"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="far fa-star text-warning small"></i>
+                                                }
+                                            }
+                                        </div>
+                                    }
                                 </div>
                             </a>
                         </div>
