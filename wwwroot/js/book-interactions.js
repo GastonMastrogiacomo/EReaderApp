@@ -4,19 +4,27 @@
  */
 
 // Share book function
-
-// Share book function
 function shareBook(bookId, bookTitle) {
+    const url = window.location.origin + '/Books/ViewDetails/' + bookId;
+    const text = 'Check out this book: ' + bookTitle;
+
+    // Check if it's Twitter/X app or website in the user agent
+    const isTwitter = /Twitter|X|tweet/i.test(navigator.userAgent);
+
+    if (isTwitter) {
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+        return;
+    }
+
     if (navigator.share) {
         navigator.share({
             title: bookTitle,
-            text: 'Check out this book: ' + bookTitle,
-            url: window.location.origin + '/Books/ViewDetails/' + bookId,
+            text: text,
+            url: url,
         })
             .catch(console.error);
     } else {
         // Fallback for browsers that don't support the Web Share API
-        const url = window.location.origin + '/Books/ViewDetails/' + bookId;
         prompt('Copy this link to share:', url);
     }
 }

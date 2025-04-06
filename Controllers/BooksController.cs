@@ -224,7 +224,6 @@ namespace EReaderApp.Controllers
             return Ok(books);
         }
 
-        // Updated Search action method for BooksController.cs
         public async Task<IActionResult> Search(string query, int? categoryId)
         {
             IQueryable<Book> books = _context.Books;
@@ -254,9 +253,14 @@ namespace EReaderApp.Controllers
             // Execute the query to get the books
             var booksList = await books.ToListAsync();
 
-            // Get review counts and average ratings for each book
+            // Get review counts and average ratings for each book in a more explicit way
             var bookIds = booksList.Select(b => b.IdBook).ToList();
-            var reviewStats = await _context.Reviews
+
+            // Modificación: Consulta más explícita para estadísticas de reseñas
+            var reviewStats = new Dictionary<int, ReviewStatistics>();
+
+            // Obtener las estadísticas de reseñas para todos los libros en la lista
+            var reviewData = await _context.Reviews
                 .Where(r => bookIds.Contains(r.FKIdBook))
                 .GroupBy(r => r.FKIdBook)
                 .Select(g => new {
@@ -264,15 +268,28 @@ namespace EReaderApp.Controllers
                     Count = g.Count(),
                     AverageRating = g.Average(r => r.Rating)
                 })
-                .ToDictionaryAsync(
-                    x => x.BookId,
-                    x => new { Count = x.Count, AverageRating = x.AverageRating }
-                );
+                .ToListAsync();
 
-            // Store the review stats in ViewBag
+            // Convertir a un diccionario con un tipo concreto para mejor manejo en la vista
+            foreach (var item in reviewData)
+            {
+                reviewStats[item.BookId] = new ReviewStatistics
+                {
+                    Count = item.Count,
+                    AverageRating = (float)item.AverageRating
+                };
+            }
+
             ViewBag.ReviewStats = reviewStats;
 
             return View(booksList);
+        }
+
+        // Clase auxiliar para mantener las estadísticas de reseñas de forma tipada
+        public class ReviewStatistics
+        {
+            public int Count { get; set; }
+            public float AverageRating { get; set; }
         }
 
         // GET: Books/ViewDetails/5
