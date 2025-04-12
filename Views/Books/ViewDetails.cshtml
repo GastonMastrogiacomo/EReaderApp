@@ -6,6 +6,22 @@
     var userLibraries = ViewBag.UserLibraries as List<EReaderApp.Models.Library>;
     var totalReviews = ViewBag.TotalReviews ?? 0;
     var averageRating = ViewBag.AverageRating ?? 0.0;
+    var ratingDistribution = ViewBag.RatingDistribution as Dictionary<int, int> ?? new Dictionary<int, int>();
+
+    // Get reading progress from ReadingState if available
+    var readingProgress = 0;
+    var currentPage = 0;
+    var totalPages = Model.PageCount ?? 0;
+
+    if (ViewBag.ReadingState != null)
+    {
+        var readingState = ViewBag.ReadingState as EReaderApp.Models.ReadingState;
+        currentPage = readingState.CurrentPage;
+        readingProgress = totalPages > 0 ? (int)(((float)currentPage / totalPages) * 100) : 0;
+    }
+
+    // Check if we have author information
+    var hasAuthorInfo = !string.IsNullOrEmpty(Model.AuthorBio);
 }
 
 <style>
@@ -24,24 +40,57 @@
     #book-description {
         line-height: 1.6;
     }
+
+    .tab-panel {
+        display: none;
+    }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+    .tab-button {
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+            .tab-button.active::after {
+                content: '';
+                position: absolute;
+                bottom: -12px;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background-color: var(--primary-color);
+            }
+
+    .reading-progress-container {
+        margin-top: 15px;
+        padding: 10px 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .reading-progress-bar {
+        height: 8px;
+        border-radius: 4px;
+        background-color: #e9ecef;
+    }
+
+    .reading-progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        background-color: var(--primary-color);
+        transition: width 0.3s ease;
+    }
 </style>
 
 <div class="container py-4">
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
 
     <div class="row">
         <!-- Book cover and action buttons column -->
@@ -78,6 +127,25 @@
                             <a asp-controller="Reader" asp-action="Read" asp-route-id="@Model.IdBook" class="btn btn-primary">
                                 <i class="fas fa-book-open me-2"></i> Leer libro
                             </a>
+
+                            @if (User.Identity.IsAuthenticated && totalPages > 0)
+                            {
+                                <div class="reading-progress-container">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted">Tu progreso de lectura</small>
+                                        <small class="text-muted">@readingProgress%</small>
+                                    </div>
+                                    <div class="reading-progress-bar">
+                                        <div class="reading-progress-fill" style="width: @readingProgress%;"></div>
+                                    </div>
+                                    @if (currentPage > 0)
+                                    {
+                                        <div class="text-center mt-1">
+                                            <small class="text-muted">Página @currentPage de @totalPages</small>
+                                        </div>
+                                    }
+                                </div>
+                            }
                         }
 
                         @if (User.Identity.IsAuthenticated && userLibraries != null && userLibraries.Any())
@@ -152,60 +220,117 @@
                 }
             </div>
 
-            <!-- Description -->
-            <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Acerca de este libro</h5>
-                </div>
-                <div class="card-body">
-                    <div id="book-description" class="mb-3">
-                        @if (!string.IsNullOrEmpty(Model.Description))
-                        {
-                            <p>@Model.Description</p>
-                        }
-                        else
-                        {
-                            <p class="text-muted fst-italic">No hay descripción disponible.</p>
-                        }
+            <!-- Tabs Navigation -->
+            <div class="mb-4 border-bottom">
+                <div class="d-flex">
+                    <div class="me-4 pb-2">
+                        <button class="btn btn-link text-decoration-none tab-button active" data-target="overview-panel">
+                            <i class="fas fa-info-circle me-1"></i> Información
+                        </button>
                     </div>
-
-                    <!-- Details section -->
-                    <div class="row mt-4" id="book-details">
-                        @if (Model.PageCount.HasValue)
-                        {
-                            <div class="col-md-4 mb-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-file me-2 text-primary"></i>
-                                    <div>
-                                        <small class="text-muted d-block">Páginas</small>
-                                        <span>@Model.PageCount</span>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-
-                        <!-- Publisher info -->
-                        @if (!string.IsNullOrEmpty(Model.Editorial))
-                        {
-                            <div class="col-md-4 mb-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-building me-2 text-primary"></i>
-                                    <div>
-                                        <small class="text-muted d-block">Editorial</small>
-                                        <span>@Model.Editorial</span>
-                                    </div>
-                                </div>
-                            </div>
-                        }
+                    <div class="me-4 pb-2">
+                        <button class="btn btn-link text-decoration-none tab-button" data-target="author-panel">
+                            <i class="fas fa-user me-1"></i> Autor
+                        </button>
+                    </div>
+                    <div class="pb-2">
+                        <button class="btn btn-link text-decoration-none tab-button" data-target="reviews-panel">
+                            <i class="fas fa-star me-1"></i> Reseñas <span class="badge bg-primary rounded-pill">@totalReviews</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Review form partial -->
-            @await Html.PartialAsync("_ReviewForm", Model)
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Overview Panel -->
+                <div id="overview-panel" class="tab-panel active">
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Acerca de este libro</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="book-description" class="mb-3">
+                                @if (!string.IsNullOrEmpty(Model.Description))
+                                {
+                                    <p>@Model.Description</p>
+                                }
+                                else
+                                {
+                                    <p class="text-muted fst-italic">No hay descripción disponible.</p>
+                                }
+                            </div>
 
-            <!-- Reviews list partial -->
-            @await Html.PartialAsync("_ReviewsList", reviews)
+                            <!-- Details section -->
+                            <div class="row mt-4" id="book-details">
+                                @if (Model.PageCount.HasValue)
+                                {
+                                    <div class="col-md-4 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-file me-2 text-primary"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Páginas</small>
+                                                <span>@Model.PageCount</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Publisher info -->
+                                @if (!string.IsNullOrEmpty(Model.Editorial))
+                                {
+                                    <div class="col-md-4 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-building me-2 text-primary"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Editorial</small>
+                                                <span>@Model.Editorial</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Author Panel -->
+                <div id="author-panel" class="tab-panel">
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Sobre el autor</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Author text content -->
+                                <div id="author-text-container" class="col-12">
+                                    <!-- Author biography -->
+                                    <h5 class="mb-3">Biografía</h5>
+                                    <p id="author-bio" class="@(string.IsNullOrEmpty(Model.AuthorBio) ? "text-muted fst-italic" : "")">
+                                        @if (!string.IsNullOrEmpty(Model.AuthorBio))
+                                        {
+                                            @Model.AuthorBio
+                                        }
+                                        else
+                                        {
+                                            <text>No hay información biográfica disponible para este autor.</text>
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reviews Panel -->
+                <div id="reviews-panel" class="tab-panel">
+                    <!-- Review form partial -->
+                    @await Html.PartialAsync("_ReviewForm", Model)
+
+                    <!-- Reviews list partial -->
+                    @await Html.PartialAsync("_ReviewsList", reviews)
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -236,4 +361,125 @@
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons and panels
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabPanels.forEach(panel => panel.classList.remove('active'));
+
+                    // Add active class to clicked button
+                    this.classList.add('active');
+
+                    // Show corresponding panel
+                    const targetPanel = document.getElementById(this.dataset.target);
+                    if (targetPanel) {
+                        targetPanel.classList.add('active');
+                    }
+
+                    // Update URL hash for better linking
+                    const target = this.dataset.target.replace('-panel', '');
+                    if (target !== 'overview') {
+                        history.replaceState(null, null, `#${target}`);
+                    } else {
+                        history.replaceState(null, null, window.location.pathname);
+                    }
+                });
+            });
+
+            // Check if we need to activate a specific tab from URL hash
+            if (window.location.hash) {
+                const hash = window.location.hash.substring(1);
+                const targetTab = document.querySelector(`.tab-button[data-target="${hash}-panel"]`);
+                if (targetTab) {
+                    targetTab.click();
+                } else if (hash === 'reviews') {
+                    // Legacy support for #reviews
+                    const reviewsTab = document.querySelector('.tab-button[data-target="reviews-panel"]');
+                    if (reviewsTab) {
+                        reviewsTab.click();
+                    }
+                } else if (hash === 'author') {
+                    // Support for #author
+                    const authorTab = document.querySelector('.tab-button[data-target="author-panel"]');
+                    if (authorTab) {
+                        authorTab.click();
+                    }
+                }
+            }
+
+            // Load additional author information if not present
+            if (!document.querySelector('#author-info-loaded')) {
+                fetchAdditionalAuthorInfo();
+            }
+        });
+
+        // Function to fetch additional author information from Google Books API
+        async function fetchAdditionalAuthorInfo() {
+            const authorName = '@Model.Author';
+
+            // Only fetch if we don't already have complete information
+            const shouldFetch = '@(string.IsNullOrEmpty(Model.AuthorBio))' === 'True';
+
+            if (!shouldFetch || !authorName) return;
+
+            try {
+                // Create a marker to prevent duplicate fetches
+                const marker = document.createElement('div');
+                marker.id = 'author-info-loaded';
+                marker.style.display = 'none';
+                document.body.appendChild(marker);
+
+                // Try to get author info from Google Books
+                const authorQuery = `inauthor:${encodeURIComponent(authorName)}`;
+                const authorUrl = `https://www.googleapis.com/books/v1/volumes?q=${authorQuery}&maxResults=10`;
+
+                const response = await fetch(authorUrl);
+                const data = await response.json();
+
+                if (data.items && data.items.length > 0) {
+                    // Look for author bio only
+                    let authorBio = '';
+
+                    // Look through items for author info
+                    data.items.forEach(item => {
+                        const info = item.volumeInfo;
+
+                        // Skip the current book
+                        if (info.title === '@Model.Title') return;
+
+                        // Try to find author info
+                        if (!authorBio && info.description && info.description.includes(authorName)) {
+                            // Extract potential bio from description that mentions the author
+                            const sentences = info.description.split(/\. |\.|\!|\?/);
+                            for (const sentence of sentences) {
+                                if (sentence.includes(authorName)) {
+                                    authorBio = sentence.trim() + '.';
+                                    break;
+                                }
+                            }
+                        }
+                    });
+
+                    // Update the UI with the information we found
+                    const biographyElement = document.querySelector('#author-bio');
+                    if (biographyElement && authorBio && !biographyElement.textContent.trim()) {
+                        biographyElement.textContent = authorBio;
+                        biographyElement.classList.remove('text-muted', 'fst-italic');
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching author details:', error);
+                // We don't show an error to the user since this is supplementary information
+            }
+        }
+    </script>
 }

@@ -97,9 +97,29 @@
                         </div>
                     </div>
 
-                    <!-- Hidden fields that will be populated by the Google Books API -->
-                    <input type="hidden" asp-for="PageCount" />
+                    <div class="col-md-6">
+                        <label asp-for="PageCount" class="form-label">Page Count</label>
+                        <input asp-for="PageCount" class="form-control" type="number" min="1" />
+                        <span asp-validation-for="PageCount" class="text-danger"></span>
+                    </div>
+
+                    <!-- Hidden fields for book metadata -->
                     <input type="hidden" asp-for="Score" value="0" />
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Author Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label asp-for="AuthorBio" class="form-label">Author Biography</label>
+                        <textarea asp-for="AuthorBio" class="form-control" rows="3"></textarea>
+                        <div class="form-text">A brief biography of the author.</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -152,6 +172,9 @@
             const coverPreview = document.getElementById('cover-preview');
             const coverImage = coverPreview.querySelector('img');
 
+            // New author fields
+            const authorBioInput = document.querySelector('textarea[name="AuthorBio"]');
+
             // Connect search fields with form fields for initial sync
             titleSearchInput.addEventListener('input', function() {
                 titleInput.value = this.value;
@@ -179,6 +202,10 @@
             imageLinkInput.addEventListener('change', updateCoverPreview);
             imageLinkInput.addEventListener('input', updateCoverPreview);
 
+            // Author image preview when URL changes
+            authorImageLinkInput.addEventListener('change', updateAuthorImagePreview);
+            authorImageLinkInput.addEventListener('input', updateAuthorImagePreview);
+
             function updateCoverPreview() {
                 const imageUrl = imageLinkInput.value.trim();
                 if (imageUrl) {
@@ -191,6 +218,21 @@
                     }
                 } else {
                     coverPreview.style.display = 'none';
+                }
+            }
+
+            function updateAuthorImagePreview() {
+                const imageUrl = authorImageLinkInput.value.trim();
+                if (imageUrl) {
+                    authorImage.src = imageUrl;
+                    authorImagePreview.style.display = 'block';
+
+                    // Handle image load error
+                    authorImage.onerror = function() {
+                        authorImagePreview.style.display = 'none';
+                    }
+                } else {
+                    authorImagePreview.style.display = 'none';
                 }
             }
 
@@ -210,14 +252,14 @@
                 searchError.style.display = 'none';
 
                 try {
-                    // Construct search query
+                    // Construct search query for book info
                     const query = `intitle:${encodeURIComponent(title)}${author ? '+inauthor:' + encodeURIComponent(author) : ''}`;
                     const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`;
 
                     const response = await fetch(apiUrl);
                     const data = await response.json();
 
-                    // Hide searching status
+                    // Hide searching status for now
                     searchStatus.style.display = 'none';
 
                     if (data.items && data.items.length > 0) {
@@ -225,7 +267,7 @@
 
                         // Update form fields with book information
                         titleInput.value = bookInfo.title || title;
-                        authorInput.value = bookInfo.authors ? bookInfo.authors.join(', ') : author;
+                        authorInput.value = bookInfo.authors ? bookInfo.authors[0] : author;
                         descriptionInput.value = bookInfo.description || '';
                         editorialInput.value = bookInfo.publisher || '';
 
@@ -245,6 +287,10 @@
 
                         pageCountInput.value = bookInfo.pageCount || 0;
 
+                        // Now fetch author details - we'll use the author name we got from the book
+                        const authorName = bookInfo.authors ? bookInfo.authors[0] : author;
+                        fetchAuthorDetails(authorName);
+
                         // Show success message
                         searchResults.style.display = 'block';
                     } else {
@@ -260,6 +306,59 @@
                     errorMessage.textContent = 'Error searching for book details. Please try again or fill in manually.';
                     searchError.style.display = 'block';
                 }
+            }
+
+            // Fetch author details from Google Books API
+            async function fetchAuthorDetails(authorName) {
+               if (!authorName) return;
+
+            try {
+                // Show searching again
+                searchStatus.style.display = 'block';
+
+                // First, try to get author info from Google Books
+                const authorQuery = `inauthor:${encodeURIComponent(authorName)}`;
+                const authorUrl = `https://www.googleapis.com/books/v1/volumes?q=${authorQuery}&maxResults=10`;
+
+                const response = await fetch(authorUrl);
+                const data = await response.json();
+
+                // Hide searching status
+                searchStatus.style.display = 'none';
+
+                if (data.items && data.items.length > 0) {
+                    // Look for author bio only
+                    let authorBio = '';
+
+                    // Look through items for author info
+                    data.items.forEach(item => {
+                        const info = item.volumeInfo;
+
+                        // Skip the current book
+                        if (info.title === titleInput.value) return;
+
+                        // Try to find author info
+                        if (!authorBio && info.description && info.description.includes(authorName)) {
+                            // Extract potential bio from description that mentions the author
+                            const sentences = info.description.split(/\. |\.|\!|\?/);
+                            for (const sentence of sentences) {
+                                if (sentence.includes(authorName)) {
+                                    authorBio = sentence.trim() + '.';
+                                    break;
+                                }
+                            }
+                        }
+                    });
+
+                    // Update author bio field
+                    if (authorBio) {
+                        authorBioInput.value = authorBio;
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching author details:', error);
+                // We don't show an error to the user since this is supplementary information
+            }
             }
         });
     </script>

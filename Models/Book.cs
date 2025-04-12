@@ -19,5 +19,7 @@ namespace EReaderApp.Models
         public int? PageCount { get; set; } // Optional
         public double? Score { get; set; } // Optional
         public string? PdfPath { get; set; } // Optional
+
+        public string? AuthorBio { get; set; }
     }
 }

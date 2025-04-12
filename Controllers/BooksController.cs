@@ -9,11 +9,13 @@ using EReaderApp.Data;
 using EReaderApp.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using System.Net.Http;
+using System.IO;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace EReaderApp.Controllers
 {
-
- 
     public class BooksController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -27,9 +29,9 @@ namespace EReaderApp.Controllers
         [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Index()
         {
-              return _context.Books != null ? 
-                          View(await _context.Books.ToListAsync()) :
-                          Problem("Entity set 'ApplicationDbContext.Books'  is null.");
+            return _context.Books != null ?
+                        View(await _context.Books.ToListAsync()) :
+                        Problem("Entity set 'ApplicationDbContext.Books'  is null.");
         }
 
         // GET: Books/Create
@@ -133,6 +135,7 @@ namespace EReaderApp.Controllers
             book.Description = book.Description ?? string.Empty;
             book.ImageLink = book.ImageLink ?? string.Empty;
             book.Editorial = book.Editorial ?? string.Empty;
+            book.AuthorBio = book.AuthorBio ?? string.Empty;
 
             // Ensure numeric fields have valid values
             if (book.PageCount <= 0)
@@ -145,14 +148,18 @@ namespace EReaderApp.Controllers
                 book.Score = 0;
             }
 
+            // Try to fetch author details from Google Books API if not provided
+            if (string.IsNullOrWhiteSpace(book.AuthorBio))
+            {
+                await TryFetchAuthorDetailsFromGoogleBooks(book);
+            }
+
             _context.Add(book);
             await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = "Book was successfully uploaded!";
             return RedirectToAction(nameof(Index));
         }
-
-
 
         // GET: Books/Edit/5
         [Authorize(Policy = "RequireAdminRole")]
@@ -172,12 +179,10 @@ namespace EReaderApp.Controllers
         }
 
         // POST: Books/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "RequireAdminRole")]
-        public async Task<IActionResult> Edit(int id, [Bind("IdBook,Title,Author,Description,ImageLink,Editorial,PageCount,Score,PdfPath")] Book book)
+        public async Task<IActionResult> Edit(int id, [Bind("IdBook,Title,Author,Description,ImageLink,Editorial,PageCount,Score,PdfPath,AuthorBio")] Book book)
         {
             if (id != book.IdBook)
             {
@@ -208,7 +213,6 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Books/Delete/5
-
         [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Delete(int? id)
         {
@@ -241,11 +245,10 @@ namespace EReaderApp.Controllers
             {
                 _context.Books.Remove(book);
             }
-            
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
-
 
         [HttpGet]
         public async Task<IActionResult> GetBooks()
@@ -379,10 +382,102 @@ namespace EReaderApp.Controllers
             return View(book);
         }
 
+        private async Task TryFetchAuthorDetailsFromGoogleBooks(Book book)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(book.Author)) return;
+
+                // Create a new HttpClient instance for this request
+                using (var httpClient = new HttpClient())
+                {
+                    // Construct search query for author information
+                    string authorQuery = $"inauthor:\"{Uri.EscapeDataString(book.Author)}\"";
+                    string apiUrl = $"https://www.googleapis.com/books/v1/volumes?q={authorQuery}&maxResults=10";
+
+                    // Make the request
+                    var response = await httpClient.GetAsync(apiUrl);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var jsonString = await response.Content.ReadAsStringAsync();
+                        using var document = JsonDocument.Parse(jsonString);
+
+                        var root = document.RootElement;
+                        if (root.TryGetProperty("items", out var items))
+                        {
+                            foreach (var item in items.EnumerateArray())
+                            {
+                                // Check if this item has volumeInfo
+                                if (item.TryGetProperty("volumeInfo", out var volumeInfo))
+                                {
+                                    // Some books have an explicit author info section that Google identifies
+                                    if (volumeInfo.TryGetProperty("authors", out var authors) &&
+                                        authors.GetArrayLength() > 0 &&
+                                        volumeInfo.TryGetProperty("description", out var description))
+                                    {
+                                        string authorName = authors[0].GetString();
+                                        if (authorName.Contains(book.Author, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            string desc = description.GetString();
+
+                                            // Look for an "About the Author" section in the description
+                                            int aboutIndex = desc.IndexOf("About the Author", StringComparison.OrdinalIgnoreCase);
+                                            if (aboutIndex >= 0)
+                                            {
+                                                // Take the text after "About the Author"
+                                                string bio = desc.Substring(aboutIndex);
+
+                                                // Limit to a reasonable length
+                                                if (bio.Length > 500)
+                                                {
+                                                    bio = bio.Substring(0, 500) + "...";
+                                                }
+
+                                                book.AuthorBio = bio;
+                                                return; // Found a dedicated author section
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // If we reach here, we didn't find a dedicated author section
+                            // Fall back to the original method of finding a sentence about the author
+                            foreach (var item in items.EnumerateArray())
+                            {
+                                if (item.TryGetProperty("volumeInfo", out var volumeInfo) &&
+                                    volumeInfo.TryGetProperty("description", out var description))
+                                {
+                                    string desc = description.GetString();
+                                    if (!string.IsNullOrWhiteSpace(desc) && desc.Contains(book.Author))
+                                    {
+                                        // Extract a sentence about the author
+                                        var sentences = desc.Split(new[] { '.', '!', '?' })
+                                            .Where(s => s.Contains(book.Author));
+
+                                        if (sentences.Any())
+                                        {
+                                            book.AuthorBio = sentences.First().Trim() + ".";
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the error but continue - author info is not critical
+                Console.WriteLine($"Error fetching author details: {ex.Message}");
+            }
+        }
 
         private bool BookExists(int id)
         {
-          return (_context.Books?.Any(e => e.IdBook == id)).GetValueOrDefault();
+            return (_context.Books?.Any(e => e.IdBook == id)).GetValueOrDefault();
         }
     }
 }
