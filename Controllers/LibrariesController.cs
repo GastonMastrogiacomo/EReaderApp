@@ -119,8 +119,7 @@ namespace EReaderApp.Controllers
             }
         }
 
-        // GET: Libraries/Edit/5
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Libraries == null)
@@ -133,19 +132,44 @@ namespace EReaderApp.Controllers
             {
                 return NotFound();
             }
-            ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
+
+            // If not admin, ensure that the library belongs to the current user
+            if (!User.IsInRole("Admin"))
+            {
+                int currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                if (library.FKIdUser != currentUserId)
+                {
+                    return Forbid();
+                }
+            }
+
+            // Only admins need to select a user from a list.
+            if (User.IsInRole("Admin"))
+            {
+                ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
+            }
             return View(library);
         }
 
-        // POST: Libraries/Edit/5
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Edit(int id, [Bind("IdLibrary,ListName,FKIdUser")] Library library)
         {
             if (id != library.IdLibrary)
             {
                 return NotFound();
+            }
+
+            // If not admin, enforce that the library belongs to the current user.
+            if (!User.IsInRole("Admin"))
+            {
+                int currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                if (library.FKIdUser != currentUserId)
+                {
+                    return Forbid();
+                }
             }
 
             if (ModelState.IsValid)
@@ -166,11 +190,25 @@ namespace EReaderApp.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
+                // Redirect based on user role.
+                if (User.IsInRole("Admin"))
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                else
+                {
+                    return RedirectToAction(nameof(MyLibraries));
+                }
             }
-            ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
+
+            // If we got this far, something failed
+            if (User.IsInRole("Admin"))
+            {
+                ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
+            }
             return View(library);
         }
+
 
         // GET: Libraries/Delete/5
         [Authorize(Roles = "Admin")]

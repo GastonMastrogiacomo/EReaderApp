@@ -3,32 +3,75 @@
     ViewData["Title"] = "My Libraries";
 }
 
-<div class="container">
+<div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>My Libraries</h1>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createLibraryModal">
-            <i class="fas fa-plus"></i> Create New Library
+        <h1 class="mb-0">My Libraries</h1>
+        <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#createLibraryModal">
+            <i class="fas fa-plus me-2"></i> Create New Library
         </button>
     </div>
 
     @if (!Model.Any())
     {
-        <div class="alert alert-info">
-            You don't have any libraries yet. Create one to start organizing your books!
+        <div class="alert alert-info shadow-sm border-0">
+            <i class="fas fa-info-circle me-2"></i> You don't have any libraries yet. Create one to start organizing your books!
         </div>
     }
     else
     {
-        <div class="row">
+        <div class="row g-4">
             @foreach (var library in Model)
             {
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">@library.ListName</h5>
-                            <a href="@Url.Action("LibraryDetails", new { id = library.IdLibrary })" class="btn btn-outline-primary">
-                                View Books
-                            </a>
+                <div class="col-md-4 col-sm-6">
+                    <div class="card h-100 border-0 shadow-sm hover-elevate transition-all">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="library-icon me-3">
+                                    <i class="fas fa-book-open fa-2x text-primary"></i>
+                                </div>
+                                <h5 class="card-title mb-0 fw-bold">@library.ListName</h5>
+                            </div>
+
+                            <!-- Book count would be displayed here if available -->
+                            <p class="card-text text-muted mb-4">
+                                <small>
+                                    <i class="fas fa-bookmark me-1"></i> Personal Collection
+                                </small>
+                            </p>
+
+                            <div class="mt-auto d-flex gap-2">
+                                <a href="@Url.Action("LibraryDetails", "Libraries", new { id = library.IdLibrary })"
+                                   class="btn btn-primary flex-grow-1">
+                                    <i class="fas fa-book me-2"></i> View Books
+                                </a>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                                        <li>
+                                            <button type="button" class="dropdown-item rename-library-btn"
+                                                    data-library-id="@library.IdLibrary"
+                                                    data-library-name="@library.ListName">
+                                                <i class="fas fa-edit me-2 text-primary"></i> Rename
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <form asp-action="Delete" asp-route-id="@library.IdLibrary" method="post"
+                                                  onsubmit="return confirm('Are you sure you want to delete this library? This action cannot be undone.');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="fas fa-trash me-2"></i> Delete
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -39,25 +82,152 @@
 
 <!-- Create Library Modal -->
 <div class="modal fade" id="createLibraryModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
             <form asp-action="Create" method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title">Create New Library</h5>
+                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2 text-primary"></i>Create New Library</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="ListName" class="form-label">Library Name</label>
-                        <input type="text" class="form-control" id="ListName" name="ListName" required>
+                        <input type="text" class="form-control" id="ListName" name="ListName" required
+                               placeholder="Enter a name for your library">
+                        <div class="form-text">Choose a descriptive name to help organize your books.</div>
                     </div>
                     <input type="hidden" name="FKIdUser" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Create Library</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- Rename Library Modal -->
+<div class="modal fade" id="renameLibraryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="Edit" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2 text-primary"></i>Rename Library</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="ListName" class="form-label">New Library Name</label>
+                        <input type="text" class="form-control" id="newLibraryName" name="ListName" required>
+                    </div>
+                    <input type="hidden" id="libraryId" name="IdLibrary" value="">
+                    <input type="hidden" name="FKIdUser" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Card hover effects */
+    .hover-elevate {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .hover-elevate:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+
+    /* Library icon styling */
+    .library-icon {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(13, 110, 253, 0.1);
+        border-radius: 50%;
+        color: var(--primary-color, #0d6efd);
+    }
+
+    /* Transition effects */
+    .transition-all {
+        transition: all 0.3s ease;
+    }
+
+    /* Button styling */
+    .btn-primary {
+        background-color: var(--primary-color, #0d6efd);
+        border-color: var(--primary-color, #0d6efd);
+    }
+
+        .btn-primary:hover {
+            background-color: var(--primary-color-dark, #0b5ed7);
+            border-color: var(--primary-color-dark, #0b5ed7);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+    .btn-outline-secondary:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+</style>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle rename library button clicks
+            const renameButtons = document.querySelectorAll('.rename-library-btn');
+            const renameModal = new bootstrap.Modal(document.getElementById('renameLibraryModal'));
+            const libraryIdInput = document.getElementById('libraryId');
+            const newLibraryNameInput = document.getElementById('newLibraryName');
+
+            renameButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Set modal values
+                    const libraryId = this.getAttribute('data-library-id');
+                    const libraryName = this.getAttribute('data-library-name');
+
+                    libraryIdInput.value = libraryId;
+                    newLibraryNameInput.value = libraryName;
+
+                    // Show the modal
+                    renameModal.show();
+                });
+            });
+
+            // Form validation for create library
+            const createForm = document.querySelector('#createLibraryModal form');
+            const listNameInput = document.getElementById('ListName');
+
+            if (createForm) {
+                createForm.addEventListener('submit', function(e) {
+                    if (!listNameInput.value.trim()) {
+                        e.preventDefault();
+                        listNameInput.classList.add('is-invalid');
+
+                        // Add validation message if not already present
+                        if (!document.querySelector('.invalid-feedback')) {
+                            const feedback = document.createElement('div');
+                            feedback.className = 'invalid-feedback';
+                            feedback.textContent = 'Please enter a library name';
+                            listNameInput.parentNode.appendChild(feedback);
+                        }
+                    }
+                });
+
+                // Remove validation error when user types
+                listNameInput.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+            }
+        });
+    </script>
+}
