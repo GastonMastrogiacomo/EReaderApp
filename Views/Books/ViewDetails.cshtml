@@ -8,21 +8,12 @@
     var averageRating = ViewBag.AverageRating ?? 0.0;
     var ratingDistribution = ViewBag.RatingDistribution as Dictionary<int, int> ?? new Dictionary<int, int>();
 
-    // Get reading progress from ReadingState if available
-    var readingProgress = 0;
-    var currentPage = 0;
-    var totalPages = Model.PageCount ?? 0;
-
-    if (ViewBag.ReadingState != null)
-    {
-        var readingState = ViewBag.ReadingState as EReaderApp.Models.ReadingState;
-        currentPage = readingState.CurrentPage;
-        readingProgress = totalPages > 0 ? (int)(((float)currentPage / totalPages) * 100) : 0;
-    }
-
     // Check if we have author information
     var hasAuthorInfo = !string.IsNullOrEmpty(Model.AuthorBio);
 }
+
+<!-- Hidden CSRF token for AJAX requests -->
+@Html.AntiForgeryToken()
 
 <style>
     .book-cover-large {
@@ -68,26 +59,6 @@
                 height: 3px;
                 background-color: var(--primary-color);
             }
-
-    .reading-progress-container {
-        margin-top: 15px;
-        padding: 10px 15px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-    }
-
-    .reading-progress-bar {
-        height: 8px;
-        border-radius: 4px;
-        background-color: #e9ecef;
-    }
-
-    .reading-progress-fill {
-        height: 100%;
-        border-radius: 4px;
-        background-color: var(--primary-color);
-        transition: width 0.3s ease;
-    }
 </style>
 
 <div class="container py-4">
@@ -107,11 +78,11 @@
                     </div>
 
                     <!-- Book rating badge if available -->
-                    @if (Model.Score.HasValue && totalReviews > 0)
+                    @if (totalReviews > 0)
                     {
                         <div class="position-absolute top-0 end-0 m-2 bg-primary text-white p-2 rounded">
                             <div class="d-flex align-items-center">
-                                <span class="fw-bold me-1">@Model.Score.Value.ToString("0.0")</span>
+                                <span class="fw-bold me-1">@averageRating.ToString("0.0")</span>
                                 <i class="fas fa-star ms-1"></i>
                             </div>
                             <div class="small text-center">@totalReviews reseña@(totalReviews != 1 ? "s" : "")</div>
@@ -127,25 +98,6 @@
                             <a asp-controller="Reader" asp-action="Read" asp-route-id="@Model.IdBook" class="btn btn-primary">
                                 <i class="fas fa-book-open me-2"></i> Leer libro
                             </a>
-
-                            @if (User.Identity.IsAuthenticated && totalPages > 0)
-                            {
-                                <div class="reading-progress-container">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <small class="text-muted">Tu progreso de lectura</small>
-                                        <small class="text-muted">@readingProgress%</small>
-                                    </div>
-                                    <div class="reading-progress-bar">
-                                        <div class="reading-progress-fill" style="width: @readingProgress%;"></div>
-                                    </div>
-                                    @if (currentPage > 0)
-                                    {
-                                        <div class="text-center mt-1">
-                                            <small class="text-muted">Página @currentPage de @totalPages</small>
-                                        </div>
-                                    }
-                                </div>
-                            }
                         }
 
                         @if (User.Identity.IsAuthenticated && userLibraries != null && userLibraries.Any())
@@ -160,6 +112,7 @@
                                     {
                                         <li>
                                             <form asp-controller="Libraries" asp-action="AddToLibrary" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
                                                 <input type="hidden" name="bookId" value="@Model.IdBook" />
                                                 <input type="hidden" name="libraryId" value="@library.IdLibrary" />
                                                 <button type="submit" class="dropdown-item">@library.ListName</button>
@@ -188,6 +141,12 @@
                                 <i class="fas fa-bookmark me-2"></i> Inicia sesión para guardar
                             </a>
                         }
+
+                        <!-- Share button -->
+                        <button type="button" class="btn btn-outline-secondary"
+                                onclick="shareBook(@Model.IdBook, '@Model.Title.Replace("'", "\\'")'); return false;">
+                            <i class="fas fa-share-alt me-2"></i> Compartir libro
+                        </button>
                     </div>
                 </div>
             </div>
@@ -341,23 +300,20 @@
     <div class="modal fade" id="newLibraryModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form asp-controller="Libraries" asp-action="Create" method="post">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Create New Library</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Library</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="library-name" class="form-label">Library Name</label>
+                        <input type="text" id="library-name" class="form-control" required />
                     </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="FKIdUser" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value" />
-                        <div class="mb-3">
-                            <label for="library-name" class="form-label">Library Name</label>
-                            <input type="text" id="library-name" name="ListName" class="form-control" required />
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Create Library</button>
-                    </div>
-                </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="create-library-btn" class="btn btn-primary">Create Library</button>
+                </div>
             </div>
         </div>
     </div>
@@ -366,6 +322,59 @@
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Library creation with AJAX
+            const createLibraryBtn = document.getElementById('create-library-btn');
+            if (createLibraryBtn) {
+                createLibraryBtn.addEventListener('click', function() {
+                    const libraryName = document.getElementById('library-name').value;
+                    if (!libraryName) {
+                        alert('Please enter a library name');
+                        return;
+                    }
+
+                    // Get the CSRF token
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                    // Create the request
+                    fetch('/Libraries/CreateAndAddBook', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify({
+                            libraryName: libraryName,
+                            bookId: @Model.IdBook
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Close the modal
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('newLibraryModal'));
+                            modal.hide();
+
+                            // Show success message
+                            alert(data.message || 'Book added to new library successfully');
+
+                            // Refresh the page to show the new library
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'Failed to create library');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error creating library:', error);
+                        alert('An error occurred while creating the library');
+                    });
+                });
+            }
+
             // Tab functionality
             const tabButtons = document.querySelectorAll('.tab-button');
             const tabPanels = document.querySelectorAll('.tab-panel');
@@ -421,6 +430,24 @@
                 fetchAdditionalAuthorInfo();
             }
         });
+
+        // Share book function
+        function shareBook(bookId, bookTitle) {
+            const url = window.location.origin + '/Books/ViewDetails/' + bookId;
+            const text = 'Check out this book: ' + bookTitle;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: bookTitle,
+                    text: text,
+                    url: url,
+                })
+                .catch(console.error);
+            } else {
+                // Fallback for browsers that don't support the Web Share API
+                prompt('Copy this link to share:', url);
+            }
+        }
 
         // Function to fetch additional author information from Google Books API
         async function fetchAdditionalAuthorInfo() {

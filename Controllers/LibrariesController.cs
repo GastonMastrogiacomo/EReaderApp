@@ -60,17 +60,63 @@ namespace EReaderApp.Controllers
         // POST: Libraries/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Create([Bind("IdLibrary,ListName,FKIdUser")] Library library)
+        public async Task<IActionResult> Create(Library library, int? bookId)
         {
             if (ModelState.IsValid)
             {
+                // If user is not admin, ensure they can only create libraries for themselves
+                if (!User.IsInRole("Admin"))
+                {
+                    int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                    library.FKIdUser = userId;
+                }
+
                 _context.Add(library);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+
+                // If a book ID was provided, add the book to the newly created library
+                if (bookId.HasValue)
+                {
+                    _context.LibraryBooks.Add(new LibraryBook
+                    {
+                        FKIdLibrary = library.IdLibrary,
+                        FKIdBook = bookId.Value
+                    });
+                    await _context.SaveChangesAsync();
+
+                    // Return to the book details page
+                    return RedirectToAction("ViewDetails", "Books", new { id = bookId.Value });
+                }
+
+                // Otherwise return to the libraries list (admin) or my libraries (user)
+                if (User.IsInRole("Admin"))
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                else
+                {
+                    return RedirectToAction(nameof(MyLibraries));
+                }
             }
-            ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
-            return View(library);
+
+            // If we got this far, something failed
+            if (User.IsInRole("Admin"))
+            {
+                ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
+                return View(library);
+            }
+            else
+            {
+                // For non-admin users, return to the previous page
+                if (bookId.HasValue)
+                {
+                    return RedirectToAction("ViewDetails", "Books", new { id = bookId.Value });
+                }
+                else
+                {
+                    return RedirectToAction(nameof(MyLibraries));
+                }
+            }
         }
 
         // GET: Libraries/Edit/5

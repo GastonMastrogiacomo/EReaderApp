@@ -1,8 +1,19 @@
 ﻿@model List<EReaderApp.Models.Review>
+@using System.Security.Claims
 @{
     var totalReviews = Model.Count;
     var averageRating = ViewBag.AverageRating ?? 0.0;
     var ratingDistribution = ViewBag.RatingDistribution as Dictionary<int, int> ?? new Dictionary<int, int>();
+
+    // Get current user's ID and role for authorization
+    int? currentUserId = null;
+    string currentUserRole = null;
+
+    if (User.Identity.IsAuthenticated)
+    {
+        currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+        currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+    }
 }
 
 <div class="card shadow-sm mb-4">
@@ -91,27 +102,43 @@
                                     </div>
                                 }
                             </div>
-                            <div>
-                                <div class="d-flex align-items-center">
-                                    <span class="review-user me-2">@review.User.Name</span>
-                                    <span class="review-date">@review.CreatedAt.ToString("dd MMM yyyy")</span>
-                                </div>
-                                <div class="review-rating">
-                                    @for (int i = 1; i <= 5; i++)
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="d-flex align-items-center">
+                                            <span class="review-user me-2">@review.User.Name</span>
+                                            <span class="review-date">@review.CreatedAt.ToString("dd MMM yyyy")</span>
+                                        </div>
+                                        <div class="review-rating">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                if (i <= review.Rating)
+                                                {
+                                                    <i class="fas fa-star text-warning"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="far fa-star text-warning"></i>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+
+                                    @* Show delete button only if the user is the review author or an admin *@
+                                    @if (currentUserId.HasValue && (currentUserId == review.FKIdUser || currentUserRole == "Admin"))
                                     {
-                                        if (i <= review.Rating)
-                                        {
-                                            <i class="fas fa-star text-warning"></i>
-                                        }
-                                        else
-                                        {
-                                            <i class="far fa-star text-warning"></i>
-                                        }
+                                        <form asp-controller="Reviews" asp-action="Delete" asp-route-id="@review.IdReview" method="post"
+                                              onsubmit="return confirm('¿Estás seguro que deseas eliminar esta reseña?')" class="ms-2">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
                                     }
                                 </div>
+                                <p class="review-comment mb-0">@review.Comment</p>
                             </div>
                         </div>
-                        <p class="review-comment mb-0">@review.Comment</p>
                     </div>
                 }
             </div>
