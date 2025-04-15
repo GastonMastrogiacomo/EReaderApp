@@ -1,37 +1,118 @@
 ﻿@model EReaderApp.Models.Library
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Library";
 }
 
-<h1>Create</h1>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Library</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+                        </div>
+                    }
 
-<h4>Library</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="ListName" class="control-label"></label>
-                <input asp-for="ListName" class="form-control" />
-                <span asp-validation-for="ListName" class="text-danger"></span>
+                    <form id="createLibraryForm" asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="ListName" class="form-label">Library Name</label>
+                            <input asp-for="ListName" class="form-control form-control-lg" placeholder="Enter library name" required />
+                            <span asp-validation-for="ListName" class="text-danger"></span>
+                        </div>
+
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <div class="mb-3">
+                                <label asp-for="FKIdUser" class="form-label">Owner</label>
+                                <select asp-for="FKIdUser" class="form-select" asp-items="ViewBag.FKIdUser" required></select>
+                                <span asp-validation-for="FKIdUser" class="text-danger"></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" name="FKIdUser" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" />
+                        }
+
+                        <div class="d-flex justify-content-between mt-4">
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-action="Index" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Libraries
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-action="MyLibraries" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to My Libraries
+                                </a>
+                            }
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Create Library
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="FKIdUser" class="control-label"></label>
-                <select asp-for="FKIdUser" class ="form-control" asp-items="ViewBag.FKIdUser"></select>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Create Library form script loaded");
+
+            // Use the specific form ID instead of general selector
+            const form = document.getElementById('createLibraryForm');
+            const nameInput = document.querySelector('input[name="ListName"]'); // Fix: Use correct selector for ListName
+
+            if (form) {
+                console.log("Library creation form found:", form);
+
+                form.addEventListener('submit', function(e) {
+                    System.Diagnostics.Debug.WriteLine("Library form submission attempted");
+
+                    if (!nameInput.value.trim()) {
+                        e.preventDefault();
+                        console.log("Submission prevented: empty name");
+                        nameInput.classList.add('is-invalid');
+
+                        let errorSpan = nameInput.nextElementSibling;
+                        if (!errorSpan || !errorSpan.classList.contains('text-danger')) {
+                            errorSpan = document.createElement('span');
+                            errorSpan.className = 'text-danger';
+                            errorSpan.textContent = 'Library name is required';
+                            nameInput.parentNode.appendChild(errorSpan);
+                        }
+                    } else {
+                        console.log("Library form valid, submitting with name:", nameInput.value);
+                        // Allow form submission to proceed
+                    }
+                });
+
+                nameInput.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        this.classList.remove('is-invalid');
+                        const errorSpan = this.nextElementSibling;
+                        if (errorSpan && errorSpan.classList.contains('text-danger')) {
+                            errorSpan.textContent = '';
+                        }
+                    }
+                });
+            } else {
+                console.log("Library creation form not found!");
+            }
+        });
+    </script>
 }

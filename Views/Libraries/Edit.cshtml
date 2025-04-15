@@ -1,39 +1,136 @@
 ﻿@model EReaderApp.Models.Library
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Library";
 }
 
-<h1>Edit</h1>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0"><i class="fas fa-edit me-2"></i>Edit Library</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+                        </div>
+                    }
 
-<h4>Library</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="IdLibrary" />
-            <div class="form-group">
-                <label asp-for="ListName" class="control-label"></label>
-                <input asp-for="ListName" class="form-control" />
-                <span asp-validation-for="ListName" class="text-danger"></span>
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+                        </div>
+                    }
+
+                    <form asp-action="Edit" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        @* Hidden fields *@
+                        <input type="hidden" asp-for="IdLibrary" />
+
+                        @if (User.IsInRole("Admin") && ViewBag.FKIdUser != null)
+                        {
+                            <div class="mb-3">
+                                <label asp-for="FKIdUser" class="form-label">Owner</label>
+                                <select asp-for="FKIdUser" class="form-select" asp-items="ViewBag.FKIdUser"></select>
+                                <span asp-validation-for="FKIdUser" class="text-danger"></span>
+                            </div>
+                        }
+                        else
+                        {
+                            @* Ensure we have the user ID in the form *@
+                            <input type="hidden" asp-for="FKIdUser" />
+                        }
+
+                        <div class="mb-3">
+                            <label asp-for="ListName" class="form-label">Library Name</label>
+                            <input asp-for="ListName" class="form-control form-control-lg" placeholder="Enter library name" />
+                            <span asp-validation-for="ListName" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-action="Index" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Libraries
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-action="MyLibraries" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to My Libraries
+                                </a>
+                            }
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="FKIdUser" class="control-label"></label>
-                <select asp-for="FKIdUser" class="form-control" asp-items="ViewBag.FKIdUser"></select>
-                <span asp-validation-for="FKIdUser" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Add client-side validation for the library name
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const nameInput = document.getElementById('ListName');
+
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    if (!nameInput.value.trim()) {
+                        e.preventDefault();
+                        // Add validation error
+                        nameInput.classList.add('is-invalid');
+
+                        // Add error message if not already present
+                        let errorSpan = nameInput.nextElementSibling;
+                        if (!errorSpan || !errorSpan.classList.contains('text-danger')) {
+                            errorSpan = document.createElement('span');
+                            errorSpan.className = 'text-danger';
+                            errorSpan.textContent = 'Library name is required';
+                            nameInput.parentNode.appendChild(errorSpan);
+                        }
+                    }
+                });
+
+                // Remove validation error when typing
+                if (nameInput) {
+                    nameInput.addEventListener('input', function() {
+                        if (this.value.trim()) {
+                            this.classList.remove('is-invalid');
+
+                            // Remove error message if present
+                            const errorSpan = this.nextElementSibling;
+                            if (errorSpan && errorSpan.classList.contains('text-danger')) {
+                                errorSpan.textContent = '';
+                            }
+                        }
+                    });
+                }
+
+                // Hide success messages after 3 seconds
+                const successAlert = document.querySelector('.alert-success');
+                if (successAlert) {
+                    setTimeout(function() {
+                        successAlert.classList.add('fade');
+                        setTimeout(function() {
+                            successAlert.remove();
+                        }, 500);
+                    }, 3000);
+                }
+            }
+        });
+    </script>
 }
