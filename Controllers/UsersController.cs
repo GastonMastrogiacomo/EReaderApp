@@ -249,6 +249,16 @@ namespace EReaderApp.Controllers
                 return View("ProfileEdit", model);
             }
 
+            // Validate new password if provided
+            if (!string.IsNullOrEmpty(model.NewPassword))
+            {
+                if (!IsPasswordValid(model.NewPassword))
+                {
+                    ModelState.AddModelError("NewPassword", "Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.");
+                    return View("ProfileEdit", model);
+                }
+            }
+
             // Handle profile picture upload
             if (model.ProfilePictureFile != null && model.ProfilePictureFile.Length > 0)
             {
@@ -318,7 +328,36 @@ namespace EReaderApp.Controllers
             }
         }
 
-        // Add the same password hashing method as in AuthController
+        // Password validation method
+        private bool IsPasswordValid(string password)
+        {
+            // At least 8 characters
+            if (password.Length < 8)
+                return false;
+
+            // Contains uppercase letter
+            if (!password.Any(char.IsUpper))
+                return false;
+
+            // Contains lowercase letter
+            if (!password.Any(char.IsLower))
+                return false;
+
+            // Contains number
+            if (!password.Any(char.IsDigit))
+                return false;
+
+            // Contains special character
+            if (!password.Any(c => !char.IsLetterOrDigit(c)))
+                return false;
+
+            return true;
+        }
+
+
+        // Password hashing method
+        [HttpPost]
+        // Same password hashing method as in AuthController
         private string HashPassword(string password)
         {
             return Convert.ToBase64String(
@@ -326,5 +365,7 @@ namespace EReaderApp.Controllers
                 .ComputeHash(System.Text.Encoding.UTF8.GetBytes(password))
             );
         }
+
+       
     }
 }

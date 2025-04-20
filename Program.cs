@@ -1,5 +1,6 @@
 using EReaderApp.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
 
 namespace EReaderApp
@@ -19,7 +20,10 @@ namespace EReaderApp
             builder.Services.AddControllersWithViews();
 
             // Add authentication services (BEFORE builder.Build())
-            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            builder.Services.AddAuthentication(options => {
+                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            })
                 .AddCookie(options =>
                 {
                     options.LoginPath = "/Auth/Login";
@@ -27,6 +31,17 @@ namespace EReaderApp
                     options.AccessDeniedPath = "/Auth/AccessDenied";
                     options.ExpireTimeSpan = TimeSpan.FromDays(7);
                     options.SlidingExpiration = true;
+                })
+                .AddGoogle(googleOptions =>
+                {
+                    googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+                    googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+                    googleOptions.CallbackPath = "/signin-google"; // Default callback path
+
+                    // Explicitly set the required scopes
+                    googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.email");
+                    googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.profile");
+                    googleOptions.Scope.Add("openid");
                 });
 
             builder.Services.AddAuthorization(options =>

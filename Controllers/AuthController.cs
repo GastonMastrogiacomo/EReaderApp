@@ -4,10 +4,12 @@ using EReaderApp.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
 using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace EReaderApp.Controllers
 {
@@ -38,26 +40,7 @@ namespace EReaderApp.Controllers
                 return View();
             }
 
-            // Create claims for the user
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.NameIdentifier, user.IdUser.ToString()),
-                new Claim(ClaimTypes.Role, user.Role) // Add role claim
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true, // Remember me functionality
-                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
+            await SignInUserAsync(user, true);
 
             // If user is an Admin and no specific return URL is provided, redirect to Admin Dashboard
             if (user.Role == "Admin" && string.IsNullOrEmpty(returnUrl))
@@ -66,6 +49,62 @@ namespace EReaderApp.Controllers
             }
 
             // Otherwise, redirect to the return URL or home page
+            return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
+                ? Redirect(returnUrl)
+                : RedirectToAction("Index", "Home");
+        }
+
+        // Google login challenge
+        public IActionResult GoogleLogin(string returnUrl = null)
+        {
+            var properties = new AuthenticationProperties
+            {
+                RedirectUri = Url.Action("GoogleResponse", new { returnUrl = returnUrl })
+            };
+
+            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+        }
+
+        // Google response handler
+        public async Task<IActionResult> GoogleResponse(string returnUrl = null)
+        {
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
+
+            if (!result.Succeeded)
+                return RedirectToAction("Login");
+
+            // Get user info from Google
+            var googleEmail = result.Principal.FindFirstValue(ClaimTypes.Email);
+            var googleName = result.Principal.FindFirstValue(ClaimTypes.Name);
+
+            // Find or create the user in our database
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == googleEmail);
+
+            if (user == null)
+            {
+                // Create a new user
+                user = new User
+                {
+                    Email = googleEmail,
+                    Name = googleName,
+                    Password = HashPassword(Guid.NewGuid().ToString()), // Random password since they'll use Google auth
+                    CreatedAt = DateTime.Now,
+                    Role = "User"
+                };
+
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+            }
+
+            // Sign in the user
+            await SignInUserAsync(user, true);
+
+            // Redirect appropriately
+            if (user.Role == "Admin" && string.IsNullOrEmpty(returnUrl))
+            {
+                return RedirectToAction("Index", "Admin");
+            }
+
             return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
                 ? Redirect(returnUrl)
                 : RedirectToAction("Index", "Home");
@@ -88,6 +127,13 @@ namespace EReaderApp.Controllers
                     return View(model);
                 }
 
+                // Validate password strength
+                if (!IsPasswordValid(model.Password))
+                {
+                    ModelState.AddModelError("Password", "Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.");
+                    return View(model);
+                }
+
                 // Hash the password
                 model.Password = HashPassword(model.Password);
 
@@ -101,7 +147,7 @@ namespace EReaderApp.Controllers
                 await _context.SaveChangesAsync();
 
                 // Auto-login after registration
-                await LoginUserAfterRegistration(model);
+                await SignInUserAsync(model, true);
 
                 return RedirectToAction("Index", "Home");
             }
@@ -126,6 +172,30 @@ namespace EReaderApp.Controllers
             return RedirectToAction("Index", "Home");
         }
 
+        // Helper method to sign in users
+        private async Task SignInUserAsync(User user, bool isPersistent)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.NameIdentifier, user.IdUser.ToString()),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = isPersistent,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+        }
+
         // Simple password hashing (in production, use a more secure method)
         private string HashPassword(string password)
         {
@@ -142,27 +212,29 @@ namespace EReaderApp.Controllers
             return hashedEnteredPassword == storedHash;
         }
 
-        private async Task LoginUserAfterRegistration(User user)
+        private bool IsPasswordValid(string password)
         {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.NameIdentifier, user.IdUser.ToString()),
-                new Claim(ClaimTypes.Role, user.Role)
-            };
+            // At least 8 characters
+            if (password.Length < 8)
+                return false;
 
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-            };
+            // Contains uppercase letter
+            if (!password.Any(char.IsUpper))
+                return false;
 
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
+            // Contains lowercase letter
+            if (!password.Any(char.IsLower))
+                return false;
+
+            // Contains number
+            if (!password.Any(char.IsDigit))
+                return false;
+
+            // Contains special character
+            if (!password.Any(c => !char.IsLetterOrDigit(c)))
+                return false;
+
+            return true;
         }
     }
 }
