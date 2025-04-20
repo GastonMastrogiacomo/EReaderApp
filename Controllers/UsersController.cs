@@ -155,13 +155,54 @@ namespace EReaderApp.Controllers
             {
                 return Problem("Entity set 'ApplicationDbContext.Users'  is null.");
             }
+
             var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
-                _context.Users.Remove(user);
+                try
+                {
+                    var readerSettings = await _context.ReaderSettings.Where(rs => rs.UserId == id).ToListAsync();
+                    if (readerSettings.Any())
+                    {
+                        _context.ReaderSettings.RemoveRange(readerSettings);
+                    }
+
+                    var readingStates = await _context.ReadingStates.Where(rs => rs.UserId == id).ToListAsync();
+                    if (readingStates.Any())
+                    {
+                        _context.ReadingStates.RemoveRange(readingStates);
+                    }
+
+                    var bookmarks = await _context.BookMarks.Where(b => b.UserId == id).ToListAsync();
+                    if (bookmarks.Any())
+                    {
+                        _context.BookMarks.RemoveRange(bookmarks);
+                    }
+
+                    var notes = await _context.Notes.Where(n => n.UserId == id).ToListAsync();
+                    if (notes.Any())
+                    {
+                        _context.Notes.RemoveRange(notes);
+                    }
+
+                    var readingActivities = await _context.ReadingActivities.Where(ra => ra.UserId == id).ToListAsync();
+                    if (readingActivities.Any())
+                    {
+                        _context.ReadingActivities.RemoveRange(readingActivities);
+                    }
+
+                    // Finally remove the user
+                    _context.Users.Remove(user);
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    TempData["ErrorMessage"] = $"Error deleting user: {ex.Message}";
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
-            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "User deleted successfully.";
             return RedirectToAction(nameof(Index));
         }
 

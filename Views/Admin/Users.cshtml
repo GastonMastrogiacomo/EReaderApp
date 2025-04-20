@@ -91,13 +91,16 @@
 
     <script>
         $(document).ready(function() {
-            $('.datatable').DataTable({
-                responsive: true,
-                order: [[0, 'desc']],
-                columnDefs: [
-                    { orderable: false, targets: [5] }
-                ]
-            });
+            // Check if DataTable is already initialized
+            if (!$.fn.DataTable.isDataTable('.datatable')) {
+                $('.datatable').DataTable({
+                    responsive: true,
+                    order: [[0, 'desc']],
+                    columnDefs: [
+                        { orderable: false, targets: [5] }
+                    ]
+                });
+            }
         });
     </script>
 }
