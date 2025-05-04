@@ -87,7 +87,18 @@ namespace EReaderApp.Controllers
             {
                 return NotFound();
             }
-            return View(user);
+
+            // Create a UserProfileViewModel from the User
+            var viewModel = new UserProfileViewModel
+            {
+                IdUser = user.IdUser,
+                Name = user.Name,
+                Email = user.Email,
+                ProfilePicture = user.ProfilePicture,
+                CreatedAt = user.CreatedAt
+            };
+
+            return View(viewModel);
         }
 
         // POST: Users/Edit/5
@@ -96,9 +107,9 @@ namespace EReaderApp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "RequireAdminRole")]
-        public async Task<IActionResult> Edit(int id, [Bind("IdUser,Name,Email,Password,ProfilePicture")] User user)
+        public async Task<IActionResult> Edit(int id, UserProfileViewModel model)
         {
-            if (id != user.IdUser)
+            if (id != model.IdUser)
             {
                 return NotFound();
             }
@@ -107,12 +118,31 @@ namespace EReaderApp.Controllers
             {
                 try
                 {
+                    var user = await _context.Users.FindAsync(id);
+                    if (user == null)
+                    {
+                        return NotFound();
+                    }
+
+                    // Update user properties
+                    user.Name = model.Name;
+                    user.Email = model.Email;
+                    user.ProfilePicture = model.ProfilePicture;
+
+                    // Only update password if a new one is provided
+                    if (!string.IsNullOrEmpty(model.NewPassword))
+                    {
+                        user.Password = HashPassword(model.NewPassword);
+                    }
+
                     _context.Update(user);
                     await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = "User updated successfully";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!UserExists(user.IdUser))
+                    if (!UserExists(model.IdUser))
                     {
                         return NotFound();
                     }
@@ -123,7 +153,7 @@ namespace EReaderApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(user);
+            return View(model);
         }
 
         // GET: Users/Delete/5
@@ -153,7 +183,7 @@ namespace EReaderApp.Controllers
         {
             if (_context.Users == null)
             {
-                return Problem("Entity set 'ApplicationDbContext.Users'  is null.");
+                return Problem("Entity set 'ApplicationDbContext.Users' is null.");
             }
 
             var user = await _context.Users.FindAsync(id);
@@ -161,6 +191,54 @@ namespace EReaderApp.Controllers
             {
                 try
                 {
+                    // 1. Find and remove PublicationLikes by this user
+                    var publicationLikes = await _context.PublicationLikes.Where(pl => pl.FKIdUser == id).ToListAsync();
+                    if (publicationLikes.Any())
+                    {
+                        _context.PublicationLikes.RemoveRange(publicationLikes);
+                    }
+
+                    // 2. Find and remove Comments by this user
+                    var comments = await _context.Comments.Where(c => c.FKIdUser == id).ToListAsync();
+                    if (comments.Any())
+                    {
+                        _context.Comments.RemoveRange(comments);
+                    }
+
+                    // 3. Find and remove Reviews by this user
+                    var reviews = await _context.Reviews.Where(r => r.FKIdUser == id).ToListAsync();
+                    if (reviews.Any())
+                    {
+                        _context.Reviews.RemoveRange(reviews);
+                    }
+
+                    // 4. Find and handle Publications by this user
+                    var publications = await _context.Publications.Where(p => p.FKIdUser == id).ToListAsync();
+                    if (publications.Any())
+                    {
+                        _context.Publications.RemoveRange(publications);
+                    }
+
+                    // 5. Delete the user's libraries and library books
+                    var libraries = await _context.Libraries.Where(l => l.FKIdUser == id).ToListAsync();
+                    if (libraries.Any())
+                    {
+                        // First remove all library books associated with these libraries
+                        var libraryIds = libraries.Select(l => l.IdLibrary).ToList();
+                        var libraryBooks = await _context.LibraryBooks
+                            .Where(lb => libraryIds.Contains(lb.FKIdLibrary))
+                            .ToListAsync();
+
+                        if (libraryBooks.Any())
+                        {
+                            _context.LibraryBooks.RemoveRange(libraryBooks);
+                        }
+
+                        // Then remove the libraries
+                        _context.Libraries.RemoveRange(libraries);
+                    }
+
+                    // 6. Delete user settings
                     var readerSettings = await _context.ReaderSettings.Where(rs => rs.UserId == id).ToListAsync();
                     if (readerSettings.Any())
                     {
@@ -194,6 +272,8 @@ namespace EReaderApp.Controllers
                     // Finally remove the user
                     _context.Users.Remove(user);
                     await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = "User deleted successfully.";
                 }
                 catch (Exception ex)
                 {
@@ -202,7 +282,6 @@ namespace EReaderApp.Controllers
                 }
             }
 
-            TempData["SuccessMessage"] = "User deleted successfully.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -298,7 +377,12 @@ namespace EReaderApp.Controllers
                     ModelState.AddModelError("NewPassword", "Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.");
                     return View("ProfileEdit", model);
                 }
+
+                // Update the password only if a new one is provided
+                user.Password = HashPassword(model.NewPassword);
             }
+            // If no new password is provided, keep the existing one
+            // No need to set it explicitly as we're not changing it
 
             // Handle profile picture upload
             if (model.ProfilePictureFile != null && model.ProfilePictureFile.Length > 0)
@@ -345,12 +429,6 @@ namespace EReaderApp.Controllers
             // Update user information
             user.Name = model.Name;
             user.Email = model.Email;
-
-            // If password is provided, hash it and update
-            if (!string.IsNullOrEmpty(model.NewPassword))
-            {
-                user.Password = HashPassword(model.NewPassword);
-            }
 
             try
             {

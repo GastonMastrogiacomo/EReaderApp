@@ -79,18 +79,27 @@ namespace EReaderApp.Controllers
         [Authorize(Policy = "RequireAdminRole")]
         public IActionResult Create()
         {
-            return View();
+            ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
+            return View();    
         }
 
         [HttpPost]
         [Authorize(Policy = "RequireAdminRole")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Book book, IFormFile? file)
+        public async Task<IActionResult> Create(Book book, IFormFile? file, int categoryId)
         {
+            if (categoryId <= 0)
+            {
+                ModelState.AddModelError("categoryId", "Please select a category for the book.");
+                ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
+                return View(book);
+            }
+
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-                return Content("ModelState is invalid: " + string.Join("; ", errors));
+                ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
+                return View(book);
             }
 
             // Handle file upload
@@ -121,6 +130,7 @@ namespace EReaderApp.Controllers
             else
             {
                 ModelState.AddModelError("file", "Please upload a PDF file for the book.");
+                ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
                 return View(book);
             }
 
@@ -128,6 +138,7 @@ namespace EReaderApp.Controllers
             if (string.IsNullOrWhiteSpace(book.Title) || string.IsNullOrWhiteSpace(book.Author))
             {
                 ModelState.AddModelError("", "Book title and author are required.");
+                ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
                 return View(book);
             }
 
@@ -154,7 +165,17 @@ namespace EReaderApp.Controllers
                 await TryFetchAuthorDetailsFromGoogleBooks(book);
             }
 
+            // Add the book to the database
             _context.Add(book);
+            await _context.SaveChangesAsync();
+
+            // Create the book-category relationship
+            var bookCategory = new BookCategory
+            {
+                FKIdBook = book.IdBook,
+                FKIdCategory = categoryId
+            };
+            _context.BookCategories.Add(bookCategory);
             await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = "Book was successfully uploaded!";
@@ -175,6 +196,17 @@ namespace EReaderApp.Controllers
             {
                 return NotFound();
             }
+
+            // Get the current category for this book
+            var bookCategory = await _context.BookCategories
+                .FirstOrDefaultAsync(bc => bc.FKIdBook == id);
+
+            int currentCategoryId = bookCategory?.FKIdCategory ?? 0;
+
+            // Populate categories for dropdown
+            ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
+            ViewBag.CurrentCategoryId = currentCategoryId;
+
             return View(book);
         }
 
@@ -182,11 +214,19 @@ namespace EReaderApp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "RequireAdminRole")]
-        public async Task<IActionResult> Edit(int id, [Bind("IdBook,Title,Author,Description,ImageLink,Editorial,PageCount,Score,PdfPath,AuthorBio")] Book book)
+        public async Task<IActionResult> Edit(int id, [Bind("IdBook,Title,Author,Description,ImageLink,Editorial,PageCount,Score,PdfPath,AuthorBio")] Book book, int categoryId)
         {
             if (id != book.IdBook)
             {
                 return NotFound();
+            }
+
+            if (categoryId <= 0)
+            {
+                ModelState.AddModelError("categoryId", "Please select a category for the book.");
+                ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
+                ViewBag.CurrentCategoryId = categoryId;
+                return View(book);
             }
 
             if (ModelState.IsValid)
@@ -194,7 +234,41 @@ namespace EReaderApp.Controllers
                 try
                 {
                     _context.Update(book);
+
+                    // Find the existing book-category relationship
+                    var existingBookCategory = await _context.BookCategories
+                        .FirstOrDefaultAsync(bc => bc.FKIdBook == id);
+
+                    if (existingBookCategory != null)
+                    {
+                        // If the category has changed
+                        if (existingBookCategory.FKIdCategory != categoryId)
+                        {
+                            // Remove the old relationship
+                            _context.BookCategories.Remove(existingBookCategory);
+                            await _context.SaveChangesAsync();
+
+                            // Create a new relationship
+                            _context.BookCategories.Add(new BookCategory
+                            {
+                                FKIdBook = book.IdBook,
+                                FKIdCategory = categoryId
+                            });
+                        }
+                        // If category hasn't changed, no need to update it
+                    }
+                    else
+                    {
+                        // Create new relationship if one doesn't exist
+                        _context.BookCategories.Add(new BookCategory
+                        {
+                            FKIdBook = book.IdBook,
+                            FKIdCategory = categoryId
+                        });
+                    }
+
                     await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -207,8 +281,11 @@ namespace EReaderApp.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
             }
+
+            // If we got this far, something failed - redisplay form
+            ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName", categoryId);
+            ViewBag.CurrentCategoryId = categoryId;
             return View(book);
         }
 
@@ -326,7 +403,7 @@ namespace EReaderApp.Controllers
         }
 
         // GET: Books/ViewDetails/5
-        public async Task<IActionResult> ViewDetails(int id)
+        public async Task<IActionResult>    ViewDetails(int id)
         {
             var book = await _context.Books
                 .FirstOrDefaultAsync(m => m.IdBook == id);

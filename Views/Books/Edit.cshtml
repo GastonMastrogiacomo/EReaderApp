@@ -28,6 +28,18 @@
                 <input asp-for="Description" class="form-control" />
                 <span asp-validation-for="Description" class="text-danger"></span>
             </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label">Category <span class="text-danger">*</span></label>
+                <select name="categoryId" class="form-select" required>
+                    <option value="">-- Select a category --</option>
+                    @foreach (var item in ViewBag.Categories)
+                    {
+                        <option value="@item.Value" selected="@(item.Value == ViewBag.CurrentCategoryId.ToString())">@item.Text</option>
+                    }
+                </select>
+            </div>
+
             <div class="form-group">
                 <label asp-for="ImageLink" class="control-label"></label>
                 <input asp-for="ImageLink" class="form-control" />

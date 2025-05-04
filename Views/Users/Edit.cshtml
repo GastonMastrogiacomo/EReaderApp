@@ -1,11 +1,10 @@
-﻿@model EReaderApp.Models.User
+﻿@model UserProfileViewModel
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit User";
 }
 
 <h1>Edit</h1>
-
 <h4>User</h4>
 <hr />
 <div class="row">
@@ -24,9 +23,9 @@
                 <span asp-validation-for="Email" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="Password" class="control-label"></label>
-                <input asp-for="Password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
+                <label asp-for="NewPassword" class="control-label">Password (leave blank to keep unchanged)</label>
+                <input asp-for="NewPassword" class="form-control" />
+                <span asp-validation-for="NewPassword" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="ProfilePicture" class="control-label"></label>
@@ -45,5 +44,7 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
