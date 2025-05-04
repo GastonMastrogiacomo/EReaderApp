@@ -372,3 +372,4 @@ appsettings.Production.json
 
 # User secrets
 *.usersecrets.json
+/Views/Home/Index - Copia.cshtml
