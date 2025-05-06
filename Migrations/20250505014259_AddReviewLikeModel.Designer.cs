@@ -4,6 +4,7 @@ using EReaderApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EReaderApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250505014259_AddReviewLikeModel")]
+    partial class AddReviewLikeModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -326,15 +329,6 @@ namespace EReaderApp.Migrations
                     b.Property<DateTime>("LastAccess")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("LastPageRead")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalPagesRead")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalReadingTimeMinutes")
-                        .HasColumnType("int");
-
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -414,21 +408,6 @@ namespace EReaderApp.Migrations
                     b.HasIndex("FKIdUser");
 
                     b.ToTable("Reviews");
-                });
-
-            modelBuilder.Entity("EReaderApp.Models.ReviewLike", b =>
-                {
-                    b.Property<int>("FKIdUser")
-                        .HasColumnType("int");
-
-                    b.Property<int>("FKIdReview")
-                        .HasColumnType("int");
-
-                    b.HasKey("FKIdUser", "FKIdReview");
-
-                    b.HasIndex("FKIdReview");
-
-                    b.ToTable("ReviewLikes");
                 });
 
             modelBuilder.Entity("EReaderApp.Models.User", b =>
@@ -664,25 +643,6 @@ namespace EReaderApp.Migrations
                         .IsRequired();
 
                     b.Navigation("Book");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("EReaderApp.Models.ReviewLike", b =>
-                {
-                    b.HasOne("EReaderApp.Models.Review", "Review")
-                        .WithMany()
-                        .HasForeignKey("FKIdReview")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("EReaderApp.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("FKIdUser")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Review");
 
                     b.Navigation("User");
                 });

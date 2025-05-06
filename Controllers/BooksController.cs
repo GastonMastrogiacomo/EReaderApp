@@ -456,6 +456,34 @@ namespace EReaderApp.Controllers
             ViewBag.AverageRating = averageRating;
             ViewBag.RatingDistribution = ratingDistribution;
 
+            var reviewIds = reviews.Select(r => r.IdReview).ToList();
+            var reviewLikes = await _context.ReviewLikes
+                .Where(rl => reviewIds.Contains(rl.FKIdReview))
+                .ToListAsync();
+
+            var reviewLikesInfo = new Dictionary<int, (int Count, bool UserHasLiked)>();
+            foreach (var reviewId in reviewIds)
+            {
+                var likesForReview = reviewLikes.Where(rl => rl.FKIdReview == reviewId).ToList();
+                bool userHasLiked = false;
+
+                if (User.Identity.IsAuthenticated)
+                {
+                    int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                    userHasLiked = likesForReview.Any(rl => rl.FKIdUser == userId);
+                }
+
+                reviewLikesInfo[reviewId] = (likesForReview.Count, userHasLiked);
+            }
+
+            ViewBag.ReviewLikes = reviewLikesInfo;
+
+            reviews = reviews.OrderByDescending(r => reviewLikesInfo.ContainsKey(r.IdReview) ? reviewLikesInfo[r.IdReview].Item1 : 0)
+            .ToList();
+
+            ViewBag.Reviews = reviews;
+
+
             return View(book);
         }
 

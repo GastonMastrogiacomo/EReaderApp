@@ -25,6 +25,7 @@ namespace EReaderApp.Data
         public DbSet<ReadingState> ReadingStates { get; set; }
         public DbSet<ReadingActivity> ReadingActivities { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<ReviewLike> ReviewLikes { get; set; }
 
 
 
@@ -130,6 +131,21 @@ namespace EReaderApp.Data
                 .WithMany()
                 .HasForeignKey(c => c.FKIdPublication)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ReviewLike>()
+                .HasKey(rl => new { rl.FKIdUser, rl.FKIdReview });
+
+            modelBuilder.Entity<ReviewLike>()
+                .HasOne(rl => rl.User)
+                .WithMany()
+                .HasForeignKey(rl => rl.FKIdUser)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ReviewLike>()
+                .HasOne(rl => rl.Review)
+                .WithMany()
+                .HasForeignKey(rl => rl.FKIdReview)
+                .OnDelete(DeleteBehavior.NoAction);
 
         }
 

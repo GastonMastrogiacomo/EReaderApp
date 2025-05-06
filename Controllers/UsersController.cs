@@ -311,6 +311,68 @@ namespace EReaderApp.Controllers
                 CreatedAt = user.CreatedAt // Map the CreatedAt property
             };
 
+            // Get reading statistics
+            var readingActivities = await _context.ReadingActivities
+                .Where(ra => ra.UserId == userId)
+                .Include(ra => ra.Book)
+                .ToListAsync();
+
+            ViewBag.TotalBooksRead = readingActivities.Count;
+            ViewBag.TotalPagesRead = readingActivities.Sum(ra => ra.TotalPagesRead);
+            ViewBag.TotalReadingHours = Math.Round(readingActivities.Sum(ra => ra.TotalReadingTimeMinutes) / 60.0, 1);
+
+            // Calculate reading frequency and streak
+            if (readingActivities.Any())
+            {
+                var readingDates = readingActivities
+                    .SelectMany(ra => new[] { ra.FirstAccess.Date, ra.LastAccess.Date })
+                    .Distinct()
+                    .OrderBy(d => d)
+                    .ToList();
+
+                ViewBag.ReadingDaysCount = readingDates.Count;
+
+                // Calculate reading streak
+                int maxStreak = 0;
+                int currentStreak = 0;
+                for (int i = 1; i < readingDates.Count; i++)
+                {
+                    if ((readingDates[i] - readingDates[i - 1]).Days == 1)
+                    {
+                        currentStreak++;
+                        maxStreak = Math.Max(maxStreak, currentStreak);
+                    }
+                    else
+                    {
+                        currentStreak = 0;
+                    }
+                }
+
+                ViewBag.ReadingStreak = maxStreak;
+            }
+            else
+            {
+                ViewBag.ReadingDaysCount = 0;
+                ViewBag.ReadingStreak = 0;
+            }
+
+            // Get recent books
+            var recentBooks = readingActivities
+                .OrderByDescending(ra => ra.LastAccess)
+                .Take(4)
+                .Select(ra => new {
+                    ra.Book.Title,
+                    ra.Book.Author,
+                    ra.Book.ImageLink,
+                    ReadingProgress = ra.Book.PageCount > 0 ? Math.Round((decimal)ra.LastPageRead / (decimal)ra.Book.PageCount * 100m, 0) : 0,
+                    LastReadDate = ra.LastAccess.ToString("MMM dd, yyyy"),
+                    TotalTimeMinutes = ra.TotalReadingTimeMinutes,
+                    TotalSessions = ra.AccessCount
+                })
+                .ToList();
+
+            ViewBag.RecentBooks = recentBooks;
+
             return View(viewModel);
         }
 

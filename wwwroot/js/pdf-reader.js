@@ -25,6 +25,9 @@ let renderTaskLeft = null;
 let renderTaskRight = null;
 let renderTaskSingle = null;
 
+let readingStartTime = Date.now();
+let lastPageTracked = currentPage;
+
 // Variables para configuración del lector
 let readerSettings = {
     theme: 'light',
@@ -1058,6 +1061,42 @@ function deleteBookmark(id) {
 
 // Guardar posición
 function savePosition() {
+    // Calculate reading time in minutes since last save
+    const currentTime = Date.now();
+    const elapsedTimeMinutes = Math.round((currentTime - readingStartTime) / 60000);
+
+    // Only send if at least one minute has passed
+    if (elapsedTimeMinutes >= 1) {
+        // Reset timer
+        readingStartTime = currentTime;
+
+        // Send reading state to server with time and page data
+        const formData = new FormData();
+        formData.append('bookId', bookId);
+        formData.append('currentPage', currentPage);
+        formData.append('zoomLevel', scale);
+        formData.append('viewMode', viewMode);
+        formData.append('readingTimeMinutes', elapsedTimeMinutes);
+
+        // Get the CSRF token
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        // Send the data if we have the token
+        if (token) {
+            fetch('/Reader/SaveReadingState', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                body: formData
+            }).catch(error => console.error('Error saving reading state:', error));
+        }
+
+        // Update last page tracked
+        lastPageTracked = currentPage;
+    }
+
+    // Original code for saving position to localStorage
     localStorage.setItem(`position_${bookId}`, JSON.stringify({
         page: currentPage,
         leftPage: currentLeftPage,

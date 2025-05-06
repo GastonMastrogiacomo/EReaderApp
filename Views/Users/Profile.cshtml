@@ -138,6 +138,103 @@
                 </div>
             </div>
 
+            <!-- Statistics card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white p-3 border-bottom">
+                    <h5 class="mb-0"><i class="fas fa-book-reader me-2 text-primary"></i>Reading Statistics</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center p-3 bg-light rounded-3">
+                                <div class="display-4 text-primary mb-2">@ViewBag.TotalBooksRead</div>
+                                <div class="text-muted">Books Read</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center p-3 bg-light rounded-3">
+                                <div class="display-4 text-primary mb-2">@ViewBag.TotalPagesRead</div>
+                                <div class="text-muted">Pages Read</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center p-3 bg-light rounded-3">
+                                <div class="display-4 text-success mb-2">@ViewBag.TotalReadingHours</div>
+                                <div class="text-muted">Reading Hours</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reading Frequency -->
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">Reading Days</h6>
+                                    <div class="d-flex align-items-center">
+                                        <div class="display-5 text-primary me-3">@ViewBag.ReadingDaysCount</div>
+                                        <div class="text-muted small">Days with reading activity</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">Reading Streak</h6>
+                                    <div class="d-flex align-items-center">
+                                        <div class="display-5 text-success me-3">@ViewBag.ReadingStreak</div>
+                                        <div class="text-muted small">Consecutive days reading</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (ViewBag.RecentBooks != null && ViewBag.RecentBooks.Count > 0)
+                    {
+                        <h6 class="mt-4 mb-3 border-bottom pb-2">Recently Read Books</h6>
+                        <div class="row">
+                            @foreach (var book in ViewBag.RecentBooks)
+                            {
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0">
+                                                    @if (!string.IsNullOrEmpty(book.ImageLink))
+                                                    {
+                                                        <img src="@book.ImageLink" class="img-fluid rounded" alt="@book.Title" style="width: 60px;">
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 80px;">
+                                                            <i class="fas fa-book text-secondary"></i>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <h6 class="mb-1">@book.Title</h6>
+                                                    <p class="text-muted small mb-1">@book.Author</p>
+                                                    <div class="progress mt-2" style="height: 6px;">
+                                                        <div class="progress-bar bg-success" role="progressbar" style="width: @book.ReadingProgress%"></div>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mt-1">
+                                                        <small class="text-muted">@book.ReadingProgress%</small>
+                                                        <small class="text-muted">@Math.Round(book.TotalTimeMinutes / 60.0, 1)h in @book.TotalSessions sessions</small>
+                                                    </div>
+                                                    <small class="text-muted d-block mt-1">Last read: @book.LastReadDate</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
             <!-- Reading Stats Card -->
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white p-3 border-bottom">

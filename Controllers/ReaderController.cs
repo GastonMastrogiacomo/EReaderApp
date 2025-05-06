@@ -51,7 +51,7 @@ namespace EReaderApp.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> SaveReadingState(int bookId, int currentPage, float zoomLevel, string viewMode)
+        public async Task<IActionResult> SaveReadingState(int bookId, int currentPage, float zoomLevel, string viewMode, int readingTimeMinutes = 0)
         {
             if (!User.Identity.IsAuthenticated)
                 return Unauthorized();
@@ -63,7 +63,7 @@ namespace EReaderApp.Controllers
 
             if (readingState == null)
             {
-                // Crear nuevo estado de lectura
+                // Create new reading state (existing code unchanged)
                 readingState = new ReadingState
                 {
                     UserId = userId,
@@ -77,7 +77,7 @@ namespace EReaderApp.Controllers
             }
             else
             {
-                // Actualizar estado existente
+                // Update existing state (existing code unchanged)
                 readingState.CurrentPage = currentPage;
                 readingState.ZoomLevel = zoomLevel;
                 readingState.ViewMode = viewMode;
@@ -85,7 +85,26 @@ namespace EReaderApp.Controllers
                 _context.ReadingStates.Update(readingState);
             }
 
+            // Update reading activity with time spent and current page
+            var readingActivity = await _context.ReadingActivities
+                .FirstOrDefaultAsync(ra => ra.UserId == userId && ra.BookId == bookId);
+
+            if (readingActivity != null && readingTimeMinutes > 0)
+            {
+                readingActivity.TotalReadingTimeMinutes += readingTimeMinutes;
+
+                // Update pages read if current page is higher than last recorded
+                if (currentPage > readingActivity.LastPageRead)
+                {
+                    readingActivity.TotalPagesRead += (currentPage - readingActivity.LastPageRead);
+                    readingActivity.LastPageRead = currentPage;
+                }
+
+                _context.ReadingActivities.Update(readingActivity);
+            }
+
             await _context.SaveChangesAsync();
+
             return Json(new { success = true });
         }
 
@@ -164,7 +183,7 @@ namespace EReaderApp.Controllers
         }
 
         // Métodos privados de ayuda
-        private async Task TrackReading(int userId, int bookId)
+        private async Task TrackReading(int userId, int bookId, int currentPage = 1)
         {
             var readingActivity = await _context.ReadingActivities
                 .FirstOrDefaultAsync(ra => ra.UserId == userId && ra.BookId == bookId);
@@ -177,7 +196,10 @@ namespace EReaderApp.Controllers
                     BookId = bookId,
                     FirstAccess = DateTime.Now,
                     LastAccess = DateTime.Now,
-                    AccessCount = 1
+                    AccessCount = 1,
+                    LastPageRead = currentPage,
+                    TotalPagesRead = currentPage,
+                    TotalReadingTimeMinutes = 0
                 };
                 _context.ReadingActivities.Add(readingActivity);
             }
@@ -185,6 +207,14 @@ namespace EReaderApp.Controllers
             {
                 readingActivity.LastAccess = DateTime.Now;
                 readingActivity.AccessCount++;
+
+                // Update pages read if current page is higher than last recorded
+                if (currentPage > readingActivity.LastPageRead)
+                {
+                    readingActivity.TotalPagesRead += (currentPage - readingActivity.LastPageRead);
+                    readingActivity.LastPageRead = currentPage;
+                }
+
                 _context.ReadingActivities.Update(readingActivity);
             }
 

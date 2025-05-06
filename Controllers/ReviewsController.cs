@@ -366,5 +366,50 @@ namespace EReaderApp.Controllers
                 rating = review.Rating
             });
         }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LikeReview(int id, string returnUrl)
+        {
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            // Check if the user has already liked the review
+            var existingLike = await _context.ReviewLikes
+                .FirstOrDefaultAsync(rl => rl.FKIdUser == userId && rl.FKIdReview == id);
+
+            var review = await _context.Reviews.FindAsync(id);
+            if (review == null)
+            {
+                return NotFound();
+            }
+
+            if (existingLike == null)
+            {
+                // Add a new like
+                _context.ReviewLikes.Add(new ReviewLike
+                {
+                    FKIdUser = userId,
+                    FKIdReview = id
+                });
+            }
+            else
+            {
+                // Remove the like (toggle behavior)
+                _context.ReviewLikes.Remove(existingLike);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Redirect back to the book details page with the reviews tab active
+            if (!string.IsNullOrEmpty(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction("ViewDetails", "Books", new { id = review.FKIdBook, tab = "reviews" });
+        }
+
+
     }
 }

@@ -139,6 +139,43 @@
                                 <p class="review-comment mb-0">@review.Comment</p>
                             </div>
                         </div>
+
+                        <!-- Review Like -->
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <div>
+                                @{
+                                    bool userHasLiked = false;
+                                    int likeCount = 0;
+
+                                    if (ViewBag.ReviewLikes != null && ViewBag.ReviewLikes.ContainsKey(review.IdReview))
+                                    {
+                                        var reviewLikesInfo = ViewBag.ReviewLikes[review.IdReview];
+                                        likeCount = reviewLikesInfo.Item1;       
+                                        userHasLiked = reviewLikesInfo.Item2;    
+                                    }
+                                }
+
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    <form asp-controller="Reviews" asp-action="LikeReview" method="post" class="d-inline-block">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@review.IdReview" />
+                                        <input type="hidden" name="returnUrl" value="@Url.Action("ViewDetails", "Books", new { id = review.FKIdBook })#reviews" />
+                                        <button type="submit" class="btn btn-sm @(userHasLiked ? "btn-primary" : "btn-outline-primary")">
+                                            <i class="@(userHasLiked ? "fas" : "far") fa-heart"></i> <span>@likeCount</span>
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-outline-primary" disabled>
+                                        <i class="far fa-heart"></i> <span>@likeCount</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+
                     </div>
                 }
             </div>
@@ -152,3 +189,47 @@
         }
     </div>
 </div>
+
+<style>
+    .review-item {
+        padding: 1.25rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        background-color: #f8f9fa;
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent;
+    }
+
+        .review-item:hover {
+            background-color: #f1f3f5;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+    .review-user {
+        font-weight: 600;
+        font-size: 1.05rem;
+    }
+
+    .review-date {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    .review-comment {
+        margin-top: 0.75rem;
+        line-height: 1.6;
+    }
+
+    .review-actions {
+        margin-top: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid rgba(0,0,0,0.1);
+        padding-top: 0.75rem;
+    }
+
+    .top-review {
+        border-left: 4px solid #0d6efd;
+    }
+</style>

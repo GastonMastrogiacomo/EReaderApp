@@ -32,5 +32,8 @@ namespace EReaderApp.Models
 
         [ForeignKey("FKIdUser")]
         public User User { get; set; }
+
+        [NotMapped]
+        public ICollection<ReviewLike> Likes { get; set; } = new List<ReviewLike>();
     }
 }
