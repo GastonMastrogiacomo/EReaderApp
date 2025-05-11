@@ -1109,7 +1109,8 @@ function savePosition() {
     }));
 }
 
-// Cargar posición guardada
+// Cargar posición guardada (No esta funcionando de momento
+/*)
 function loadPosition() {
     const savedPosition = localStorage.getItem(`position_${bookId}`);
     if (savedPosition) {
@@ -1154,6 +1155,55 @@ function loadPosition() {
         currentLeftPage = 1;
         currentRightPage = 2;
     }
+}
+*/
+
+function loadPosition() {
+    const readingState = document.getElementById('book-view').dataset.readingState;
+
+    if (readingState) {
+        try {
+            const state = JSON.parse(readingState);
+            currentPage = state.CurrentPage || 1;
+            currentLeftPage = state.CurrentPage || 1;
+            currentRightPage = currentLeftPage + 1;
+            scale = state.ZoomLevel || 1.0;
+            viewMode = state.ViewMode || 'double';
+
+            return; 
+        } catch (e) {
+            console.error('Error parsing reading state:', e);
+        }
+    }
+
+    const savedPosition = localStorage.getItem(`position_${bookId}`);
+    if (savedPosition) {
+        try {
+            const position = JSON.parse(savedPosition);
+
+            currentPage = position.page || 1;
+            currentLeftPage = position.leftPage || 1;
+            currentRightPage = position.rightPage || 2;
+            viewMode = position.viewMode || localStorage.getItem(`viewMode_${bookId}`) || 'double';
+            scale = position.scale || 1.0;
+
+        } catch (e) {
+            console.error('Error loading saved position:', e);
+            setDefaultPosition();
+        }
+    } else {
+        setDefaultPosition();
+    }
+}
+
+function setDefaultPosition() {
+    currentPage = 1;
+    currentLeftPage = 1;
+    currentRightPage = 2;
+    viewMode = localStorage.getItem(`viewMode_${bookId}`) || 'double';
+    scale = 1.0;
+    isFitWidth = false;
+    isFitPage = true;
 }
 
 // Funciones para cargar y guardar configuración

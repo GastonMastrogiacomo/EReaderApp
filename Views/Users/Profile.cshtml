@@ -49,15 +49,15 @@
                 <div class="card-footer bg-light p-3">
                     <div class="d-flex justify-content-between text-center">
                         <div>
-                            <h5 class="mb-0 fw-bold">0</h5>
+                            <h5 class="mb-0 fw-bold">@ViewBag.TotalBooksRead</h5>
                             <small class="text-muted">Books</small>
                         </div>
                         <div>
-                            <h5 class="mb-0 fw-bold">0</h5>
+                            <h5 class="mb-0 fw-bold">@ViewBag.TotalReviews</h5>
                             <small class="text-muted">Reviews</small>
                         </div>
                         <div>
-                            <h5 class="mb-0 fw-bold">0</h5>
+                            <h5 class="mb-0 fw-bold">@ViewBag.TotalLibraries</h5>
                             <small class="text-muted">Lists</small>
                         </div>
                     </div>
@@ -100,7 +100,7 @@
                 </div>
             </div>
 
-            <!-- My Libraries Card -->
+            <!-- My Libraries -->
             <div class="card border-0 shadow-sm rounded-3 mb-4">
                 <div class="card-header bg-white p-3 border-bottom d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-book me-2 text-primary"></i> My Libraries</h5>
@@ -110,30 +110,33 @@
                 </div>
                 <div class="card-body p-4">
                     <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 border-primary border-opacity-25">
-                                <div class="card-body">
-                                    <h6 class="card-title">Currently Reading</h6>
-                                    <p class="card-text small text-muted">0 books</p>
+                        @if (ViewBag.UserLibraries != null && ViewBag.UserLibraries.Count > 0)
+                        {
+                            foreach (var library in ViewBag.UserLibraries)
+                            {
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 border-primary border-opacity-25">
+                                        <div class="card-body">
+                                            <h6 class="card-title">@library.ListName</h6>
+                                            <p class="card-text small text-muted">
+                                                <a asp-controller="Libraries" asp-action="LibraryDetails" asp-route-id="@library.IdLibrary" class="text-decoration-none">
+                                                    View books <i class="fas fa-chevron-right ms-1 small"></i>
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    You don't have any libraries yet. <a asp-controller="Libraries" asp-action="Create">Create your first library</a> to organize your books!
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 border-success border-opacity-25">
-                                <div class="card-body">
-                                    <h6 class="card-title">Want to Read</h6>
-                                    <p class="card-text small text-muted">0 books</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 border-info border-opacity-25">
-                                <div class="card-body">
-                                    <h6 class="card-title">Finished</h6>
-                                    <p class="card-text small text-muted">0 books</p>
-                                </div>
-                            </div>
-                        </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -144,29 +147,34 @@
                     <h5 class="mb-0"><i class="fas fa-book-reader me-2 text-primary"></i>Reading Statistics</h5>
                 </div>
                 <div class="card-body p-4">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <div class="text-center p-3 bg-light rounded-3">
-                                <div class="display-4 text-primary mb-2">@ViewBag.TotalBooksRead</div>
-                                <div class="text-muted">Books Read</div>
+                    <!-- UPDATED LAYOUT: Changed to 4 card layout instead of statistics boxes -->
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">Books Read</h6>
+                                    <div class="d-flex align-items-center">
+                                        <div class="display-5 text-primary me-3">@ViewBag.TotalBooksRead</div>
+                                        <div class="text-muted small">Total books read</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="text-center p-3 bg-light rounded-3">
-                                <div class="display-4 text-primary mb-2">@ViewBag.TotalPagesRead</div>
-                                <div class="text-muted">Pages Read</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="text-center p-3 bg-light rounded-3">
-                                <div class="display-4 text-success mb-2">@ViewBag.TotalReadingHours</div>
-                                <div class="text-muted">Reading Hours</div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">Reading Hours</h6>
+                                    <div class="d-flex align-items-center">
+                                        <div class="display-5 text-success me-3">@ViewBag.TotalReadingHours</div>
+                                        <div class="text-muted small">Hours spent reading</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Reading Frequency -->
-                    <div class="row mt-4">
+                    <div class="row">
                         <div class="col-md-6 mb-3">
                             <div class="card h-100">
                                 <div class="card-body">
@@ -217,12 +225,13 @@
                                                     <h6 class="mb-1">@book.Title</h6>
                                                     <p class="text-muted small mb-1">@book.Author</p>
                                                     <div class="progress mt-2" style="height: 6px;">
-                                                        <div class="progress-bar bg-success" role="progressbar" style="width: @book.ReadingProgress%"></div>
+                                                        <div class="progress-bar bg-success" role="progressbar" style="width: @(book.ReadingProgress)%"></div>
                                                     </div>
                                                     <div class="d-flex justify-content-between mt-1">
-                                                        <small class="text-muted">@book.ReadingProgress%</small>
+                                                        <small class="text-muted">@(book.ReadingProgress)%</small>
                                                         <small class="text-muted">@Math.Round(book.TotalTimeMinutes / 60.0, 1)h in @book.TotalSessions sessions</small>
                                                     </div>
+
                                                     <small class="text-muted d-block mt-1">Last read: @book.LastReadDate</small>
                                                 </div>
                                             </div>
@@ -232,35 +241,13 @@
                             }
                         </div>
                     }
-                </div>
-            </div>
-
-            <!-- Reading Stats Card -->
-            <div class="card border-0 shadow-sm rounded-3">
-                <div class="card-header bg-white p-3 border-bottom">
-                    <h5 class="mb-0"><i class="fas fa-chart-line me-2 text-primary"></i> Reading Stats</h5>
-                </div>
-                <div class="card-body p-4">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <div class="text-center p-3 bg-light rounded-3">
-                                <div class="display-4 text-primary mb-2">0</div>
-                                <div class="text-muted">Books Read</div>
-                            </div>
+                    else
+                    {
+                        <div class="alert alert-info mt-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            You haven't read any books yet. <a asp-controller="Books" asp-action="Search">Browse our collection</a> to start reading!
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="text-center p-3 bg-light rounded-3">
-                                <div class="display-4 text-primary mb-2">0</div>
-                                <div class="text-muted">Reviews</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="text-center p-3 bg-light rounded-3">
-                                <div class="display-4 text-success mb-2">0</div>
-                                <div class="text-muted">Day Streak</div>
-                            </div>
-                        </div>
-                    </div>
+                    }
                 </div>
             </div>
         </div>

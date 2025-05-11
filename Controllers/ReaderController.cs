@@ -42,12 +42,33 @@ namespace EReaderApp.Controllers
             {
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
                 await TrackReading(userId, id);
-                ViewBag.ReadingState = await GetReadingState(userId, id);
+
+                // Get reading state - ensure it's initialized to page 1 for new users
+                var readingState = await GetReadingState(userId, id);
+                if (readingState == null)
+                {
+                    // Create default reading state for new users starting at page 1
+                    readingState = new ReadingState
+                    {
+                        UserId = userId,
+                        BookId = id,
+                        CurrentPage = 1, // Start at page 1
+                        ZoomLevel = 1.0f,
+                        ViewMode = "double",
+                        LastAccessed = DateTime.Now
+                    };
+                    _context.ReadingStates.Add(readingState);
+                    await _context.SaveChangesAsync();
+                }
+
+                ViewBag.ReadingState = readingState;
                 ViewBag.BookMarks = await GetBookMarks(userId, id);
             }
 
             return View(book);
         }
+
+
 
         [HttpPost]
         [Authorize]
@@ -58,12 +79,19 @@ namespace EReaderApp.Controllers
 
             int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
+            // First get the book to check its page count
+            var book = await _context.Books.FindAsync(bookId);
+            int totalPages = book?.PageCount ?? 0;
+
             var readingState = await _context.ReadingStates
                 .FirstOrDefaultAsync(rs => rs.UserId == userId && rs.BookId == bookId);
 
+            // Store previous page to track page transitions
+            int previousPage = readingState?.CurrentPage ?? 0;
+
             if (readingState == null)
             {
-                // Create new reading state (existing code unchanged)
+                // Create new reading state
                 readingState = new ReadingState
                 {
                     UserId = userId,
@@ -77,7 +105,7 @@ namespace EReaderApp.Controllers
             }
             else
             {
-                // Update existing state (existing code unchanged)
+                // Update existing state
                 readingState.CurrentPage = currentPage;
                 readingState.ZoomLevel = zoomLevel;
                 readingState.ViewMode = viewMode;
@@ -89,14 +117,23 @@ namespace EReaderApp.Controllers
             var readingActivity = await _context.ReadingActivities
                 .FirstOrDefaultAsync(ra => ra.UserId == userId && ra.BookId == bookId);
 
-            if (readingActivity != null && readingTimeMinutes > 0)
+            if (readingActivity != null)
             {
-                readingActivity.TotalReadingTimeMinutes += readingTimeMinutes;
+                // Add reading time if provided
+                if (readingTimeMinutes > 0)
+                {
+                    readingActivity.TotalReadingTimeMinutes += readingTimeMinutes;
+                }
 
-                // Update pages read if current page is higher than last recorded
+                // If user moved to a new page, count it
+                if (currentPage != previousPage)
+                {
+                    readingActivity.TotalPagesRead += 1;
+                }
+
+                // Always update the LastPageRead to the highest page seen
                 if (currentPage > readingActivity.LastPageRead)
                 {
-                    readingActivity.TotalPagesRead += (currentPage - readingActivity.LastPageRead);
                     readingActivity.LastPageRead = currentPage;
                 }
 
@@ -190,6 +227,7 @@ namespace EReaderApp.Controllers
 
             if (readingActivity == null)
             {
+                // First time reading this book - initialize with the current page
                 readingActivity = new ReadingActivity
                 {
                     UserId = userId,
@@ -198,7 +236,7 @@ namespace EReaderApp.Controllers
                     LastAccess = DateTime.Now,
                     AccessCount = 1,
                     LastPageRead = currentPage,
-                    TotalPagesRead = currentPage,
+                    TotalPagesRead = 1, // Start with 1 page viewed
                     TotalReadingTimeMinutes = 0
                 };
                 _context.ReadingActivities.Add(readingActivity);
@@ -208,10 +246,11 @@ namespace EReaderApp.Controllers
                 readingActivity.LastAccess = DateTime.Now;
                 readingActivity.AccessCount++;
 
-                // Update pages read if current page is higher than last recorded
-                if (currentPage > readingActivity.LastPageRead)
+                // If last page read is different from current page, increment total pages
+                if (currentPage != readingActivity.LastPageRead)
                 {
-                    readingActivity.TotalPagesRead += (currentPage - readingActivity.LastPageRead);
+                    // Only count unique page views
+                    readingActivity.TotalPagesRead++;
                     readingActivity.LastPageRead = currentPage;
                 }
 

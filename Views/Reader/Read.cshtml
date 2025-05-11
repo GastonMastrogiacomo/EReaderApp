@@ -1,9 +1,9 @@
 ﻿@model EReaderApp.Models.Book
+@using System.Text.Json;
 @{
     ViewData["Title"] = "Leyendo: " + Model.Title;
     Layout = "_ReaderLayout";
 }
-
 <div class="reader-container">
     <!-- Barra de navegación superior minimalista estilo Kindle -->
     <div class="kindle-top-bar">
@@ -17,7 +17,6 @@
             </button>
         </div>
     </div>
-
     <!-- Panel de controles colapsable (inicialmente oculto en dispositivos grandes) -->
     <div id="reader-controls-panel" class="reader-controls bg-light p-2 mb-2 rounded shadow-sm" style="display: none;">
         <div class="row g-2 align-items-center">
@@ -232,7 +231,7 @@
                 <p class="mt-2">Cargando documento...</p>
             </div>
 
-            <div id="book-view">
+            <div id="book-view" data-reading-state="@Json.Serialize(ViewBag.ReadingState)">
                 <!-- Modo página única -->
                 <div id="single-page-container" class="justify-content-center" style="display: none;">
                     <div id="single-page" class="book-page single-page">
@@ -278,16 +277,14 @@
     </div>
 </div>
 
+
 @section Styles {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="@Url.Content("~/css/pdf-reader.css")" />
-
-
 }
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf.min.js"></script>
-    <script src="@Url.Content("~/js/pdf-reader.js")"></script>  
-    <script src="@Url.Content("~/js/kindle-reader.js")"></script>
-
+    <script src="@Url.Content("/js/pdf-reader.js")"></script>
+    <script src="@Url.Content("/js/kindle-reader.js")"></script>
 }

@@ -308,7 +308,7 @@ namespace EReaderApp.Controllers
                 Name = user.Name,
                 Email = user.Email,
                 ProfilePicture = user.ProfilePicture,
-                CreatedAt = user.CreatedAt // Map the CreatedAt property
+                CreatedAt = user.CreatedAt
             };
 
             // Get reading statistics
@@ -348,6 +348,9 @@ namespace EReaderApp.Controllers
                     }
                 }
 
+                // Adjust maxStreak to include the first day in a streak
+                if (maxStreak > 0) maxStreak++;
+
                 ViewBag.ReadingStreak = maxStreak;
             }
             else
@@ -356,24 +359,64 @@ namespace EReaderApp.Controllers
                 ViewBag.ReadingStreak = 0;
             }
 
-            // Get recent books
+            // Get total reviews count
+            ViewBag.TotalReviews = await _context.Reviews
+                .Where(r => r.FKIdUser == userId)
+                .CountAsync();
+
+            ViewBag.TotalLibraries = await _context.Libraries
+              .Where(l => l.FKIdUser == userId)
+              .CountAsync();
+
+            ViewBag.UserLibraries = await _context.Libraries
+                .Where(l => l.FKIdUser == userId)
+                .Take(3)
+                .ToListAsync();
+
+            // Get recent books with accurate progress calculation
             var recentBooks = readingActivities
                 .OrderByDescending(ra => ra.LastAccess)
                 .Take(4)
                 .Select(ra => new {
-                    ra.Book.Title,
-                    ra.Book.Author,
-                    ra.Book.ImageLink,
-                    ReadingProgress = ra.Book.PageCount > 0 ? Math.Round((decimal)ra.LastPageRead / (decimal)ra.Book.PageCount * 100m, 0) : 0,
+                    Title = ra.Book?.Title ?? "Unknown Title",
+                    Author = ra.Book?.Author ?? "Unknown Author",
+                    ImageLink = ra.Book?.ImageLink,
+                    // Simple integer calculation 
+                    ReadingProgress = CalculateProgressSafely(ra),
                     LastReadDate = ra.LastAccess.ToString("MMM dd, yyyy"),
                     TotalTimeMinutes = ra.TotalReadingTimeMinutes,
                     TotalSessions = ra.AccessCount
                 })
                 .ToList();
-
             ViewBag.RecentBooks = recentBooks;
-
             return View(viewModel);
+        }
+
+        private int CalculateProgressSafely(ReadingActivity activity)
+        {
+            try
+            {
+                // Check for nulls and zero values
+                if (activity == null || activity.Book == null ||
+                    !activity.Book.PageCount.HasValue || activity.Book.PageCount.Value <= 0)
+                {
+                    return 0;
+                }
+
+                // Convert everything to int and use integer division first
+                int lastPage = activity.LastPageRead;
+                int totalPages = activity.Book.PageCount.Value;
+
+                // Only then convert to double for percentage calculation
+                double percentage = (double)lastPage / totalPages * 100.0;
+
+                return (int)Math.Min(100, Math.Round(percentage));
+            }
+            catch
+            {
+                // Fall back to 0 in case of any error
+                return 0;
+            }
         }
 
         // Add this to the UsersController class
