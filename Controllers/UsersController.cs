@@ -403,18 +403,27 @@ namespace EReaderApp.Controllers
                     return 0;
                 }
 
-                // Convert everything to int and use integer division first
+                // Use LastPageRead for progress calculation
+                // If LastPageRead is 0, we should show 0% progress since nothing has been read
                 int lastPage = activity.LastPageRead;
                 int totalPages = activity.Book.PageCount.Value;
 
-                // Only then convert to double for percentage calculation
+                // If no pages have been viewed (LastPageRead = 0), show 0% progress
+                if (lastPage == 0)
+                {
+                    return 0;
+                }
+
+                // Calculate percentage - handle edge cases
                 double percentage = (double)lastPage / totalPages * 100.0;
 
+                // Return the rounded percentage, capped at 100%
                 return (int)Math.Min(100, Math.Round(percentage));
             }
-            catch
+            catch (Exception ex)
             {
-                // Fall back to 0 in case of any error
+                // Log the exception
+                Console.WriteLine($"Error calculating reading progress: {ex.Message}");
                 return 0;
             }
         }

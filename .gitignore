@@ -365,6 +365,7 @@ FodyWeavers.xsd
 
 
 # Sensitive configuration files
+/wwwroot/uploads/books-PDF/
 appsettings.Development.json
 appsettings.Production.json
 *.Development.json

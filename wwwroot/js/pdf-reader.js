@@ -127,6 +127,22 @@ async function loadPDF() {
                 Error al cargar el PDF: ${error.message}
             </div>`;
     }
+
+    const autoSaveInterval = setInterval(function () {
+        if (pdfDoc) {
+            console.log("Auto-saving position...");
+            savePosition();
+        }
+    }, 150000); // Every 15 seconds
+
+    // Also save when user leaves the page
+    window.addEventListener('beforeunload', function () {
+        if (pdfDoc) {
+            savePosition();
+        }
+        clearInterval(autoSaveInterval);
+    });
+
 }
 
 // Calcular páginas para modo doble
@@ -816,6 +832,7 @@ function updateNavigationButtons() {
 function goToPage(pageNum) {
     if (!pageNum || pageNum < 1 || pageNum > totalPages) return;
 
+    console.log("goToPage called with page:", pageNum);
     showPageLoadingIndicator();
 
     const direction = pageNum > currentPage ? 'next' : 'prev';
@@ -833,6 +850,8 @@ function goToPage(pageNum) {
     } else {
         renderCurrentPages();
     }
+
+    savePosition();
 }
 
 // Navegación - página anterior
@@ -1061,42 +1080,88 @@ function deleteBookmark(id) {
 
 // Guardar posición
 function savePosition() {
+    console.log("savePosition called, currentPage:", currentPage);
+
+    // Ensure valid page
+    if (!currentPage || currentPage < 1 || isNaN(currentPage)) {
+        console.error("Invalid page number detected");
+        currentPage = Math.max(1, currentLeftPage || 1);
+    }
+
     // Calculate reading time in minutes since last save
     const currentTime = Date.now();
     const elapsedTimeMinutes = Math.round((currentTime - readingStartTime) / 60000);
 
-    // Only send if at least one minute has passed
-    if (elapsedTimeMinutes >= 1) {
-        // Reset timer
-        readingStartTime = currentTime;
+    // Define hasPageChanged - always check against lastPageTracked
+    const hasPageChanged = currentPage !== lastPageTracked;
+    console.log("lastPageTracked:", lastPageTracked, "hasPageChanged:", hasPageChanged);
 
-        // Send reading state to server with time and page data
-        const formData = new FormData();
-        formData.append('bookId', bookId);
-        formData.append('currentPage', currentPage);
-        formData.append('zoomLevel', scale);
-        formData.append('viewMode', viewMode);
-        formData.append('readingTimeMinutes', elapsedTimeMinutes);
+    // Always update the server when page changes or enough time has passed (reduced threshold)
+    if (elapsedTimeMinutes >= 0.25 || hasPageChanged) {  // 15 seconds instead of 1 minute
+        console.log("Saving reading state to server:", {
+            bookId, currentPage, viewMode, elapsedTimeMinutes
+        });
 
-        // Get the CSRF token
-        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        if (elapsedTimeMinutes >= 0.25) {
+            readingStartTime = currentTime;
+        }
 
-        // Send the data if we have the token
-        if (token) {
+        // Get antiforgery token - try multiple locations
+        let token = null;
+
+        // Try the dedicated form first
+        const antiForgeryForm = document.getElementById('antiforgery-form');
+        if (antiForgeryForm) {
+            token = antiForgeryForm.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        }
+
+        // If not found, try elsewhere
+        if (!token) {
+            token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        }
+
+        if (!token) {
+            console.error("CSRF token not found - cannot save state to server");
+            // Still update localStorage even without server update
+        } else {
+            // Create form data
+            const formData = new FormData();
+            formData.append('bookId', bookId);
+            formData.append('currentPage', currentPage);
+            formData.append('zoomLevel', scale);
+            formData.append('viewMode', viewMode);
+            formData.append('readingTimeMinutes', elapsedTimeMinutes);
+
+            // Send to server
             fetch('/Reader/SaveReadingState', {
                 method: 'POST',
                 headers: {
                     'RequestVerificationToken': token
                 },
                 body: formData
-            }).catch(error => console.error('Error saving reading state:', error));
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Server response:", data);
+                    if (data.success) {
+                        console.log("Reading state saved successfully");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error saving reading state:", error);
+                });
         }
 
-        // Update last page tracked
+        // Always update last page tracked
         lastPageTracked = currentPage;
     }
 
-    // Original code for saving position to localStorage
+    // Always save to localStorage
     localStorage.setItem(`position_${bookId}`, JSON.stringify({
         page: currentPage,
         leftPage: currentLeftPage,
@@ -1109,89 +1174,52 @@ function savePosition() {
     }));
 }
 
-// Cargar posición guardada (No esta funcionando de momento
-/*)
-function loadPosition() {
-    const savedPosition = localStorage.getItem(`position_${bookId}`);
-    if (savedPosition) {
-        try {
-            const position = JSON.parse(savedPosition);
-
-            currentPage = position.page || 1;
-            currentLeftPage = position.leftPage || 1;
-            currentRightPage = position.rightPage || 2;
-            viewMode = position.viewMode || localStorage.getItem(`viewMode_${bookId}`) || 'double';
-            scale = position.scale || 1.0;
-
-            isFitWidth = position.fitWidth || false;
-            isFitPage = position.fitPage || false;
-
-            if (isFitWidth) {
-                document.getElementById('zoom-text').textContent = 'Ancho';
-            } else if (isFitPage) {
-                document.getElementById('zoom-text').textContent = 'Página';
-            } else {
-                document.getElementById('zoom-text').textContent = `${Math.round(scale * 100)}%`;
-            }
-        } catch (e) {
-            console.error('Error al cargar la posición guardada:', e);
-            currentPage = 1;
-            currentLeftPage = 1;
-            currentRightPage = 2;
-            viewMode = 'double';
-            scale = 1.0;
-        }
-    } else {
-        // Si no hay posición guardada, usar valores predeterminados
-        // o preferencias guardadas
-        const savedViewMode = localStorage.getItem(`viewMode_${bookId}`);
-        if (savedViewMode) {
-            viewMode = savedViewMode;
-        } else {
-            viewMode = 'double';
-        }
-
-        currentPage = 1;
-        currentLeftPage = 1;
-        currentRightPage = 2;
-    }
-}
-*/
-
 function loadPosition() {
     const readingState = document.getElementById('book-view').dataset.readingState;
+    console.log("Loading position from readingState:", readingState);
 
     if (readingState) {
         try {
             const state = JSON.parse(readingState);
+            console.log("Parsed reading state:", state);
             currentPage = state.CurrentPage || 1;
+            console.log("Setting currentPage to:", currentPage);
             currentLeftPage = state.CurrentPage || 1;
             currentRightPage = currentLeftPage + 1;
             scale = state.ZoomLevel || 1.0;
             viewMode = state.ViewMode || 'double';
 
-            return; 
+            // Also set lastPageTracked to currentPage
+            lastPageTracked = currentPage;
+
+            return;
         } catch (e) {
             console.error('Error parsing reading state:', e);
         }
+    } else {
+        console.log("No reading state found in data attribute");
     }
 
+    // Try localStorage if no reading state in data attribute
     const savedPosition = localStorage.getItem(`position_${bookId}`);
     if (savedPosition) {
         try {
             const position = JSON.parse(savedPosition);
-
+            console.log("Loaded position from localStorage:", position);
             currentPage = position.page || 1;
             currentLeftPage = position.leftPage || 1;
             currentRightPage = position.rightPage || 2;
             viewMode = position.viewMode || localStorage.getItem(`viewMode_${bookId}`) || 'double';
             scale = position.scale || 1.0;
 
+            // Also set lastPageTracked
+            lastPageTracked = currentPage;
         } catch (e) {
             console.error('Error loading saved position:', e);
             setDefaultPosition();
         }
     } else {
+        console.log("No position in localStorage, using defaults");
         setDefaultPosition();
     }
 }
@@ -2026,6 +2054,9 @@ function setupEventListeners() {
         if (touchEndX > touchStartX + minSwipeDistance) {
             previousPage();
         }
+
+        // Ensure position is saved even if navigation was blocked (e.g., at last page)
+        savePosition();
     }
 
     // Teclado
@@ -2033,29 +2064,31 @@ function setupEventListeners() {
         // No capturar teclas si el foco está en un input o textarea
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
+        let pageChanged = false;
+
         switch (e.key) {
             case 'ArrowLeft':
                 previousPage();
+                pageChanged = true;
                 break;
             case 'ArrowRight':
                 nextPage();
+                pageChanged = true;
                 break;
             case 'Home':
                 goToPage(1);
+                pageChanged = true;
                 break;
             case 'End':
                 goToPage(totalPages);
+                pageChanged = true;
                 break;
-            case '+':
-                setZoom(Math.min(scale + 0.15, 2.0));
-                break;
-            case '-':
-                setZoom(Math.max(scale - 0.15, 0.5));
-                break;
-            case 'f':
-                const fullscreenBtn = document.getElementById('toggle-fullscreen');
-                if (fullscreenBtn) fullscreenBtn.click();
-                break;
+            // Other cases...
+        }
+
+        // If page changed and we didn't call goToPage (which would call savePosition)
+        if (pageChanged) {
+            savePosition();
         }
     });
 

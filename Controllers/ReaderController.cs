@@ -41,9 +41,8 @@ namespace EReaderApp.Controllers
             if (User.Identity.IsAuthenticated)
             {
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                await TrackReading(userId, id);
 
-                // Get reading state - ensure it's initialized to page 1 for new users
+                // Get reading state first before tracking reading activity
                 var readingState = await GetReadingState(userId, id);
                 if (readingState == null)
                 {
@@ -52,7 +51,7 @@ namespace EReaderApp.Controllers
                     {
                         UserId = userId,
                         BookId = id,
-                        CurrentPage = 1, // Start at page 1
+                        CurrentPage = 1,
                         ZoomLevel = 1.0f,
                         ViewMode = "double",
                         LastAccessed = DateTime.Now
@@ -61,14 +60,15 @@ namespace EReaderApp.Controllers
                     await _context.SaveChangesAsync();
                 }
 
+                // Pass the actual current page to TrackReading
+                await TrackReading(userId, id, readingState.CurrentPage);
+
                 ViewBag.ReadingState = readingState;
                 ViewBag.BookMarks = await GetBookMarks(userId, id);
             }
 
             return View(book);
         }
-
-
 
         [HttpPost]
         [Authorize]
@@ -125,8 +125,12 @@ namespace EReaderApp.Controllers
                     readingActivity.TotalReadingTimeMinutes += readingTimeMinutes;
                 }
 
+                // Compare against both previousPage (from reading state) 
+                // and LastPageRead (from activity) for better tracking
+                bool pageChanged = (currentPage != previousPage) || (currentPage != readingActivity.LastPageRead);
+
                 // If user moved to a new page, count it
-                if (currentPage != previousPage)
+                if (pageChanged && currentPage != readingActivity.LastPageRead)
                 {
                     readingActivity.TotalPagesRead += 1;
                 }
@@ -138,6 +142,22 @@ namespace EReaderApp.Controllers
                 }
 
                 _context.ReadingActivities.Update(readingActivity);
+            }
+            else
+            {
+                // Create a new reading activity
+                readingActivity = new ReadingActivity
+                {
+                    UserId = userId,
+                    BookId = bookId,
+                    FirstAccess = DateTime.Now,
+                    LastAccess = DateTime.Now,
+                    AccessCount = 1,
+                    LastPageRead = currentPage > 0 ? currentPage : 1,
+                    TotalPagesRead = 1, // Start with 1 page viewed
+                    TotalReadingTimeMinutes = readingTimeMinutes > 0 ? readingTimeMinutes : 0
+                };
+                _context.ReadingActivities.Add(readingActivity);
             }
 
             await _context.SaveChangesAsync();
@@ -220,7 +240,7 @@ namespace EReaderApp.Controllers
         }
 
         // Métodos privados de ayuda
-        private async Task TrackReading(int userId, int bookId, int currentPage = 1)
+        private async Task TrackReading(int userId, int bookId, int currentPage)
         {
             var readingActivity = await _context.ReadingActivities
                 .FirstOrDefaultAsync(ra => ra.UserId == userId && ra.BookId == bookId);
@@ -246,12 +266,18 @@ namespace EReaderApp.Controllers
                 readingActivity.LastAccess = DateTime.Now;
                 readingActivity.AccessCount++;
 
-                // If last page read is different from current page, increment total pages
+                // Track the page transition
                 if (currentPage != readingActivity.LastPageRead)
                 {
-                    // Only count unique page views
+                    // Increment total pages read
                     readingActivity.TotalPagesRead++;
-                    readingActivity.LastPageRead = currentPage;
+
+                    // Only update LastPageRead if the current page is higher
+                    // This maintains a "high water mark" of furthest page reached
+                    if (currentPage > readingActivity.LastPageRead)
+                    {
+                        readingActivity.LastPageRead = currentPage;
+                    }
                 }
 
                 _context.ReadingActivities.Update(readingActivity);

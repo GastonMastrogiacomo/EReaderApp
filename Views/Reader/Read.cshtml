@@ -5,6 +5,9 @@
     Layout = "_ReaderLayout";
 }
 <div class="reader-container">
+    <form id="antiforgery-form" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
     <!-- Barra de navegación superior minimalista estilo Kindle -->
     <div class="kindle-top-bar">
         <div class="kindle-title">
@@ -12,7 +15,7 @@
             <span class="book-author">@Model.Author</span>
         </div>
         <div class="kindle-controls">
-            <button id="toggle-controls" class="btn btn-sm btn-icon" title="Mostrar/Ocultar controles">
+            <button id="toggle-controls" class="btn btn-sm btn-icon" title="Mostrar/Ocultars controles">
                 <i class="fas fa-ellipsis-v"></i>
             </button>
         </div>
@@ -30,7 +33,7 @@
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <div class="input-group input-group-sm">
-                        <input type="number" id="current-page-input" class="form-control text-center" style="width: 50px;" min="1" value="1">
+                        <input type="number" id="current-page-input" class="form-control text-center" style="width: 70px;" min="1" value="1">
                         <span class="input-group-text">/ <span id="page-count">0</span></span>
                     </div>
                     <button id="next-page" class="btn btn-sm btn-outline-secondary" title="Página siguiente">
@@ -251,6 +254,10 @@
                 </div>
             </div>
         </div>
+
+
+
+
     </div>
 
     <!-- Modal para añadir marcadores -->
@@ -287,4 +294,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf.min.js"></script>
     <script src="@Url.Content("/js/pdf-reader.js")"></script>
     <script src="@Url.Content("/js/kindle-reader.js")"></script>
+
 }
