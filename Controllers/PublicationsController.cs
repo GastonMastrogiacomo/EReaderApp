@@ -325,8 +325,40 @@ namespace EReaderApp.Controllers
                 return Forbid();
             }
 
-            _context.Publications.Remove(publication);
-            await _context.SaveChangesAsync();
+            try
+            {
+                // Delete all related Comments
+                var comments = await _context.Comments
+                    .Where(c => c.FKIdPublication == id)
+                    .ToListAsync();
+
+                if (comments.Any())
+                {
+                    _context.Comments.RemoveRange(comments);
+                }
+
+                // Delete all related PublicationLikes
+                var likes = await _context.PublicationLikes
+                    .Where(pl => pl.FKIdPublication == id)
+                    .ToListAsync();
+
+                if (likes.Any())
+                {
+                    _context.PublicationLikes.RemoveRange(likes);
+                }
+
+                // Delete the publication itself
+                _context.Publications.Remove(publication);
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Publication deleted successfully!";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting publication: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
 
             return RedirectToAction(nameof(Index));
         }

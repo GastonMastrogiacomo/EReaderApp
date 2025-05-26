@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Linq;
 using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 
 namespace EReaderApp.Controllers
 {
@@ -19,20 +20,64 @@ namespace EReaderApp.Controllers
             _context = context;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var recommendedBooks = _context.Books
-                                           .OrderBy(b => b.IdBook)
-                                           .Take(5)
-                                           .ToList();
+            // Get categories with book counts
+            var categories = await _context.Categories
+                .Select(c => new {
+                    Category = c,
+                    BookCount = _context.BookCategories.Count(bc => bc.FKIdCategory == c.IdCategory)
+                })
+                .Where(x => x.BookCount > 0) // Only show categories that have books
+                .OrderByDescending(x => x.BookCount)
+                .Take(8) // Show top 8 categories
+                .Select(x => x.Category)
+                .ToListAsync();
 
-            var popularBooks = _context.Books
-                                       .OrderByDescending(b => b.Score)
-                                       .Take(6)
-                                       .ToList();
+            // Get recently added books (last 2 weeks, ordered by ID)
+            var recentlyAddedBooks = await _context.Books
+                .OrderByDescending(b => b.IdBook)
+                .Take(8)
+                .ToListAsync();
 
-            ViewBag.RecommendedBooks = recommendedBooks;
+            // Get most popular books based on average review scores
+            var popularBooksQuery = from book in _context.Books
+                                    let avgRating = _context.Reviews
+                                        .Where(r => r.FKIdBook == book.IdBook)
+                                        .Select(r => (double?)r.Rating)
+                                        .Average()
+                                    let reviewCount = _context.Reviews
+                                        .Count(r => r.FKIdBook == book.IdBook)
+                                    where reviewCount >= 1 // Must have at least 1 review
+                                    orderby avgRating descending, reviewCount descending
+                                    select new
+                                    {
+                                        Book = book,
+                                        AverageRating = avgRating ?? 0,
+                                        ReviewCount = reviewCount
+                                    };
+
+            var popularBooksWithRatings = await popularBooksQuery.Take(8).ToListAsync();
+            var popularBooks = popularBooksWithRatings.Select(x => x.Book).ToList();
+
+            // If we don't have enough books with reviews, supplement with highest scored books
+            if (popularBooks.Count < 8)
+            {
+                var additionalBooks = await _context.Books
+                    .Where(b => !popularBooks.Select(pb => pb.IdBook).Contains(b.IdBook))
+                    .Where(b => b.Score.HasValue)
+                    .OrderByDescending(b => b.Score)
+                    .Take(8 - popularBooks.Count)
+                    .ToListAsync();
+
+                popularBooks.AddRange(additionalBooks);
+            }
+
+            // Pass data to view
+            ViewBag.Categories = categories;
+            ViewBag.RecentlyAddedBooks = recentlyAddedBooks;
             ViewBag.PopularBooks = popularBooks;
+            ViewBag.PopularBooksWithRatings = popularBooksWithRatings;
 
             return View();
         }

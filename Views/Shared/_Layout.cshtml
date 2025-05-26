@@ -3,12 +3,22 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - LibroLibre</title>
+    <title>@ViewData["Title"] - EReaderApp</title>
+
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <!-- Site CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/book-styles.css" />
+
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+    @await RenderSectionAsync("Styles", required: false)
+
+
 </head>
+
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
@@ -28,12 +38,7 @@
                             <a class="nav-link text-dark" asp-controller="Books" asp-action="Search">Books</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Categories" asp-action="Index">Categories</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Publications" asp-action="Index">
-                                <i class="fas fa-users me-1"></i> Community
-                            </a>
+                            <a class="nav-link text-dark" asp-controller="Publications" asp-action="Index">Community</a>
                         </li>
                     </ul>
 

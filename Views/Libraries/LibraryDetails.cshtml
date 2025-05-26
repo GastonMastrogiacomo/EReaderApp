@@ -34,14 +34,16 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select" id="sortOption" name="sortOption">
-                        <option value="">Sort by...</option>
-                        <option value="title_asc">Title A-Z</option>
-                        <option value="title_desc">Title Z-A</option>
-                        <option value="author_asc">Author A-Z</option>
-                        <option value="author_desc">Author Z-A</option>
-                        <option value="rating_desc">Highest Rating</option>
-                    </select>
+                    @{
+                        var sortOptions = new List<SelectListItem>
+                    {
+                    new SelectListItem { Value = "", Text = "Sort by...", Selected = true },
+                    new SelectListItem { Value = "title", Text = "Sort by Title", Selected = false },
+                    new SelectListItem { Value = "author", Text = "Sort by Author", Selected = false },
+                    new SelectListItem { Value = "rating", Text = "Sort by Rating", Selected = false }
+                    };
+                    }
+                    @Html.DropDownList("sortOption", sortOptions, new { @class = "form-select", id = "sortOption" })
                 </div>
                 <div class="col-md-3">
                     <button type="button" class="btn btn-outline-danger w-100" id="clearFilters">
@@ -361,14 +363,18 @@
             // Load view preference from localStorage
             const savedView = localStorage.getItem('library-view-mode');
             if (savedView === 'list') {
+                // Default to list view
                 gridView.classList.add('d-none');
                 listView.classList.remove('d-none');
                 listViewBtn.classList.add('active');
                 gridViewBtn.classList.remove('active');
             } else {
                 // Default to grid view
+                gridView.classList.remove('d-none');
+                listView.classList.add('d-none');
                 gridViewBtn.classList.add('active');
                 listViewBtn.classList.remove('active');
+                localStorage.setItem('library-view-mode', 'grid');
             }
 
             // Toggle to grid view
@@ -412,7 +418,6 @@
                 bookItems.forEach(item => {
                     const title = item.getAttribute('data-title');
                     const author = item.getAttribute('data-author');
-                    const rating = parseFloat(item.getAttribute('data-rating') || 0);
 
                     // Apply search filter
                     let visible = true;
@@ -438,7 +443,7 @@
                     noResults.classList.add('d-none');
                 }
 
-                        // Apply sorting
+                // Apply sorting based on updated format (matching Search view)
                 if (sortOption) {
                     // Determine which view is currently active
                     const isListView = !listView.classList.contains('d-none');
@@ -450,7 +455,7 @@
                         gridView.querySelectorAll('.book-item'))
                         .filter(item => item.style.display !== 'none');
 
-                    // Sort items
+                    // Sort items based on new format (matching Search view)
                     items.sort((a, b) => {
                         const titleA = a.getAttribute('data-title');
                         const titleB = b.getAttribute('data-title');
@@ -460,15 +465,12 @@
                         const ratingB = parseFloat(b.getAttribute('data-rating') || 0);
 
                         switch (sortOption) {
-                            case 'title_asc':
+                            case 'title':
                                 return titleA.localeCompare(titleB);
-                            case 'title_desc':
-                                return titleB.localeCompare(titleA);
-                            case 'author_asc':
+                            case 'author':
                                 return authorA.localeCompare(authorB);
-                            case 'author_desc':
-                                return authorB.localeCompare(authorA);
-                            case 'rating_desc':
+                            case 'rating':
+                                // Sort by rating descending (highest first)
                                 return ratingB - ratingA;
                             default:
                                 return 0;
@@ -496,9 +498,18 @@
             }
 
             if (clearFiltersBtn) {
-                clearFiltersBtn.addEventListener('click', function() {
+                clearFiltersBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Clear filters
                     searchTermInput.value = '';
                     sortOptionSelect.value = '';
+                    // Change to grid view (default)
+                    gridView.classList.remove('d-none');
+                    listView.classList.add('d-none');
+                    gridViewBtn.classList.add('active');
+                    listViewBtn.classList.remove('active');
+                    localStorage.setItem('library-view-mode', 'grid');
+                    // Update the display
                     filterAndSortBooks();
                 });
             }

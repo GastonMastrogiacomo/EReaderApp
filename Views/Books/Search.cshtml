@@ -4,6 +4,7 @@
     var categories = ViewBag.Categories as List<EReaderApp.Models.Category>;
     var currentCategory = ViewBag.CurrentCategory as int?;
     var searchQuery = ViewBag.SearchQuery as string;
+    var sortBy = ViewBag.SortBy as string ?? "title"; // Default sort by title
 }
 
 <div class="container my-4">
@@ -18,7 +19,7 @@
     <div class="card shadow-sm mb-5">
         <div class="card-body p-4">
             <div class="row">
-                <div class="col-md-8 mb-3 mb-md-0">
+                <div class="col-md-6 mb-3 mb-md-0">
                     <form method="get" class="d-flex">
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0">
@@ -26,15 +27,17 @@
                             </span>
                             <input type="text" name="query" class="form-control border-start-0"
                                    placeholder="Search by title, author, or description" value="@searchQuery" />
+                            <input type="hidden" name="sortBy" value="@sortBy" />
                             <button type="submit" class="btn btn-primary">
                                 Search
                             </button>
                         </div>
                     </form>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <form method="get">
                         <input type="hidden" name="query" value="@searchQuery" />
+                        <input type="hidden" name="sortBy" value="@sortBy" />
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0">
                                 <i class="fas fa-filter text-muted"></i>
@@ -53,6 +56,26 @@
                                     }
                                 }
                             </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-3">
+                    <form method="get">
+                        <input type="hidden" name="query" value="@searchQuery" />
+                        <input type="hidden" name="categoryId" value="@currentCategory" />
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="fas fa-sort text-muted"></i>
+                            </span>
+                            @{
+                                var sortOptions = new List<SelectListItem>
+                            {
+                            new SelectListItem { Value = "title", Text = "Sort by Title", Selected = (sortBy == "title" || string.IsNullOrEmpty(sortBy)) },
+                            new SelectListItem { Value = "author", Text = "Sort by Author", Selected = (sortBy == "author") },
+                            new SelectListItem { Value = "rating", Text = "Sort by Rating", Selected = (sortBy == "rating") }
+                            };
+                            }
+                            @Html.DropDownList("sortBy", sortOptions, new { @class = "form-select border-start-0", onchange = "this.form.submit()" })
                         </div>
                     </form>
                 </div>
@@ -90,18 +113,18 @@
                     <button type="button" class="btn btn-outline-secondary btn-sm" id="grid-view-btn" title="Grid View">
                         <i class="fas fa-th-large"></i>
                     </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="list-view-btn" title="List View">
+                    <button type="button" class="btn btn-outline-secondary btn-sm active" id="list-view-btn" title="List View">
                         <i class="fas fa-list"></i>
                     </button>
                 </div>
-                <a href="@Url.Action("Search")" class="btn btn-outline-secondary btn-sm ms-2 @(string.IsNullOrEmpty(searchQuery) && !currentCategory.HasValue ? "d-none" : "")">
+                <a href="@Url.Action("Search")" class="btn btn-outline-secondary btn-sm ms-2 @(string.IsNullOrEmpty(searchQuery) && !currentCategory.HasValue && sortBy == "title" ? "d-none" : "")">
                     <i class="fas fa-times me-1"></i> Clear Filters
                 </a>
             </div>
         </div>
 
-        <!-- Book Grid View (default) -->
-        <div id="grid-view" class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3">
+        <!-- Book Grid View (hidden by default) -->
+        <div id="grid-view" class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3 d-none">
             @foreach (var book in Model)
             {
                 <div class="col">
@@ -145,8 +168,8 @@
             }
         </div>
 
-        <!-- Book List View (hidden by default) -->
-        <div id="list-view" class="d-none">
+        <!-- Book List View (shown by default) -->
+        <div id="list-view">
             <div class="list-group">
                 @foreach (var book in Model)
                 {
@@ -206,14 +229,15 @@
 
             // Load view preference from localStorage
             const savedView = localStorage.getItem('book-view-mode');
-            if (savedView === 'list') {
-                gridView.classList.add('d-none');
-                listView.classList.remove('d-none');
-                listViewBtn.classList.add('active');
-                gridViewBtn.classList.remove('active');
-            } else {
-                // Default to grid view
+            // Default to list view if no preference saved
+            if (savedView === 'grid') {
+                gridView.classList.remove('d-none');
+                listView.classList.add('d-none');
                 gridViewBtn.classList.add('active');
+                listViewBtn.classList.remove('active');
+            } else {
+                // List view is already the default in HTML
+                localStorage.setItem('book-view-mode', 'list');
             }
 
             // Toggle to grid view

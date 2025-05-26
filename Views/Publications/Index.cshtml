@@ -3,185 +3,570 @@
     ViewData["Title"] = "Community";
 }
 
-<div class="container py-4">
+@section Styles {
+    <link rel="stylesheet" href="~/css/community.css" asp-append-version="true" />
+}
+
+<div class="community-page">
     <!-- Success/Error Messages -->
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        <div class="alert alert-success alert-dismissible fade show mb-4 shadow-sm" role="alert">
             <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-users text-primary me-2"></i>Book Community</h1>
-
-        @if (User.Identity.IsAuthenticated)
-        {
-            <a asp-action="Create" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i> Create Post
-            </a>
-        }
-    </div>
-
-    <div class="row">
-        <div class="col-md-8">
-            @if (!Model.Any())
-            {
-                <div class="card shadow-sm">
-                    <div class="card-body text-center py-5">
-                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-                        <h3 class="h4 text-muted">No community posts yet</h3>
-                        <p class="mb-4">Be the first to share something with the community!</p>
-
-                        @if (User.Identity.IsAuthenticated)
-                        {
-                            <a asp-action="Create" class="btn btn-primary">
-                                <i class="fas fa-plus me-2"></i> Create First Post
-                            </a>
-                        }
-                        else
-                        {
-                            <a asp-controller="Auth" asp-action="Login" class="btn btn-primary">
-                                <i class="fas fa-sign-in-alt me-2"></i> Login to Post
-                            </a>
-                        }
+    <!-- Header Section -->
+    <div class="community-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="header-content">
+                        <h1 class="community-title">
+                            <i class="fas fa-users gradient-icon me-3"></i>
+                            Book Community
+                        </h1>
+                        <p class="community-subtitle">Connect, share, and discover your next favorite read with fellow book lovers</p>
                     </div>
                 </div>
-            }
-            else
-            {
-                @foreach (var publication in Model)
-                {
-                    <div class="card mb-4 shadow-sm">
-                        <div class="card-header d-flex justify-content-between align-items-center bg-white border-bottom py-3">
-                            <div class="d-flex align-items-center">
-                                @if (!string.IsNullOrEmpty(publication.User.ProfilePicture))
-                                {
-                                    <img src="@publication.User.ProfilePicture" class="rounded-circle me-2" width="40" height="40" alt="@publication.User.Name" style="object-fit: cover;" />
-                                }
-                                else
-                                {
-                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                                        <i class="fas fa-user"></i>
+                <div class="col-md-4 text-md-end">
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <a asp-action="Create" class="btn btn-gradient btn-lg">
+                            <i class="fas fa-plus me-2"></i> Create Post
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Auth" asp-action="Login" class="btn btn-gradient btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i> Join Community
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container py-4">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Search and Filter Bar -->
+                <div class="filter-section mb-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="search-wrapper">
+                                        <input type="text" id="searchPosts" class="form-control search-input" placeholder="Search posts..." />
+                                        <i class="fas fa-search search-icon"></i>
                                     </div>
-                                }
-                                <div>
-                                    <div class="fw-bold">@publication.User.Name</div>
-                                    <small class="text-muted">@publication.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select sort-select" id="sortPosts">
+                                        <option value="recent">Recent Posts</option>
+                                        <option value="popular">Most Popular</option>
+                                        <option value="liked">Most Liked</option>
+                                        <option value="commented">Most Commented</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="view-toggle">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm active" id="card-view">
+                                                <i class="fas fa-th-large"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="list-view">
+                                                <i class="fas fa-list"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="card-body">
-                            <h5 class="card-title mb-2">
-                                <a asp-action="Details" asp-route-id="@publication.IdPublication" class="text-decoration-none text-dark">
-                                    @publication.Title
-                                </a>
-                            </h5>
-                            <p class="card-text">
-                                @(publication.Content.Length > 200
-                                    ? publication.Content.Substring(0, 200) + "..."
-                                    : publication.Content)
-                            </p>
+                <!-- Posts Container -->
+                <div id="posts-container">
+                    @if (!Model.Any())
+                    {
+                        <div class="empty-state">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center py-5">
+                                    <div class="empty-icon">
+                                        <i class="fas fa-comments"></i>
+                                    </div>
+                                    <h3 class="empty-title">No community posts yet</h3>
+                                    <p class="empty-subtitle">Be the first to share something with the community!</p>
 
-                            @if (!string.IsNullOrEmpty(publication.PubImageUrl))
-                            {
-                                <div class="text-center my-3">
-                                    <img src="@publication.PubImageUrl" class="img-fluid rounded" style="max-height: 300px;" alt="Publication image" />
-                                </div>
-                            }
-                        </div>
-
-                        <div class="card-footer bg-white border-top">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex">
                                     @if (User.Identity.IsAuthenticated)
                                     {
-                                        <form asp-action="LikePublication" method="post" class="me-3">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@publication.IdPublication" />
-                                            <button type="submit" class="btn btn-sm @(ViewData[$"UserLiked_{publication.IdPublication}"] != null && (bool)ViewData[$"UserLiked_{publication.IdPublication}"] ? "btn-primary" : "btn-outline-primary")">
-                                                <i class="@(ViewData[$"UserLiked_{publication.IdPublication}"] != null && (bool)ViewData[$"UserLiked_{publication.IdPublication}"] ? "fas" : "far") fa-heart"></i>
-                                                @publication.Likes.Count
-                                            </button>
-                                        </form>
+                                        <a asp-action="Create" class="btn btn-gradient btn-lg">
+                                            <i class="fas fa-plus me-2"></i> Create First Post
+                                        </a>
                                     }
                                     else
                                     {
-                                        <button class="btn btn-sm btn-outline-primary me-3" disabled>
-                                            <i class="far fa-heart"></i> @publication.Likes.Count
-                                        </button>
+                                        <a asp-controller="Auth" asp-action="Login" class="btn btn-gradient btn-lg">
+                                            <i class="fas fa-sign-in-alt me-2"></i> Login to Post
+                                        </a>
                                     }
-
-                                    <a asp-action="Details" asp-route-id="@publication.IdPublication" class="btn btn-sm btn-outline-secondary">
-                                        <i class="far fa-comment"></i>
-                                        @ViewData[$"CommentsCount_{publication.IdPublication}"]
-                                    </a>
                                 </div>
-
-                                <a asp-action="Details" asp-route-id="@publication.IdPublication" class="btn btn-sm btn-link">
-                                    Read More <i class="fas fa-arrow-right ms-1"></i>
-                                </a>
                             </div>
                         </div>
-                    </div>
-                }
-            }
-        </div>
+                    }
+                    else
+                    {
+                        <div class="posts-grid" id="card-posts">
+                            @foreach (var publication in Model)
+                            {
+                                <article class="post-card"
+                                         data-title="@publication.Title.ToLower()"
+                                         data-content="@publication.Content.ToLower()"
+                                         data-author="@publication.User.Name.ToLower()"
+                                         data-likes="@publication.Likes.Count"
+                                         data-comments="@ViewData[$"CommentsCount_{publication.IdPublication}"]"
+                                         data-date="@publication.CreatedAt.Ticks">
+                                    <div class="card border-0 shadow-sm h-100 post-item">
+                                        <!-- Post Header -->
+                                        <div class="post-header">
+                                            <div class="author-info">
+                                                <div class="author-avatar">
+                                                    @if (!string.IsNullOrEmpty(publication.User.ProfilePicture))
+                                                    {
+                                                        <img src="@publication.User.ProfilePicture" alt="@publication.User.Name" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="avatar-placeholder">
+                                                            <span>@publication.User.Name.Substring(0, 1).ToUpper()</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div class="author-details">
+                                                    <h6 class="author-name">@publication.User.Name</h6>
+                                                    <span class="post-date">@publication.CreatedAt.ToString("MMM dd, yyyy")</span>
+                                                </div>
+                                            </div>                                       
+                                        </div>
 
-        <div class="col-md-4">
-            <!-- Community Guidelines Card -->
-            <div class="card mb-4 shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Community Guidelines</h5>
-                </div>
-                <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex">
-                            <i class="fas fa-check-circle text-success me-2 mt-1"></i>
-                            <span>Be respectful to other members</span>
-                        </li>
-                        <li class="list-group-item d-flex">
-                            <i class="fas fa-check-circle text-success me-2 mt-1"></i>
-                            <span>Keep discussions book-related</span>
-                        </li>
-                        <li class="list-group-item d-flex">
-                            <i class="fas fa-check-circle text-success me-2 mt-1"></i>
-                            <span>No spam or self-promotion</span>
-                        </li>
-                        <li class="list-group-item d-flex">
-                            <i class="fas fa-check-circle text-success me-2 mt-1"></i>
-                            <span>No offensive or inappropriate content</span>
-                        </li>
-                        <li class="list-group-item d-flex">
-                            <i class="fas fa-check-circle text-success me-2 mt-1"></i>
-                            <span>Share your literary journey and enjoy!</span>
-                        </li>
-                    </ul>
+                                        <!-- Post Content -->
+                                        <div class="card-body">
+                                            <h5 class="post-title">
+                                                <a asp-action="Details" asp-route-id="@publication.IdPublication" class="title-link">
+                                                    @publication.Title
+                                                </a>
+                                            </h5>
+
+                                            <div class="post-content" id="content-@publication.IdPublication">
+                                                @if (publication.Content.Length > 200)
+                                                {
+                                                    <p class="content-preview">
+                                                        @publication.Content.Substring(0, 200)...
+                                                        <button class="btn btn-link p-0 read-more-btn" onclick="toggleContent('@publication.IdPublication')">
+                                                            <small>Read more</small>
+                                                        </button>
+                                                    </p>
+                                                    <p class="content-full d-none">
+                                                        @publication.Content
+                                                        <button class="btn btn-link p-0 read-less-btn" onclick="toggleContent('@publication.IdPublication')">
+                                                            <small>Read less</small>
+                                                        </button>
+                                                    </p>
+                                                }
+                                                else
+                                                {
+                                                    <p>@publication.Content</p>
+                                                }
+                                            </div>
+
+                                            @if (!string.IsNullOrEmpty(publication.PubImageUrl))
+                                            {
+                                                <div class="post-image">
+                                                    <img src="@publication.PubImageUrl" alt="Publication image" class="img-fluid rounded" onclick="openImageModal('@publication.PubImageUrl')" />
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <!-- Post Footer -->
+                                        <div class="post-footer">
+                                            <div class="engagement-stats">
+                                                <span class="stat-item">
+                                                    <i class="fas fa-heart text-danger"></i>
+                                                    <span>@publication.Likes.Count</span>
+                                                </span>
+                                                <span class="stat-item">
+                                                    <i class="fas fa-comment text-primary"></i>
+                                                    <span>@ViewData[$"CommentsCount_{publication.IdPublication}"]</span>
+                                                </span>
+                                            </div>
+
+                                            <div class="action-buttons">
+                                                @if (User.Identity.IsAuthenticated)
+                                                {
+                                                    <form asp-action="LikePublication" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@publication.IdPublication" />
+                                                        <button type="submit" class="btn btn-action @(ViewData[$"UserLiked_{publication.IdPublication}"] != null && (bool)ViewData[$"UserLiked_{publication.IdPublication}"] ? "liked" : "")">
+                                                            <i class="fas fa-heart"></i>
+                                                            <span>Like</span>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-action" disabled>
+                                                        <i class="far fa-heart"></i>
+                                                        <span>Like</span>
+                                                    </button>
+                                                }
+
+                                                <a asp-action="Details" asp-route-id="@publication.IdPublication" class="btn btn-action">
+                                                    <i class="fas fa-comment"></i>
+                                                    <span>Comment</span>
+                                                </a>
+
+                                                <button class="btn btn-action" onclick="sharePost('@publication.IdPublication')">
+                                                    <i class="fas fa-share"></i>
+                                                    <span>Share</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+
+                        <!-- List View (Initially Hidden) -->
+                        <div class="posts-list d-none" id="list-posts">
+                            @foreach (var publication in Model)
+                            {
+                                <div class="post-list-item mb-3"
+                                     data-title="@publication.Title.ToLower()"
+                                     data-content="@publication.Content.ToLower()"
+                                     data-author="@publication.User.Name.ToLower()"
+                                     data-likes="@publication.Likes.Count"
+                                     data-comments="@ViewData[$"CommentsCount_{publication.IdPublication}"]"
+                                     data-date="@publication.CreatedAt.Ticks">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-2">
+                                                    <div class="author-avatar-large">
+                                                        @if (!string.IsNullOrEmpty(publication.User.ProfilePicture))
+                                                        {
+                                                            <img src="@publication.User.ProfilePicture" alt="@publication.User.Name" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="avatar-placeholder-large">
+                                                                <span>@publication.User.Name.Substring(0, 1).ToUpper()</span>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-10">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <div>
+                                                            <h5 class="mb-1">
+                                                                <a asp-action="Details" asp-route-id="@publication.IdPublication" class="title-link">
+                                                                    @publication.Title
+                                                                </a>
+                                                            </h5>
+                                                            <small class="text-muted">by @publication.User.Name • @publication.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                                        </div>
+                                                        <div class="engagement-stats-inline">
+                                                            <span class="badge bg-light text-dark me-1">
+                                                                <i class="fas fa-heart text-danger"></i> @publication.Likes.Count
+                                                            </span>
+                                                            <span class="badge bg-light text-dark">
+                                                                <i class="fas fa-comment text-primary"></i> @ViewData[$"CommentsCount_{publication.IdPublication}"]
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <p class="mb-2">
+                                                        @(publication.Content.Length > 150
+                                                            ? publication.Content.Substring(0, 150) + "..."
+                                                            : publication.Content)
+                                                    </p>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div class="action-buttons-inline">
+                                                            @if (User.Identity.IsAuthenticated)
+                                                            {
+                                                                <form asp-action="LikePublication" method="post" class="d-inline me-2">
+                                                                    @Html.AntiForgeryToken()
+                                                                    <input type="hidden" name="id" value="@publication.IdPublication" />
+                                                                    <button type="submit" class="btn btn-sm btn-outline-danger @(ViewData[$"UserLiked_{publication.IdPublication}"] != null && (bool)ViewData[$"UserLiked_{publication.IdPublication}"] ? "active" : "")">
+                                                                        <i class="fas fa-heart"></i>
+                                                                    </button>
+                                                                </form>
+                                                            }
+                                                            <a asp-action="Details" asp-route-id="@publication.IdPublication" class="btn btn-sm btn-outline-primary me-2">
+                                                                <i class="fas fa-comment"></i>
+                                                            </a>
+                                                            <button class="btn btn-sm btn-outline-secondary" onclick="sharePost('@publication.IdPublication')">
+                                                                <i class="fas fa-share"></i>
+                                                            </button>
+                                                        </div>
+                                                        <a asp-action="Details" asp-route-id="@publication.IdPublication" class="btn btn-sm btn-gradient">
+                                                            Read Full Post
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
 
-            <!-- Active Users or Popular Tags Card -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Popular Tags</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex flex-wrap gap-2">
-                        <a href="#" class="badge bg-primary text-decoration-none">Fiction</a>
-                        <a href="#" class="badge bg-primary text-decoration-none">Fantasy</a>
-                        <a href="#" class="badge bg-primary text-decoration-none">Mystery</a>
-                        <a href="#" class="badge bg-primary text-decoration-none">Romance</a>
-                        <a href="#" class="badge bg-primary text-decoration-none">Sci-Fi</a>
-                        <a href="#" class="badge bg-primary text-decoration-none">Biography</a>
-                        <a href="#" class="badge bg-primary text-decoration-none">History</a>
-                        <a href="#" class="badge bg-primary text-decoration-none">Adventure</a>
-                        <a href="#" class="badge bg-primary text-decoration-none">Thriller</a>
-                        <a href="#" class="badge bg-primary text-decoration-none">Horror</a>
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Community Stats -->
+                <div class="card border-0 shadow-sm mb-4 stats-card">
+                    <div class="card-header bg-gradient-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Community Stats</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-row">
+                            <div class="stat-item-sidebar">
+                                <div class="stat-number">@Model.Count()</div>
+                                <div class="stat-label">Total Posts</div>
+                            </div>
+                            <div class="stat-item-sidebar">
+                                <div class="stat-number">@Model.Sum(p => p.Likes.Count)</div>
+                                <div class="stat-label">Total Likes</div>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-item-sidebar">
+                                <div class="stat-number">@Model.Select(p => p.User.IdUser).Distinct().Count()</div>
+                                <div class="stat-label">Active Members</div>
+                            </div>
+                            <div class="stat-item-sidebar">
+                                <div class="stat-number">@(Model.Count() > 0 ? Model.Average(p => p.Likes.Count).ToString("F1") : "0")</div>
+                                <div class="stat-label">Avg. Likes</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Community Guidelines -->
+                <div class="card border-0 shadow-sm mb-4 guidelines-card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Community Guidelines</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="guideline-item">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <span>Be respectful to other members</span>
+                        </div>
+                        <div class="guideline-item">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <span>Keep discussions book-related</span>
+                        </div>
+                        <div class="guideline-item">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <span>No spam or self-promotion</span>
+                        </div>
+                        <div class="guideline-item">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <span>Share constructive feedback</span>
+                        </div>
+                        <div class="guideline-item">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <span>Enjoy your literary journey!</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Contributors -->
+                @if (Model.Any())
+                {
+                    <div class="card border-0 shadow-sm contributors-card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-star me-2"></i>Top Contributors</h5>
+                        </div>
+                        <div class="card-body">
+                            @{
+                                var topContributors = Model.GroupBy(p => p.User)
+                                .OrderByDescending(g => g.Count())
+                                .Take(5)
+                                .ToList();
+                            }
+                            @foreach (var contributor in topContributors)
+                            {
+                                <div class="contributor-item">
+                                    <div class="contributor-avatar">
+                                        @if (!string.IsNullOrEmpty(contributor.Key.ProfilePicture))
+                                        {
+                                            <img src="@contributor.Key.ProfilePicture" alt="@contributor.Key.Name" />
+                                        }
+                                        else
+                                        {
+                                            <div class="avatar-placeholder-small">
+                                                <span>@contributor.Key.Name.Substring(0, 1).ToUpper()</span>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="contributor-info">
+                                        <div class="contributor-name">@contributor.Key.Name</div>
+                                        <div class="contributor-stats">@contributor.Count() posts</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     </div>
 </div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <img id="modalImage" src="" class="img-fluid w-100" alt="Full size image" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Search functionality
+            const searchInput = document.getElementById('searchPosts');
+            const sortSelect = document.getElementById('sortPosts');
+            const cardViewBtn = document.getElementById('card-view');
+            const listViewBtn = document.getElementById('list-view');
+            const cardPosts = document.getElementById('card-posts');
+            const listPosts = document.getElementById('list-posts');
+
+            // Search posts
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                filterPosts(searchTerm);
+            });
+
+            // Sort posts
+            sortSelect.addEventListener('change', function() {
+                sortPosts(this.value);
+            });
+
+            // View toggle
+            cardViewBtn.addEventListener('click', function() {
+                cardPosts.classList.remove('d-none');
+                listPosts.classList.add('d-none');
+                cardViewBtn.classList.add('active');
+                listViewBtn.classList.remove('active');
+                localStorage.setItem('community-view', 'card');
+            });
+
+            listViewBtn.addEventListener('click', function() {
+                cardPosts.classList.add('d-none');
+                listPosts.classList.remove('d-none');
+                listViewBtn.classList.add('active');
+                cardViewBtn.classList.remove('active');
+                localStorage.setItem('community-view', 'list');
+            });
+
+            // Load saved view preference
+            const savedView = localStorage.getItem('community-view');
+            if (savedView === 'list') {
+                listViewBtn.click();
+            }
+
+            function filterPosts(searchTerm) {
+                const posts = document.querySelectorAll('.post-card, .post-list-item');
+                posts.forEach(post => {
+                    const title = post.getAttribute('data-title') || '';
+                    const content = post.getAttribute('data-content') || '';
+                    const author = post.getAttribute('data-author') || '';
+
+                    const matches = title.includes(searchTerm) ||
+                                  content.includes(searchTerm) ||
+                                  author.includes(searchTerm);
+
+                    post.style.display = matches ? '' : 'none';
+                });
+            }
+
+            function sortPosts(sortBy) {
+                const cardContainer = document.querySelector('.posts-grid');
+                const listContainer = document.querySelector('.posts-list');
+
+                const cardPosts = Array.from(cardContainer.children);
+                const listPosts = Array.from(listContainer.children);
+
+                [cardPosts, listPosts].forEach(posts => {
+                    posts.sort((a, b) => {
+                        switch(sortBy) {
+                            case 'popular':
+                                const aEngagement = parseInt(a.getAttribute('data-likes')) + parseInt(a.getAttribute('data-comments'));
+                                const bEngagement = parseInt(b.getAttribute('data-likes')) + parseInt(b.getAttribute('data-comments'));
+                                return bEngagement - aEngagement;
+                            case 'liked':
+                                return parseInt(b.getAttribute('data-likes')) - parseInt(a.getAttribute('data-likes'));
+                            case 'commented':
+                                return parseInt(b.getAttribute('data-comments')) - parseInt(a.getAttribute('data-comments'));
+                            case 'recent':
+                            default:
+                                return parseInt(b.getAttribute('data-date')) - parseInt(a.getAttribute('data-date'));
+                        }
+                    });
+                });
+
+                // Re-append sorted posts
+                cardPosts.forEach(post => cardContainer.appendChild(post));
+                listPosts.forEach(post => listContainer.appendChild(post));
+            }
+        });
+
+        // Toggle content function
+        function toggleContent(postId) {
+            const contentDiv = document.getElementById(`content-${postId}`);
+            const preview = contentDiv.querySelector('.content-preview');
+            const full = contentDiv.querySelector('.content-full');
+
+            if (preview.classList.contains('d-none')) {
+                preview.classList.remove('d-none');
+                full.classList.add('d-none');
+            } else {
+                preview.classList.add('d-none');
+                full.classList.remove('d-none');
+            }
+        }
+
+        // Open image modal
+        function openImageModal(imageUrl) {
+            document.getElementById('modalImage').src = imageUrl;
+            new bootstrap.Modal(document.getElementById('imageModal')).show();
+        }
+
+        // Share post function
+        function sharePost(postId) {
+            const url = `${window.location.origin}/Publications/Details/${postId}`;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Check out this post!',
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Post URL copied to clipboard!');
+                });
+            }
+        }
+    </script>
+}

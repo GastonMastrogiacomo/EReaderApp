@@ -205,21 +205,50 @@ namespace EReaderApp.Controllers
                         _context.Comments.RemoveRange(comments);
                     }
 
-                    // 3. Find and remove Reviews by this user
+                    // 3. Find and remove ReviewLikes by this user
+                    var reviewLikes = await _context.ReviewLikes.Where(rl => rl.FKIdUser == id).ToListAsync();
+                    if (reviewLikes.Any())
+                    {
+                        _context.ReviewLikes.RemoveRange(reviewLikes);
+                    }
+
+                    // 4. Find and remove Reviews by this user
                     var reviews = await _context.Reviews.Where(r => r.FKIdUser == id).ToListAsync();
                     if (reviews.Any())
                     {
                         _context.Reviews.RemoveRange(reviews);
                     }
 
-                    // 4. Find and handle Publications by this user
+                    // 5. Find and handle Publications by this user
                     var publications = await _context.Publications.Where(p => p.FKIdUser == id).ToListAsync();
                     if (publications.Any())
                     {
+                        foreach (var publication in publications)
+                        {
+                            // Delete all Comments on this publication
+                            var publicationComments = await _context.Comments
+                                .Where(c => c.FKIdPublication == publication.IdPublication)
+                                .ToListAsync();
+                            if (publicationComments.Any())
+                            {
+                                _context.Comments.RemoveRange(publicationComments);
+                            }
+
+                            // Delete all PublicationLikes on this publication
+                            var publicationLikess = await _context.PublicationLikes
+                                .Where(pl => pl.FKIdPublication == publication.IdPublication)
+                                .ToListAsync();
+                            if (publicationLikess.Any())
+                            {
+                                _context.PublicationLikes.RemoveRange(publicationLikess);
+                            }
+                        }
+
+                        // Now we can safely delete the publications
                         _context.Publications.RemoveRange(publications);
                     }
 
-                    // 5. Delete the user's libraries and library books
+                    // 6. Delete the user's libraries and library books
                     var libraries = await _context.Libraries.Where(l => l.FKIdUser == id).ToListAsync();
                     if (libraries.Any())
                     {
@@ -238,7 +267,7 @@ namespace EReaderApp.Controllers
                         _context.Libraries.RemoveRange(libraries);
                     }
 
-                    // 6. Delete user settings
+                    // 7. Delete user settings
                     var readerSettings = await _context.ReaderSettings.Where(rs => rs.UserId == id).ToListAsync();
                     if (readerSettings.Any())
                     {

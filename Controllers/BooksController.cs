@@ -334,7 +334,7 @@ namespace EReaderApp.Controllers
             return Ok(books);
         }
 
-        public async Task<IActionResult> Search(string query, int? categoryId)
+        public async Task<IActionResult> Search(string query, int? categoryId, string sortBy)
         {
             IQueryable<Book> books = _context.Books;
 
@@ -359,17 +359,16 @@ namespace EReaderApp.Controllers
             ViewBag.Categories = await _context.Categories.ToListAsync();
             ViewBag.CurrentCategory = categoryId;
             ViewBag.SearchQuery = query;
+            ViewBag.SortBy = sortBy ?? "title"; // Set default sort
 
             // Execute the query to get the books
             var booksList = await books.ToListAsync();
 
-            // Get review counts and average ratings for each book in a more explicit way
+            // Get review counts and average ratings for each book
             var bookIds = booksList.Select(b => b.IdBook).ToList();
-
-            // Modificación: Consulta más explícita para estadísticas de reseñas
             var reviewStats = new Dictionary<int, ReviewStatistics>();
 
-            // Obtener las estadísticas de reseñas para todos los libros en la lista
+            // Get review statistics for all books in the list
             var reviewData = await _context.Reviews
                 .Where(r => bookIds.Contains(r.FKIdBook))
                 .GroupBy(r => r.FKIdBook)
@@ -380,7 +379,7 @@ namespace EReaderApp.Controllers
                 })
                 .ToListAsync();
 
-            // Convertir a un diccionario con un tipo concreto para mejor manejo en la vista
+            // Convert to dictionary with concrete type for better handling in view
             foreach (var item in reviewData)
             {
                 reviewStats[item.BookId] = new ReviewStatistics
@@ -391,6 +390,24 @@ namespace EReaderApp.Controllers
             }
 
             ViewBag.ReviewStats = reviewStats;
+
+            // Apply sorting based on sortBy parameter
+            switch (sortBy?.ToLower())
+            {
+                case "author":
+                    booksList = booksList.OrderBy(b => b.Author).ThenBy(b => b.Title).ToList();
+                    break;
+                case "rating":
+                    // Sort by average rating (descending), then by title
+                    booksList = booksList.OrderByDescending(b =>
+                        reviewStats.ContainsKey(b.IdBook) ? reviewStats[b.IdBook].AverageRating : 0)
+                        .ThenBy(b => b.Title).ToList();
+                    break;
+                case "title":
+                default:
+                    booksList = booksList.OrderBy(b => b.Title).ToList();
+                    break;
+            }
 
             return View(booksList);
         }
