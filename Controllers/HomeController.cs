@@ -30,14 +30,14 @@ namespace EReaderApp.Controllers
                 })
                 .Where(x => x.BookCount > 0) // Only show categories that have books
                 .OrderByDescending(x => x.BookCount)
-                .Take(8) // Show top 8 categories
+                .Take(5) // Show top 5 categories
                 .Select(x => x.Category)
                 .ToListAsync();
 
             // Get recently added books (last 2 weeks, ordered by ID)
             var recentlyAddedBooks = await _context.Books
                 .OrderByDescending(b => b.IdBook)
-                .Take(8)
+                .Take(6)
                 .ToListAsync();
 
             // Get most popular books based on average review scores
@@ -57,17 +57,17 @@ namespace EReaderApp.Controllers
                                         ReviewCount = reviewCount
                                     };
 
-            var popularBooksWithRatings = await popularBooksQuery.Take(8).ToListAsync();
+            var popularBooksWithRatings = await popularBooksQuery.Take(6).ToListAsync();
             var popularBooks = popularBooksWithRatings.Select(x => x.Book).ToList();
 
             // If we don't have enough books with reviews, supplement with highest scored books
-            if (popularBooks.Count < 8)
+            if (popularBooks.Count < 6)
             {
                 var additionalBooks = await _context.Books
                     .Where(b => !popularBooks.Select(pb => pb.IdBook).Contains(b.IdBook))
                     .Where(b => b.Score.HasValue)
                     .OrderByDescending(b => b.Score)
-                    .Take(8 - popularBooks.Count)
+                    .Take(6 - popularBooks.Count)
                     .ToListAsync();
 
                 popularBooks.AddRange(additionalBooks);

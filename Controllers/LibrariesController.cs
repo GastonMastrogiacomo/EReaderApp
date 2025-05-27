@@ -432,6 +432,30 @@ namespace EReaderApp.Controllers
                 .Select(lb => lb.Book)
                 .ToListAsync();
 
+            var bookIds = books.Select(b => b.IdBook).ToList();
+            var reviewStats = new Dictionary<int, EReaderApp.Controllers.BooksController.ReviewStatistics>();
+
+            var reviewData = await _context.Reviews
+                .Where(r => bookIds.Contains(r.FKIdBook))
+                .GroupBy(r => r.FKIdBook)
+                .Select(g => new {
+                    BookId = g.Key,
+                    Count = g.Count(),
+                    AverageRating = g.Average(r => r.Rating)
+                })
+                .ToListAsync();
+
+            foreach (var item in reviewData)
+            {
+                reviewStats[item.BookId] = new EReaderApp.Controllers.BooksController.ReviewStatistics
+                {
+                    Count = item.Count,
+                    AverageRating = (float)item.AverageRating
+                };
+            }
+
+            ViewBag.ReviewStats = reviewStats;
+
             ViewBag.Library = library;
             return View(books);
         }

@@ -15,7 +15,7 @@ namespace EReaderApp.Models
 
         public string? Description { get; set; } // Optional
         public string? ImageLink { get; set; } // Optional
-        public string? Editorial { get; set; } // Optional
+        public string? ReleaseDate { get; set; } // Optional
         public int? PageCount { get; set; } // Optional
         public double? Score { get; set; } // Optional
         public string? PdfPath { get; set; } // Optional

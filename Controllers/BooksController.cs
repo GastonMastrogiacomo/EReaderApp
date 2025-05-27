@@ -126,6 +126,9 @@ namespace EReaderApp.Controllers
 
                 // Save the relative path to the database (accessible from the browser)
                 book.PdfPath = "/uploads/books-PDF/" + uniqueFileName;
+
+                // Extract page count from PDF using JavaScript will be handled on client-side
+                // The page count will be set via JavaScript before form submission
             }
             else
             {
@@ -145,7 +148,7 @@ namespace EReaderApp.Controllers
             // Initialize any null values to avoid database issues
             book.Description = book.Description ?? string.Empty;
             book.ImageLink = book.ImageLink ?? string.Empty;
-            book.Editorial = book.Editorial ?? string.Empty;
+            book.ReleaseDate = book.ReleaseDate ?? string.Empty;
             book.AuthorBio = book.AuthorBio ?? string.Empty;
 
             // Ensure numeric fields have valid values
@@ -159,10 +162,16 @@ namespace EReaderApp.Controllers
                 book.Score = 0;
             }
 
-            // Try to fetch author details from Google Books API if not provided
-            if (string.IsNullOrWhiteSpace(book.AuthorBio))
+            // Try to fetch book details from Open Library if not provided
+            if (string.IsNullOrWhiteSpace(book.Description) || string.IsNullOrWhiteSpace(book.AuthorBio))
             {
-                await TryFetchAuthorDetailsFromGoogleBooks(book);
+                await TryFetchBookDetailsFromOpenLibrary(book);
+            }
+
+            // Try to fetch cover image from Google Books if not provided
+            if (string.IsNullOrWhiteSpace(book.ImageLink))
+            {
+                await TryFetchCoverImageFromGoogleBooks(book);
             }
 
             // Add the book to the database
@@ -180,6 +189,155 @@ namespace EReaderApp.Controllers
 
             TempData["SuccessMessage"] = "Book was successfully uploaded!";
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task TryFetchBookDetailsFromOpenLibrary(Book book)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(book.Title)) return;
+
+                using (var httpClient = new HttpClient())
+                {
+                    // Search for the book in Open Library
+                    string searchQuery = Uri.EscapeDataString($"{book.Title} {book.Author}");
+                    string searchUrl = $"https://openlibrary.org/search.json?q={searchQuery}&limit=5";
+
+                    var response = await httpClient.GetAsync(searchUrl);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var jsonString = await response.Content.ReadAsStringAsync();
+                        using var document = JsonDocument.Parse(jsonString);
+
+                        var root = document.RootElement;
+                        if (root.TryGetProperty("docs", out var docs) && docs.GetArrayLength() > 0)
+                        {
+                            foreach (var doc in docs.EnumerateArray())
+                            {
+                                // Get first published date
+                                if (string.IsNullOrEmpty(book.ReleaseDate) && doc.TryGetProperty("first_publish_year", out var firstYear))
+                                {
+                                    book.ReleaseDate = firstYear.GetInt32().ToString();
+                                }
+
+                                // Get work key for detailed information
+                                if (doc.TryGetProperty("key", out var workKey))
+                                {
+                                    string workUrl = $"https://openlibrary.org{workKey.GetString()}.json";
+                                    var workResponse = await httpClient.GetAsync(workUrl);
+
+                                    if (workResponse.IsSuccessStatusCode)
+                                    {
+                                        var workJsonString = await workResponse.Content.ReadAsStringAsync();
+                                        using var workDocument = JsonDocument.Parse(workJsonString);
+                                        var workRoot = workDocument.RootElement;
+
+                                        // Get description
+                                        if (string.IsNullOrEmpty(book.Description) && workRoot.TryGetProperty("description", out var description))
+                                        {
+                                            if (description.ValueKind == JsonValueKind.String)
+                                            {
+                                                book.Description = description.GetString();
+                                            }
+                                            else if (description.ValueKind == JsonValueKind.Object && description.TryGetProperty("value", out var descValue))
+                                            {
+                                                book.Description = descValue.GetString();
+                                            }
+                                        }
+
+                                        // Get author bio
+                                        if (string.IsNullOrEmpty(book.AuthorBio) && workRoot.TryGetProperty("authors", out var authors) && authors.GetArrayLength() > 0)
+                                        {
+                                            var firstAuthor = authors[0];
+                                            if (firstAuthor.TryGetProperty("author", out var authorRef) && authorRef.TryGetProperty("key", out var authorKey))
+                                            {
+                                                string authorUrl = $"https://openlibrary.org{authorKey.GetString()}.json";
+                                                var authorResponse = await httpClient.GetAsync(authorUrl);
+
+                                                if (authorResponse.IsSuccessStatusCode)
+                                                {
+                                                    var authorJsonString = await authorResponse.Content.ReadAsStringAsync();
+                                                    using var authorDocument = JsonDocument.Parse(authorJsonString);
+                                                    var authorRoot = authorDocument.RootElement;
+
+                                                    if (authorRoot.TryGetProperty("bio", out var bio))
+                                                    {
+                                                        if (bio.ValueKind == JsonValueKind.String)
+                                                        {
+                                                            book.AuthorBio = bio.GetString();
+                                                        }
+                                                        else if (bio.ValueKind == JsonValueKind.Object && bio.TryGetProperty("value", out var bioValue))
+                                                        {
+                                                            book.AuthorBio = bioValue.GetString();
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Break after first successful match
+                                if (!string.IsNullOrEmpty(book.Description) && !string.IsNullOrEmpty(book.AuthorBio) && !string.IsNullOrEmpty(book.ReleaseDate))
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching book details from Open Library: {ex.Message}");
+            }
+        }
+
+        private async Task TryFetchCoverImageFromGoogleBooks(Book book)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(book.Title)) return;
+
+                using (var httpClient = new HttpClient())
+                {
+                    string query = $"intitle:\"{Uri.EscapeDataString(book.Title)}\"";
+                    if (!string.IsNullOrWhiteSpace(book.Author))
+                    {
+                        query += $"+inauthor:\"{Uri.EscapeDataString(book.Author)}\"";
+                    }
+
+                    string apiUrl = $"https://www.googleapis.com/books/v1/volumes?q={query}&maxResults=1";
+
+                    var response = await httpClient.GetAsync(apiUrl);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var jsonString = await response.Content.ReadAsStringAsync();
+                        using var document = JsonDocument.Parse(jsonString);
+
+                        var root = document.RootElement;
+                        if (root.TryGetProperty("items", out var items) && items.GetArrayLength() > 0)
+                        {
+                            var firstItem = items[0];
+                            if (firstItem.TryGetProperty("volumeInfo", out var volumeInfo) &&
+                                volumeInfo.TryGetProperty("imageLinks", out var imageLinks))
+                            {
+                                // Use the highest quality image available
+                                book.ImageLink = imageLinks.TryGetProperty("extraLarge", out var extraLarge) ? extraLarge.GetString() :
+                                                imageLinks.TryGetProperty("large", out var large) ? large.GetString() :
+                                                imageLinks.TryGetProperty("medium", out var medium) ? medium.GetString() :
+                                                imageLinks.TryGetProperty("small", out var small) ? small.GetString() :
+                                                imageLinks.TryGetProperty("thumbnail", out var thumbnail) ? thumbnail.GetString() :
+                                                imageLinks.TryGetProperty("smallThumbnail", out var smallThumbnail) ? smallThumbnail.GetString() : null;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching cover image from Google Books: {ex.Message}");
+            }
         }
 
         // GET: Books/Edit/5
@@ -214,7 +372,7 @@ namespace EReaderApp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "RequireAdminRole")]
-        public async Task<IActionResult> Edit(int id, [Bind("IdBook,Title,Author,Description,ImageLink,Editorial,PageCount,Score,PdfPath,AuthorBio")] Book book, int categoryId)
+        public async Task<IActionResult> Edit(int id, [Bind("IdBook,Title,Author,Description,ImageLink,ReleaseDate,PageCount,Score,PdfPath,AuthorBio")] Book book, int categoryId)
         {
             if (id != book.IdBook)
             {
@@ -334,8 +492,10 @@ namespace EReaderApp.Controllers
             return Ok(books);
         }
 
-        public async Task<IActionResult> Search(string query, int? categoryId, string sortBy)
+        public async Task<IActionResult> Search(string query, int? categoryId, string sortBy, int page = 1)
         {
+            const int pageSize = 6; // 6 books per page
+
             IQueryable<Book> books = _context.Books;
 
             // Apply search query if provided
@@ -359,16 +519,43 @@ namespace EReaderApp.Controllers
             ViewBag.Categories = await _context.Categories.ToListAsync();
             ViewBag.CurrentCategory = categoryId;
             ViewBag.SearchQuery = query;
-            ViewBag.SortBy = sortBy ?? "title"; // Set default sort
+            ViewBag.SortBy = sortBy ?? "title";
 
-            // Execute the query to get the books
-            var booksList = await books.ToListAsync();
+            // Get total count before pagination
+            var totalBooks = await books.CountAsync();
 
-            // Get review counts and average ratings for each book
-            var bookIds = booksList.Select(b => b.IdBook).ToList();
+            // Apply sorting
+            switch (sortBy?.ToLower())
+            {
+                case "author":
+                    books = books.OrderBy(b => b.Author).ThenBy(b => b.Title);
+                    break;
+                case "rating":
+                    // For rating sort, we need to join with reviews and calculate average
+                    books = from book in books
+                            let avgRating = _context.Reviews
+                                .Where(r => r.FKIdBook == book.IdBook)
+                                .Select(r => (double?)r.Rating)
+                                .Average()
+                            orderby avgRating descending, book.Title
+                            select book;
+                    break;
+                case "title":
+                default:
+                    books = books.OrderBy(b => b.Title);
+                    break;
+            }
+
+            // Apply pagination
+            var paginatedBooks = await books
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Get review statistics for the current page of books
+            var bookIds = paginatedBooks.Select(b => b.IdBook).ToList();
             var reviewStats = new Dictionary<int, ReviewStatistics>();
 
-            // Get review statistics for all books in the list
             var reviewData = await _context.Reviews
                 .Where(r => bookIds.Contains(r.FKIdBook))
                 .GroupBy(r => r.FKIdBook)
@@ -379,7 +566,6 @@ namespace EReaderApp.Controllers
                 })
                 .ToListAsync();
 
-            // Convert to dictionary with concrete type for better handling in view
             foreach (var item in reviewData)
             {
                 reviewStats[item.BookId] = new ReviewStatistics
@@ -391,25 +577,15 @@ namespace EReaderApp.Controllers
 
             ViewBag.ReviewStats = reviewStats;
 
-            // Apply sorting based on sortBy parameter
-            switch (sortBy?.ToLower())
-            {
-                case "author":
-                    booksList = booksList.OrderBy(b => b.Author).ThenBy(b => b.Title).ToList();
-                    break;
-                case "rating":
-                    // Sort by average rating (descending), then by title
-                    booksList = booksList.OrderByDescending(b =>
-                        reviewStats.ContainsKey(b.IdBook) ? reviewStats[b.IdBook].AverageRating : 0)
-                        .ThenBy(b => b.Title).ToList();
-                    break;
-                case "title":
-                default:
-                    booksList = booksList.OrderBy(b => b.Title).ToList();
-                    break;
-            }
+            // Pagination data
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalBooks / pageSize);
+            ViewBag.TotalBooks = totalBooks;
+            ViewBag.PageSize = pageSize;
+            ViewBag.HasPreviousPage = page > 1;
+            ViewBag.HasNextPage = page < ViewBag.TotalPages;
 
-            return View(booksList);
+            return View(paginatedBooks);
         }
 
         // Clase auxiliar para mantener las estadísticas de reseñas de forma tipada

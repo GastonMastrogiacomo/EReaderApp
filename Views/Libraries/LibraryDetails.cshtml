@@ -85,10 +85,16 @@
         <div id="grid-view" class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
             @foreach (var book in Model)
             {
+                
+                var reviewStats = ViewBag.ReviewStats as Dictionary<int, EReaderApp.Controllers.BooksController.ReviewStatistics>;
+                var hasReviewStats = reviewStats != null && reviewStats.ContainsKey(book.IdBook);
+                var reviewCount = hasReviewStats ? reviewStats[book.IdBook].Count : 0;
+                var averageRating = hasReviewStats ? reviewStats[book.IdBook].AverageRating : 0;
+                
                 <div class="col book-item"
                      data-title="@book.Title.ToLower()"
                      data-author="@book.Author.ToLower()"
-                     data-rating="@book.Score">
+                     data-rating="@(hasReviewStats ? averageRating.ToString("F1") : "0")">
                     <div class="card h-100 shadow-sm border-0 hover-elevate book-card overflow-hidden">
                         <div class="position-relative">
                             <a href="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })" class="text-decoration-none">
@@ -107,10 +113,10 @@
                                 </div>
                             </a>
 
-                            @if (book.Score > 0)
+                            @if (hasReviewStats && reviewCount > 0)
                             {
                                 <div class="book-score">
-                                    <i class="fas fa-star me-1"></i> @string.Format("{0:0.0}", book.Score)
+                                    <i class="fas fa-star me-1"></i> @averageRating.ToString("F1")
                                 </div>
                             }
                         </div>
@@ -158,10 +164,16 @@
             <div class="list-group">
                 @foreach (var book in Model)
                 {
+                    
+                    var reviewStats = ViewBag.ReviewStats as Dictionary<int, EReaderApp.Controllers.BooksController.ReviewStatistics>;
+                    var hasReviewStats = reviewStats != null && reviewStats.ContainsKey(book.IdBook);
+                    var reviewCount = hasReviewStats ? reviewStats[book.IdBook].Count : 0;
+                    var averageRating = hasReviewStats ? reviewStats[book.IdBook].AverageRating : 0;
+                    
                     <div class="list-group-item list-group-item-action p-3 border-0 shadow-sm mb-3 rounded hover-elevate book-item"
                          data-title="@book.Title.ToLower()"
                          data-author="@book.Author.ToLower()"
-                         data-rating="@book.Score">
+                         data-rating="@(hasReviewStats ? averageRating.ToString("F1") : "0")">
                         <div class="row align-items-center">
                             <div class="col-md-1 col-3">
                                 <div class="position-relative list-book-cover">
@@ -181,10 +193,10 @@
                                 <h5 class="mb-1 fw-bold">@book.Title</h5>
                                 <p class="mb-1 text-muted">@book.Author</p>
                                 <div class="d-flex align-items-center">
-                                    @if (book.Score > 0)
+                                    @if (hasReviewStats && reviewCount > 0)
                                     {
                                         <span class="badge bg-warning text-dark me-2">
-                                            <i class="fas fa-star me-1"></i> @string.Format("{0:0.0}", book.Score)
+                                            <i class="fas fa-star me-1"></i> @averageRating.ToString("F1") (@reviewCount)
                                         </span>
                                     }
 
@@ -434,10 +446,13 @@
                     }
                 });
 
+                visibleCount = visibleCount / 2;
+
+
                 // Update the count display and toggle "no results" message
                 resultsCount.textContent = `Showing ${visibleCount} book${visibleCount !== 1 ? 's' : ''} in this library`;
 
-                if (visibleCount === 0) {
+                if (visibleCount === 0 && searchTerm) {
                     noResults.classList.remove('d-none');
                 } else {
                     noResults.classList.add('d-none');

@@ -83,9 +83,9 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label asp-for="Editorial" class="form-label">Publisher</label>
-                        <input asp-for="Editorial" class="form-control" />
-                        <span asp-validation-for="Editorial" class="text-danger"></span>
+                        <label asp-for="ReleaseDate" class="form-label">Release Date</label>
+                        <input asp-for="ReleaseDate" class="form-control" placeholder="e.g., 1995 or 1995-06-15" />
+                        <span asp-validation-for="ReleaseDate" class="text-danger"></span>
                     </div>
 
                     <div class="col-md-6">
@@ -99,7 +99,8 @@
 
                     <div class="col-md-6">
                         <label asp-for="PageCount" class="form-label">Page Count</label>
-                        <input asp-for="PageCount" class="form-control" type="number" min="1" />
+                        <input asp-for="PageCount" class="form-control" type="number" min="1" readonly />
+                        <div class="form-text">Will be automatically detected from uploaded PDF</div>
                         <span asp-validation-for="PageCount" class="text-danger"></span>
                     </div>
 
@@ -144,7 +145,7 @@
                 <div class="mb-3">
                     <label for="pdfFile" class="form-label">Upload PDF <span class="text-danger">*</span></label>
                     <input type="file" name="file" id="pdfFile" class="form-control" accept="application/pdf" required />
-                    <div class="form-text">Please upload the book's PDF file (required).</div>
+                    <div class="form-text">Please upload the book's PDF file. Page count will be automatically detected.</div>
                 </div>
             </div>
         </div>
@@ -165,8 +166,15 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
+    <!-- Load PDF.js for page count detection -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // Set PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf.worker.min.js';
+    </script>
+
+    <script>
+               document.addEventListener('DOMContentLoaded', function() {
             // Elements
             const searchBtn = document.getElementById('search-book-btn');
             const titleSearchInput = document.getElementById('book-title-search');
@@ -174,18 +182,18 @@
             const titleInput = document.querySelector('input[name="Title"]');
             const authorInput = document.querySelector('input[name="Author"]');
             const descriptionInput = document.querySelector('textarea[name="Description"]');
-            const editorialInput = document.querySelector('input[name="Editorial"]');
+            const releaseDateInput = document.querySelector('input[name="ReleaseDate"]');
             const imageLinkInput = document.querySelector('input[name="ImageLink"]');
             const pageCountInput = document.querySelector('input[name="PageCount"]');
+            const authorBioInput = document.querySelector('textarea[name="AuthorBio"]');
+            const pdfFileInput = document.getElementById('pdfFile');
+
             const searchStatus = document.getElementById('search-status');
             const searchResults = document.getElementById('search-results');
             const searchError = document.getElementById('search-error');
             const errorMessage = document.getElementById('error-message');
             const coverPreview = document.getElementById('cover-preview');
             const coverImage = coverPreview.querySelector('img');
-
-            // New author fields
-            const authorBioInput = document.querySelector('textarea[name="AuthorBio"]');
 
             // Connect search fields with form fields for initial sync
             titleSearchInput.addEventListener('input', function() {
@@ -214,9 +222,12 @@
             imageLinkInput.addEventListener('change', updateCoverPreview);
             imageLinkInput.addEventListener('input', updateCoverPreview);
 
-            // Author image preview when URL changes
-            authorImageLinkInput.addEventListener('change', updateAuthorImagePreview);
-            authorImageLinkInput.addEventListener('input', updateAuthorImagePreview);
+            // PDF file change event for page count detection
+            pdfFileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    extractPdfPageCount(this.files[0]);
+                }
+            });
 
             function updateCoverPreview() {
                 const imageUrl = imageLinkInput.value.trim();
@@ -233,22 +244,19 @@
                 }
             }
 
-            function updateAuthorImagePreview() {
-                const imageUrl = authorImageLinkInput.value.trim();
-                if (imageUrl) {
-                    authorImage.src = imageUrl;
-                    authorImagePreview.style.display = 'block';
-
-                    // Handle image load error
-                    authorImage.onerror = function() {
-                        authorImagePreview.style.display = 'none';
-                    }
-                } else {
-                    authorImagePreview.style.display = 'none';
+            // Extract PDF page count using PDF.js
+            async function extractPdfPageCount(file) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                    pageCountInput.value = pdf.numPages;
+                    console.log(`PDF has ${pdf.numPages} pages`);
+                } catch (error) {
+                    console.error('Error reading PDF:', error);
                 }
             }
 
-            // Search for book using Google Books API
+            // Search for book using Open Library and Google Books APIs
             async function searchForBook() {
                 const title = titleSearchInput.value.trim();
                 const author = authorSearchInput.value.trim();
@@ -264,113 +272,126 @@
                 searchError.style.display = 'none';
 
                 try {
-                    // Construct search query for book info
-                    const query = `intitle:${encodeURIComponent(title)}${author ? '+inauthor:' + encodeURIComponent(author) : ''}`;
-                    const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`;
+                    // First, search Open Library for book details
+                    await searchOpenLibrary(title, author);
 
-                    const response = await fetch(apiUrl);
-                    const data = await response.json();
+                    // Then, search Google Books for cover image
+                    await searchGoogleBooksForCover(title, author);
 
-                    // Hide searching status for now
+                    // Hide searching status
                     searchStatus.style.display = 'none';
-
-                    if (data.items && data.items.length > 0) {
-                        const bookInfo = data.items[0].volumeInfo;
-
-                        // Update form fields with book information
-                        titleInput.value = bookInfo.title || title;
-                        authorInput.value = bookInfo.authors ? bookInfo.authors[0] : author;
-                        descriptionInput.value = bookInfo.description || '';
-                        editorialInput.value = bookInfo.publisher || '';
-
-                        // Set image link if available
-                        if (bookInfo.imageLinks) {
-                            // Use the highest quality image available
-                            imageLinkInput.value = bookInfo.imageLinks.extraLarge ||
-                                                  bookInfo.imageLinks.large ||
-                                                  bookInfo.imageLinks.medium ||
-                                                  bookInfo.imageLinks.small ||
-                                                  bookInfo.imageLinks.thumbnail ||
-                                                  bookInfo.imageLinks.smallThumbnail || '';
-
-                            // Update image preview
-                            updateCoverPreview();
-                        }
-
-                        pageCountInput.value = bookInfo.pageCount || 0;
-
-                        // Now fetch author details - we'll use the author name we got from the book
-                        const authorName = bookInfo.authors ? bookInfo.authors[0] : author;
-                        fetchAuthorDetails(authorName);
-
-                        // Show success message
-                        searchResults.style.display = 'block';
-                    } else {
-                        // Show error message if no results
-                        errorMessage.textContent = 'No book details found. Please fill in the information manually.';
-                        searchError.style.display = 'block';
-                    }
+                    searchResults.style.display = 'block';
                 } catch (error) {
-                    console.error('Error fetching book details:', error);
-
-                    // Hide searching status and show error
+                    console.error('Error searching for book:', error);
                     searchStatus.style.display = 'none';
                     errorMessage.textContent = 'Error searching for book details. Please try again or fill in manually.';
                     searchError.style.display = 'block';
                 }
             }
 
-            // Fetch author details from Google Books API
-            async function fetchAuthorDetails(authorName) {
-               if (!authorName) return;
+            async function searchOpenLibrary(title, author) {
+                try {
+                    const searchQuery = encodeURIComponent(`${title} ${author || ''}`);
+                    const searchUrl = `https://openlibrary.org/search.json?q=${searchQuery}&limit=5`;
 
-            try {
-                // Show searching again
-                searchStatus.style.display = 'block';
+                    const response = await fetch(searchUrl);
+                    const data = await response.json();
 
-                // First, try to get author info from Google Books
-                const authorQuery = `inauthor:${encodeURIComponent(authorName)}`;
-                const authorUrl = `https://www.googleapis.com/books/v1/volumes?q=${authorQuery}&maxResults=10`;
+                    if (data.docs && data.docs.length > 0) {
+                        const book = data.docs[0];
 
-                const response = await fetch(authorUrl);
-                const data = await response.json();
-
-                // Hide searching status
-                searchStatus.style.display = 'none';
-
-                if (data.items && data.items.length > 0) {
-                    // Look for author bio only
-                    let authorBio = '';
-
-                    // Look through items for author info
-                    data.items.forEach(item => {
-                        const info = item.volumeInfo;
-
-                        // Skip the current book
-                        if (info.title === titleInput.value) return;
-
-                        // Try to find author info
-                        if (!authorBio && info.description && info.description.includes(authorName)) {
-                            // Extract potential bio from description that mentions the author
-                            const sentences = info.description.split(/\. |\.|\!|\?/);
-                            for (const sentence of sentences) {
-                                if (sentence.includes(authorName)) {
-                                    authorBio = sentence.trim() + '.';
-                                    break;
-                                }
-                            }
+                        // Update basic info
+                        titleInput.value = book.title || title;
+                        if (book.author_name && book.author_name.length > 0) {
+                            authorInput.value = book.author_name[0];
                         }
-                    });
 
-                    // Update author bio field
-                    if (authorBio) {
-                        authorBioInput.value = authorBio;
+                        // Set release date
+                        if (book.first_publish_year) {
+                            releaseDateInput.value = book.first_publish_year.toString();
+                        }
+
+                        // Get detailed information if work key exists
+                        if (book.key) {
+                            await fetchOpenLibraryWorkDetails(book.key);
+                        }
                     }
+                } catch (error) {
+                    console.error('Error fetching from Open Library:', error);
                 }
-            } catch (error) {
-                console.error('Error fetching author details:', error);
-                // We don't show an error to the user since this is supplementary information
             }
+
+            async function fetchOpenLibraryWorkDetails(workKey) {
+                try {
+                    const workUrl = `https://openlibrary.org${workKey}.json`;
+                    const response = await fetch(workUrl);
+                    const workData = await response.json();
+
+                    // Get description
+                    if (workData.description) {
+                        const description = typeof workData.description === 'string'
+                            ? workData.description
+                            : workData.description.value || '';
+                        descriptionInput.value = description;
+                    }
+
+                    // Get author bio
+                    if (workData.authors && workData.authors.length > 0) {
+                        const authorKey = workData.authors[0].author?.key;
+                        if (authorKey) {
+                            await fetchAuthorBio(authorKey);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching work details:', error);
+                }
+            }
+
+            async function fetchAuthorBio(authorKey) {
+                try {
+                    const authorUrl = `https://openlibrary.org${authorKey}.json`;
+                    const response = await fetch(authorUrl);
+                    const authorData = await response.json();
+
+                    if (authorData.bio) {
+                        const bio = typeof authorData.bio === 'string'
+                            ? authorData.bio
+                            : authorData.bio.value || '';
+                        authorBioInput.value = bio.substring(0, 500); // Limit length
+                    }
+                } catch (error) {
+                    console.error('Error fetching author bio:', error);
+                }
+            }
+
+            async function searchGoogleBooksForCover(title, author) {
+                try {
+                    let query = `intitle:"${encodeURIComponent(title)}"`;
+                    if (author) {
+                        query += `+inauthor:"${encodeURIComponent(author)}"`;
+                    }
+
+                    const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`;
+                    const response = await fetch(apiUrl);
+                    const data = await response.json();
+
+                    if (data.items && data.items.length > 0) {
+                        const bookInfo = data.items[0].volumeInfo;
+
+                        // Set image link if available
+                        if (bookInfo.imageLinks) {
+                            imageLinkInput.value = bookInfo.imageLinks.extraLarge ||
+                                                  bookInfo.imageLinks.large ||
+                                                  bookInfo.imageLinks.medium ||
+                                                  bookInfo.imageLinks.small ||
+                                                  bookInfo.imageLinks.thumbnail ||
+                                                  bookInfo.imageLinks.smallThumbnail || '';
+                            updateCoverPreview();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching cover from Google Books:', error);
+                }
             }
         });
     </script>

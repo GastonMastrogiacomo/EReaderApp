@@ -4,7 +4,15 @@
     var categories = ViewBag.Categories as List<EReaderApp.Models.Category>;
     var currentCategory = ViewBag.CurrentCategory as int?;
     var searchQuery = ViewBag.SearchQuery as string;
-    var sortBy = ViewBag.SortBy as string ?? "title"; // Default sort by title
+    var sortBy = ViewBag.SortBy as string ?? "title";
+
+    // Pagination variables
+    var currentPage = ViewBag.CurrentPage ?? 1;
+    var totalPages = ViewBag.TotalPages ?? 1;
+    var totalBooks = ViewBag.TotalBooks ?? 0;
+    var pageSize = ViewBag.PageSize ?? 5;
+    var hasPreviousPage = ViewBag.HasPreviousPage ?? false;
+    var hasNextPage = ViewBag.HasNextPage ?? false;
 }
 
 <div class="container my-4">
@@ -28,6 +36,7 @@
                             <input type="text" name="query" class="form-control border-start-0"
                                    placeholder="Search by title, author, or description" value="@searchQuery" />
                             <input type="hidden" name="sortBy" value="@sortBy" />
+                            <input type="hidden" name="categoryId" value="@currentCategory" />
                             <button type="submit" class="btn btn-primary">
                                 Search
                             </button>
@@ -96,7 +105,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
                 <span class="text-muted">
-                    Showing @Model.Count() @(Model.Count() == 1 ? "book" : "books")
+                    Showing @((currentPage - 1) * pageSize + 1) - @Math.Min(currentPage * pageSize, totalBooks) of @totalBooks @(totalBooks == 1 ? "book" : "books")
                     @if (!string.IsNullOrEmpty(searchQuery))
                     {
                         <text>for "<strong>@searchQuery</strong>"</text>
@@ -127,42 +136,59 @@
         <div id="grid-view" class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-3 d-none">
             @foreach (var book in Model)
             {
+                var reviewStats = ViewBag.ReviewStats as Dictionary<int, EReaderApp.Controllers.BooksController.ReviewStatistics>;
+                var hasReviewStats = reviewStats != null && reviewStats.ContainsKey(book.IdBook);
+                var reviewCount = hasReviewStats ? reviewStats[book.IdBook].Count : 0;
+                var averageRating = hasReviewStats ? reviewStats[book.IdBook].AverageRating : 0;
                 <div class="col">
-                    <div class="card h-100 shadow-sm border-0 book-card improved">
-                        <a href="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })" class="text-decoration-none">
-                            <div class="book-cover-container">
-                                @if (!string.IsNullOrEmpty(book.ImageLink))
-                                {
-                                    <img src="@book.ImageLink" class="card-img-top book-cover" alt="@book.Title" />
-                                }
-                                else
-                                {
-                                    <div class="default-cover">
-                                        <i class="fas fa-book text-secondary"></i>
-                                        <span>@book.Title</span>
-                                    </div>
-                                }
+                    <div class="card h-100 shadow-sm border-0 book-card hover-elevate overflow-hidden">
+                        <div class="position-relative">
+                            <a href="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })" class="text-decoration-none">
+                                <div class="book-cover-container">
+                                    @if (!string.IsNullOrEmpty(book.ImageLink))
+                                    {
+                                        <div class="book-cover" style="background-image: url('@book.ImageLink');"></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="default-cover">
+                                            <i class="fas fa-book text-secondary fa-3x mb-2"></i>
+                                            <span class="small text-truncate w-100 px-2">@book.Title</span>
+                                        </div>
+                                    }
+                                </div>
+                            </a>
 
-                                <!-- Rating badge -->
-                                @{
-                                    var reviewStats = ViewBag.ReviewStats as Dictionary<int, EReaderApp.Controllers.BooksController.ReviewStatistics>;
-                                    var hasReviewStats = reviewStats != null && reviewStats.ContainsKey(book.IdBook);
-                                    var reviewCount = hasReviewStats ? reviewStats[book.IdBook].Count : 0;
-                                    var averageRating = hasReviewStats ? reviewStats[book.IdBook].AverageRating : 0;
-                                }
-                                @if (hasReviewStats && reviewCount > 0)
-                                {
-                                    <div class="book-score-badge">
-                                        <i class="fas fa-star text-warning"></i> @averageRating.ToString("F1")
-                                    </div>
-                                }
-                            </div>
+                            @if (hasReviewStats && reviewCount > 0)
+                            {
+                                <div class="book-score">
+                                    <i class="fas fa-star me-1"></i> @averageRating.ToString("F1")
+                                </div>
+                            }
+                        </div>
 
-                            <div class="card-body p-2">
-                                <h5 class="card-title text-truncate mb-1" title="@book.Title">@book.Title</h5>
-                                <p class="card-text text-muted small mb-0 text-truncate" title="@book.Author">@book.Author</p>
+                        <div class="card-body p-3 d-flex flex-column">
+                            <h5 class="card-title fw-bold text-truncate" title="@book.Title">@book.Title</h5>
+                            <p class="card-text text-muted small text-truncate mb-3" title="@book.Author">@book.Author</p>
+
+                            <div class="mt-auto d-flex gap-2">
+                                <a href="@Url.Action("Read", "Reader", new { id = book.IdBook })" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="fas fa-book-open me-1"></i> Read
+                                </a>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                                        <li>
+                                            <a class="dropdown-item" href="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })">
+                                                <i class="fas fa-info-circle me-2 text-primary"></i> Details
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
-                        </a>
+                        </div>
                     </div>
                 </div>
             }
@@ -173,50 +199,301 @@
             <div class="list-group">
                 @foreach (var book in Model)
                 {
-                    <a href="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })" class="list-group-item list-group-item-action">
-                        <div class="row">
-                            <div class="col-md-1 col-2">
-                                @if (!string.IsNullOrEmpty(book.ImageLink))
-                                {
-                                    <img src="@book.ImageLink" class="img-fluid rounded" alt="@book.Title" />
-                                }
-                                else
-                                {
-                                    <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 60px;">
-                                        <i class="fas fa-book text-secondary"></i>
-                                    </div>
-                                }
+                    var reviewStats = ViewBag.ReviewStats as Dictionary<int, EReaderApp.Controllers.BooksController.ReviewStatistics>;
+                    var hasReviewStats = reviewStats != null && reviewStats.ContainsKey(book.IdBook);
+                    var reviewCount = hasReviewStats ? reviewStats[book.IdBook].Count : 0;
+                    var averageRating = hasReviewStats ? reviewStats[book.IdBook].AverageRating : 0;
+                    <div class="list-group-item list-group-item-action p-3 border-0 shadow-sm mb-3 rounded hover-elevate">
+                        <div class="row align-items-center">
+                            <div class="col-md-1 col-3">
+                                <div class="position-relative list-book-cover">
+                                    <a href="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })" class="text-decoration-none">
+                                        @if (!string.IsNullOrEmpty(book.ImageLink))
+                                        {
+                                            <div class="list-cover" style="background-image: url('@book.ImageLink');"></div>
+                                        }
+                                        else
+                                        {
+                                            <div class="default-list-cover">
+                                                <i class="fas fa-book text-secondary"></i>
+                                            </div>
+                                        }
+                                    </a>
+                                </div>
                             </div>
-                            <div class="col-md-11 col-10">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h5 class="mb-1">@book.Title</h5>
-                                    @{
-                                        var reviewStats = ViewBag.ReviewStats as Dictionary<int, EReaderApp.Controllers.BooksController.ReviewStatistics>;
-                                        var hasReviewStats = reviewStats != null && reviewStats.ContainsKey(book.IdBook);
-                                        var reviewCount = hasReviewStats ? reviewStats[book.IdBook].Count : 0;
-                                        var averageRating = hasReviewStats ? reviewStats[book.IdBook].AverageRating : 0;
-                                    }
+                            <div class="col-md-9 col-9">
+                                <h5 class="mb-1 fw-bold">
+                                    <a href="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })" class="text-decoration-none text-dark">
+                                        @book.Title
+                                    </a>
+                                </h5>
+                                <p class="mb-1 text-muted">@book.Author</p>
+                                <div class="d-flex align-items-center mb-1">
                                     @if (hasReviewStats && reviewCount > 0)
                                     {
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="fas fa-star"></i> @averageRating.ToString("F1") (@reviewCount)
+                                        <span class="badge bg-warning text-dark me-2">
+                                            <i class="fas fa-star me-1"></i> @averageRating.ToString("F1") (@reviewCount)
                                         </span>
                                     }
+
+                                    @if (book.PageCount.HasValue)
+                                    {
+                                        <small class="text-muted me-2"><i class="fas fa-file me-1"></i> @book.PageCount pages</small>
+                                    }
                                 </div>
-                                <p class="mb-1">@book.Author</p>
                                 <small class="text-muted">
                                     @(book.Description?.Length > 100
                                         ? book.Description.Substring(0, 100) + "..."
                                         : book.Description)
                                 </small>
                             </div>
+                            <div class="col-md-2 col-12 mt-3 mt-md-0">
+                                <div class="d-flex gap-2 justify-content-md-end">
+                                    <a href="@Url.Action("Read", "Reader", new { id = book.IdBook })" class="btn btn-sm btn-primary flex-grow-1 flex-md-grow-0">
+                                        <i class="fas fa-book-open me-1"></i> Read
+                                    </a>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                                            <li>
+                                                <a class="dropdown-item" href="@Url.Action("ViewDetails", "Books", new { id = book.IdBook })">
+                                                    <i class="fas fa-info-circle me-2 text-primary"></i> Details
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </a>
+                    </div>
                 }
             </div>
         </div>
+
+        <!-- Pagination Controls -->
+        @if (totalPages > 1)
+        {
+            <nav aria-label="Book search pagination" class="mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="pagination-info">
+                        <small class="text-muted">
+                            Page @currentPage of @totalPages
+                        </small>
+                    </div>
+                    <div class="pagination-controls">
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- First Page -->
+                            @if (currentPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Search", new { query = searchQuery, categoryId = currentCategory, sortBy = sortBy, page = 1 })"
+                                       title="First Page">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Previous Page -->
+                            @if (hasPreviousPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Search", new { query = searchQuery, categoryId = currentCategory, sortBy = sortBy, page = currentPage - 1 })"
+                                       title="Previous Page">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Page Numbers -->
+                            @{
+                                int startPage = Math.Max(1, currentPage - 2);
+                                int endPage = Math.Min(totalPages, currentPage + 2);
+
+                                // Ensure we always show 5 pages if possible
+                                if (endPage - startPage < 4)
+                                {
+                                    if (startPage == 1)
+                                    {
+                                        endPage = Math.Min(totalPages, startPage + 4);
+                                    }
+                                    else if (endPage == totalPages)
+                                    {
+                                        startPage = Math.Max(1, endPage - 4);
+                                    }
+                                }
+                            }
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == currentPage ? "active" : "")">
+                                    @if (i == currentPage)
+                                    {
+                                        <span class="page-link">@i</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="page-link" href="@Url.Action("Search", new { query = searchQuery, categoryId = currentCategory, sortBy = sortBy, page = i })">@i</a>
+                                    }
+                                </li>
+                            }
+
+                            <!-- Next Page -->
+                            @if (hasNextPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Search", new { query = searchQuery, categoryId = currentCategory, sortBy = sortBy, page = currentPage + 1 })"
+                                       title="Next Page">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Last Page -->
+                            @if (currentPage < totalPages)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Url.Action("Search", new { query = searchQuery, categoryId = currentCategory, sortBy = sortBy, page = totalPages })"
+                                       title="Last Page">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Quick Jump to Page -->
+                @if (totalPages > 10)
+                {
+                    <div class="d-flex justify-content-center">
+                        <form method="get" class="d-flex align-items-center">
+                            <input type="hidden" name="query" value="@searchQuery" />
+                            <input type="hidden" name="categoryId" value="@currentCategory" />
+                            <input type="hidden" name="sortBy" value="@sortBy" />
+                            <small class="text-muted me-2">Jump to page:</small>
+                            <input type="number" name="page" class="form-control form-control-sm me-2"
+                                   style="width: 80px;" min="1" max="@totalPages" value="@currentPage" />
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Go</button>
+                        </form>
+                    </div>
+                }
+            </nav>
+        }
     }
 </div>
+
+<style>
+    /* Card hover effects */
+    .hover-elevate {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .hover-elevate:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+
+    /* Book cover styling for grid view */
+    .book-cover-container {
+        height: 220px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .book-cover {
+        height: 100%;
+        width: 100%;
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
+        transition: transform 0.3s ease;
+    }
+
+    .book-card:hover .book-cover {
+        transform: scale(1.05);
+    }
+
+    .default-cover {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        color: #6c757d;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    /* Book cover styling for list view */
+    .list-book-cover {
+        height: 80px;
+        width: 60px;
+        overflow: hidden;
+        border-radius: 4px;
+    }
+
+    .list-cover {
+        height: 100%;
+        width: 100%;
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
+    }
+
+    .default-list-cover {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    /* Rating badge */
+    .book-score {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background-color: #ffc107;
+        color: #212529;
+        padding: 0.25rem 0.5rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Button styling */
+    .btn-primary {
+        background-color: var(--primary-color, #0d6efd);
+        border-color: var(--primary-color, #0d6efd);
+    }
+
+        .btn-primary:hover {
+            background-color: var(--primary-color-dark, #0b5ed7);
+            border-color: var(--primary-color-dark, #0b5ed7);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+    .btn-outline-secondary:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Card styling */
+    .book-card {
+        border-radius: 8px;
+    }
+
+    /* Consistent transitions */
+    .card, .btn, .form-control, .input-group, .list-group-item {
+        transition: all 0.2s ease-in-out;
+    }
+</style>
 
 @section Scripts {
     <script>
