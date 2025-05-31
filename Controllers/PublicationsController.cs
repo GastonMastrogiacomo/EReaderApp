@@ -221,7 +221,7 @@ namespace EReaderApp.Controllers
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("IdPublication,Title,Content,PubImageUrl,FKIdUser,CreatedAt")] Publication publication)
+        public async Task<IActionResult> Edit(int id, [Bind("IdPublication,Title,Content,PubImageUrl,FKIdUser,CreatedAt")] Publication publication, IFormFile? imageFile)
         {
             if (id != publication.IdPublication)
             {
@@ -243,8 +243,36 @@ namespace EReaderApp.Controllers
                 return Forbid();
             }
 
-            // Maintain the original user ID
+            // Maintain the original user ID and creation date
             publication.FKIdUser = originalPublication.FKIdUser;
+            publication.CreatedAt = originalPublication.CreatedAt;
+
+            // Handle image upload if provided
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "publications");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                // Generate unique filename
+                var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(imageFile.FileName)}";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await imageFile.CopyToAsync(stream);
+                }
+
+                // Update the image URL
+                publication.PubImageUrl = $"/uploads/publications/{fileName}";
+            }
+            // If no new file was uploaded and URL field is empty, keep the original image
+            else if (string.IsNullOrEmpty(publication.PubImageUrl))
+            {
+                publication.PubImageUrl = originalPublication.PubImageUrl;
+            }
 
             if (ModelState.IsValid)
             {
@@ -252,6 +280,7 @@ namespace EReaderApp.Controllers
                 {
                     _context.Update(publication);
                     await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Post updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {

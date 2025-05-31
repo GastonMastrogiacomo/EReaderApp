@@ -1,49 +1,127 @@
 ﻿@model EReaderApp.Models.Publication
-
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Post";
 }
 
-<h1>Edit</h1>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white py-3">
+                    <h1 class="h3 mb-0"><i class="fas fa-edit me-2"></i>Edit Post</h1>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                        @* Hidden fields *@
+                        <input type="hidden" asp-for="IdPublication" />
+                        <input type="hidden" asp-for="FKIdUser" />
+                        <input type="hidden" asp-for="CreatedAt" />
 
-<h4>Publication</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="IdPublication" />
-            <div class="form-group">
-                <label asp-for="Title" class="control-label"></label>
-                <input asp-for="Title" class="form-control" />
-                <span asp-validation-for="Title" class="text-danger"></span>
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label">Post Title</label>
+                            <input asp-for="Title" class="form-control" placeholder="Enter a descriptive title..." required />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Content" class="form-label">Post Content</label>
+                            <textarea asp-for="Content" class="form-control" rows="6" placeholder="Share your thoughts with the community..." required></textarea>
+                            <span asp-validation-for="Content" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Post Image</label>
+
+                            @if (!string.IsNullOrEmpty(Model.PubImageUrl))
+                            {
+                                <div class="mb-3">
+                                    <p class="text-muted small mb-2">Current image:</p>
+                                    <img src="@Model.PubImageUrl" class="img-thumbnail" style="max-height: 200px; cursor: pointer;" alt="Current post image" onclick="previewCurrentImage(this.src)" />
+                                </div>
+                            }
+
+                            <div class="mb-2">
+                                <label for="imageFile" class="form-label small">Upload new image (Optional)</label>
+                                <input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*" />
+                                <div class="form-text">Upload a new image to replace the current one (max 5MB).</div>
+                            </div>
+
+                            <!-- Image Preview Container -->
+                            <div id="imagePreview" class="mt-3" style="display: none;">
+                                <p class="text-muted small mb-2">New image preview:</p>
+                                <img id="previewImg" class="img-thumbnail" style="max-height: 200px;" alt="Image preview" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="Content" class="control-label"></label>
-                <input asp-for="Content" class="form-control" />
-                <span asp-validation-for="Content" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="PubImageUrl" class="control-label"></label>
-                <input asp-for="PubImageUrl" class="form-control" />
-                <span asp-validation-for="PubImageUrl" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="FKIdUser" class="control-label"></label>
-                <select asp-for="FKIdUser" class="form-control" asp-items="ViewBag.FKIdUser"></select>
-                <span asp-validation-for="FKIdUser" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
+<!-- Simple Image Modal for Current Image Preview -->
+<div id="imageModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Current Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" class="img-fluid" alt="Full size image" />
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Preview uploaded image
+        document.getElementById('imageFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const previewContainer = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+
+        // Function to preview current image in modal
+        function previewCurrentImage(src) {
+            const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+            document.getElementById('modalImage').src = src;
+            modal.show();
+        }
+
+        // Validate file size
+        document.getElementById('imageFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.size > 5 * 1024 * 1024) { // 5MB limit
+                alert('File size must be less than 5MB');
+                this.value = '';
+                document.getElementById('imagePreview').style.display = 'none';
+            }
+        });
+    </script>
 }

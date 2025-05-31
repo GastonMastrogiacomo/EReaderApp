@@ -1806,6 +1806,12 @@ function renderNotes() {
     });
 }
 
+window.ReaderApp = {
+    readerSettings: readerSettings,
+    applyTheme: applyTheme,
+    getBookId: function () { return bookId; }
+};
+
 // Utilidad para debounce de eventos
 function debounce(func, wait) {
     let timeout;
@@ -1987,6 +1993,7 @@ function setupEventListeners() {
         });
     }
 
+    /* Comentado por conflictos con logica preexistente en kindle-reader.js
     // Eventos para configuración del lector (handle missing settings elements)
     const themeButton = document.getElementById('theme-button');
     if (themeButton) {
@@ -2002,6 +2009,7 @@ function setupEventListeners() {
             }
         });
     }
+    */
 
     // Guardar configuración
     addSafeEventListener('save-settings', 'click', saveReaderSettings);
