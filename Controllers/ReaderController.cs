@@ -37,17 +37,27 @@ namespace EReaderApp.Controllers
                 return RedirectToAction("Details", "Books", new { id = id });
             }
 
+            ReadingState readingState = new ReadingState
+            {
+                UserId = 0,
+                BookId = id,
+                CurrentPage = 1,
+                ZoomLevel = 1.0f,
+                ViewMode = "double",
+                LastAccessed = DateTime.Now
+            };
+
             // Si el usuario está autenticado, cargar o crear estado de lectura
             if (User.Identity.IsAuthenticated)
             {
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-                // Get reading state first before tracking reading activity
-                var readingState = await GetReadingState(userId, id);
-                if (readingState == null)
+                // Get reading state first
+                var userReadingState = await GetReadingState(userId, id);
+                if (userReadingState == null)
                 {
-                    // Create default reading state for new users starting at page 1
-                    readingState = new ReadingState
+                    // Create new reading state for authenticated user
+                    userReadingState = new ReadingState
                     {
                         UserId = userId,
                         BookId = id,
@@ -56,16 +66,16 @@ namespace EReaderApp.Controllers
                         ViewMode = "double",
                         LastAccessed = DateTime.Now
                     };
-                    _context.ReadingStates.Add(readingState);
+                    _context.ReadingStates.Add(userReadingState);
                     await _context.SaveChangesAsync();
                 }
 
-                // Pass the actual current page to TrackReading
+                readingState = userReadingState;
                 await TrackReading(userId, id, readingState.CurrentPage);
-
-                ViewBag.ReadingState = readingState;
                 ViewBag.BookMarks = await GetBookMarks(userId, id);
             }
+
+            ViewBag.ReadingState = readingState;
 
             return View(book);
         }

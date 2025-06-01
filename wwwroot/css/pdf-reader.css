@@ -434,13 +434,18 @@ html body .theme-light .page-canvas {
     -webkit-filter: none !important;
 }
 
-.theme-sepia .page-canvas {
-    filter: sepia(0.5);
+/* Reglas específicas para canvas en tema sepia - misma especificidad */
+html body .theme-sepia .page-canvas {
+    filter: sepia(0.5) !important;
+    -webkit-filter: sepia(0.5) !important;
 }
 
-.theme-dark .page-canvas {
-    filter: invert(0.85) hue-rotate(180deg);
+/* Reglas específicas para canvas en tema oscuro - misma especificidad */
+html body .theme-dark .page-canvas {
+    filter: invert(0.85) hue-rotate(180deg) !important;
+    -webkit-filter: invert(0.85) hue-rotate(180deg) !important;
 }
+
 
 /* Reglas específicas para los contenedores de página en tema claro */
 html body .theme-light #single-page-container,
@@ -693,11 +698,11 @@ html body .theme-light .right-page {
  * 19. FORZAR TEMA CLARO
  * ============================== */
 /* Reglas con máxima especificidad para sobrescribir cualquier tema oscuro */
-body:not(.theme-sepia):not(.theme-dark) .page-canvas,
-body:not(.theme-sepia):not(.theme-dark) #book-container,
-body:not(.theme-sepia):not(.theme-dark) .book-page,
-body:not(.theme-sepia):not(.theme-dark) #single-page-container,
-body:not(.theme-sepia):not(.theme-dark) #double-page-container {
+#book-container:not(.theme-sepia):not(.theme-dark) .page-canvas,
+#book-container:not(.theme-sepia):not(.theme-dark),
+#book-container:not(.theme-sepia):not(.theme-dark) .book-page,
+#book-container:not(.theme-sepia):not(.theme-dark) #single-page-container,
+#book-container:not(.theme-sepia):not(.theme-dark) #double-page-container {
     filter: none !important;
     background-color: #ffffff !important;
     color: #333333 !important;
@@ -733,3 +738,5 @@ body:not(.theme-sepia):not(.theme-dark) {
         padding: 0.5rem;
     }
 }
+
+

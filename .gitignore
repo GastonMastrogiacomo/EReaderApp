@@ -375,3 +375,6 @@ appsettings.Production.json
 *.usersecrets.json
 /Views/Home/Index - Copia.cshtml
 /wwwroot/uploads/profile-pictures
+/wwwroot/uploads/books-PDF
+/wwwroot/uploads/publications
+

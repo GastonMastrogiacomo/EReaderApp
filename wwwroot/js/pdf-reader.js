@@ -11,7 +11,7 @@ let tocItems = [];
 let notes = [];
 
 // Nuevas variables para el modo de doble página
-let viewMode = 'double'; // Valores posibles: 'single', 'double', 'scroll'
+let viewMode = 'double'; 
 let currentLeftPage = 1;
 let currentRightPage = 2;
 let pagesRendering = false;
@@ -168,7 +168,7 @@ function calculateDoublePagesForPage(page) {
     }
 
     // Actualizar página actual para mantener coherencia
-    currentPage = currentLeftPage;
+    //currentPage = currentLeftPage;
 }
 
 // Renderizar las páginas actuales
@@ -186,6 +186,7 @@ async function renderCurrentPages() {
     } else if (viewMode === 'scroll') {
         return renderScrollMode();
     }
+
 }
 
 // Renderizar en modo página única
@@ -716,7 +717,7 @@ function changeViewMode(mode) {
     renderCurrentPages();
 }
 
-// Aplic ar tema a un elemento específico
+// Aplicar tema a un elemento específico
 function applyThemeToElement(element) {
     element.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
     element.classList.add(`theme-${readerSettings.theme}`);
@@ -724,49 +725,39 @@ function applyThemeToElement(element) {
 
 // Aplicar tema general
 function applyTheme() {
-    console.log("Aplicando tema:", readerSettings.theme);
+    // Use the correct settings object
+    const currentSettings = window.ReaderApp ? window.ReaderApp.readerSettings : readerSettings;
+    console.log("Aplicandos tema:", currentSettings.theme);
 
-    // Aplicar tema al contenedor principal
+    // Apply theme to body element (for CSS compatibility)
+    document.body.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+    document.body.classList.add(`theme-${currentSettings.theme}`);
+
     const bookContainer = document.getElementById('book-container');
+    const bookView = document.getElementById('book-view');
+
     if (bookContainer) {
         bookContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
-        bookContainer.classList.add(`theme-${readerSettings.theme}`);
-
-        // También aplicar como atributo de datos para CSS
-        bookContainer.dataset.theme = readerSettings.theme;
+        bookContainer.classList.add(`theme-${currentSettings.theme}`);
+        bookContainer.dataset.theme = currentSettings.theme;
     }
 
-    // Aplicar filtros según el tema
-    const canvases = document.querySelectorAll('.page-canvas');
-    canvases.forEach(canvas => {
-        if (readerSettings.theme === 'sepia') {
-            canvas.style.filter = 'sepia(0.5)';
-        } else if (readerSettings.theme === 'dark') {
-            canvas.style.filter = 'invert(0.85) hue-rotate(180deg)';
-        } else {
-            canvas.style.filter = 'none';
-        }
-    });
+    if (bookView) {
+        bookView.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+        bookView.classList.add(`theme-${currentSettings.theme}`);
+    }
 
-    // Actualizar estado de opciones de tema
+    // Update theme option states
     document.querySelectorAll('.theme-option').forEach(option => {
-        if (option.dataset.theme === readerSettings.theme) {
+        if (option.dataset.theme === currentSettings.theme) {
             option.classList.add('active');
         } else {
             option.classList.remove('active');
         }
     });
 
-    // Aplicar tema a la vista previa
+    // Apply theme to preview
     updatePreview();
-
-
-    if (readerSettings.theme === 'light') {
-        document.querySelectorAll('canvas').forEach(canvas => {
-            canvas.style.removeProperty('filter');
-            canvas.style.filter = 'none';
-        });
-    }
 }
 
 // Función para ajustar al ancho
@@ -1172,22 +1163,37 @@ function savePosition() {
         fitPage: isFitPage,
         timestamp: new Date().toISOString()
     }));
+
+    const positionData = {
+        page: currentPage,
+        leftPage: currentLeftPage,
+        rightPage: currentRightPage,
+        viewMode: viewMode,
+        scale: scale,
+        fitWidth: isFitWidth,
+        fitPage: isFitPage,
+        timestamp: new Date().toISOString()
+    };
+
+    console.log("Saving to localStorage:", positionData);
+    localStorage.setItem(`position_${bookId}`, JSON.stringify(positionData));
+
+
 }
 
 function loadPosition() {
     const readingState = document.getElementById('book-view').dataset.readingState;
-    console.log("Loading position from readingState:", readingState);
 
-    if (readingState) {
+    if (readingState && readingState !== 'null' && readingState !== '') {
         try {
             const state = JSON.parse(readingState);
             console.log("Parsed reading state:", state);
-            currentPage = state.CurrentPage || 1;
+            currentPage = state.currentPage || 1; 
             console.log("Setting currentPage to:", currentPage);
-            currentLeftPage = state.CurrentPage || 1;
+            currentLeftPage = state.currentPage || 1;  
             currentRightPage = currentLeftPage + 1;
-            scale = state.ZoomLevel || 1.0;
-            viewMode = state.ViewMode || 'double';
+            scale = state.zoomLevel || 1.0;  
+            viewMode = state.viewMode || 'double';
 
             // Also set lastPageTracked to currentPage
             lastPageTracked = currentPage;
@@ -1237,49 +1243,60 @@ function setDefaultPosition() {
 // Funciones para cargar y guardar configuración
 async function loadReaderSettings() {
     try {
-        // Configurar tema por defecto a 'light' (claro)
+        // Load theme from localStorage FIRST (synchronously)
+        let savedTheme = 'light'; // default
+        let localSettings = null;
+
+        try {
+            const savedSettings = localStorage.getItem(`settings_${bookId}`);
+            if (savedSettings) {
+                localSettings = JSON.parse(savedSettings);
+                savedTheme = localSettings.theme || 'light';
+            }
+        } catch (e) {
+            console.error('Error loading theme from localStorage:', e);
+        }
+
+        // Configure with the saved theme
         readerSettings = {
-            theme: 'light',
+            theme: savedTheme,
             fontFamily: 'Arial',
             fontSize: 16,
             viewMode: 'double'
         };
 
-        // Primero, intentar cargar configuración del almacenamiento local
-        const savedSettings = localStorage.getItem(`settings_${bookId}`);
-        if (savedSettings) {
-            try {
-                const settings = JSON.parse(savedSettings);
-                // Sobreescribir las configuraciones predeterminadas con las guardadas
-                readerSettings = { ...readerSettings, ...settings };
-                console.log("Tema cargado desde localStorage:", readerSettings.theme);
-            } catch (e) {
-                console.error('Error al analizar la configuración local:', e);
-            }
-        } else {
-            console.log("No se encontró configuración guardada, usando tema predeterminado: light");
+        console.log("Initial theme set to:", readerSettings.theme);
+
+        // Update with full localStorage settings
+        if (localSettings) {
+            Object.assign(readerSettings, localSettings);
+            console.log("Full settings loaded from localStorage:", readerSettings.theme);
         }
 
-        // Luego, intentar cargar desde el servidor si el usuario está autenticado
+        // Store the localStorage theme BEFORE server overwrites it
+        const preservedTheme = readerSettings.theme;
+
+        // Then try to load from server if authenticated
         if (document.querySelector('#antiforgery-form')) {
             try {
                 const response = await fetch('/ReaderSettings/GetSettings');
                 if (response.ok) {
                     const serverSettings = await response.json();
-                    // Combinar con la configuración local, dando prioridad a la del servidor
-                    readerSettings = { ...readerSettings, ...serverSettings };
-                    console.log("Tema actualizado desde servidor:", readerSettings.theme);
+                    console.log("Server returned theme:", serverSettings.theme);
 
-                    // Guardar la configuración combinada en local
+                    // Apply server settings but preserve localStorage theme
+                    Object.assign(readerSettings, serverSettings);
+                    readerSettings.theme = preservedTheme; // Restore localStorage theme
+
+                    console.log("Final theme after preserving localStorage:", readerSettings.theme);
                     localStorage.setItem(`settings_${bookId}`, JSON.stringify(readerSettings));
                 }
             } catch (serverError) {
-                console.error('Error al obtener configuración del servidor:', serverError);
-                // Continuar con configuración local en caso de error
+                console.error('Error getting server settings:', serverError);
             }
         }
 
-        // Aplicar configuración inmediatamente
+        // Apply theme immediately after loading
         applyTheme();
 
         // Actualizar controles en el modal de configuración (si existe)
@@ -1336,8 +1353,7 @@ async function loadReaderSettings() {
             bookContainer.classList.add(`theme-${readerSettings.theme}`);
         }
     } catch (error) {
-        console.error('Error al cargar la configuración del lector:', error);
-        // En caso de error, asegurarse de usar tema claro
+        console.error('Error loading reader settings:', error);
         readerSettings.theme = 'light';
         applyTheme();
     }

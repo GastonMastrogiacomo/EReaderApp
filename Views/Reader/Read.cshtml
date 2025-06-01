@@ -11,7 +11,7 @@
     <!-- Barra de navegación superior minimalista estilo Kindle -->
     <div class="kindle-top-bar">
         <div class="kindle-title">
-            <span class="book-title">@Model.Title</span>
+            <span class="book-author">@Model.Title by</span>
             <span class="book-author">@Model.Author</span>
         </div>
         <div class="kindle-controls">
@@ -232,7 +232,7 @@
                 <p class="mt-2">Cargando documento...</p>
             </div>
 
-            <div id="book-view" data-reading-state="@Json.Serialize(ViewBag.ReadingState)">
+            <div id="book-view" data-reading-state='@Html.Raw(Json.Serialize(ViewBag.ReadingState))'>
                 <!-- Modo página única -->
                 <div id="single-page-container" class="justify-content-center" style="display: none;">
                     <div id="single-page" class="book-page single-page">
