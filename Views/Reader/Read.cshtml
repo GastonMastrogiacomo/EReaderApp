@@ -89,15 +89,6 @@
                     <button id="toggle-toc" class="btn btn-sm btn-outline-secondary" title="Tabla de contenidos">
                         <i class="fas fa-list"></i>
                     </button>
-                    <button id="toggle-bookmarks" class="btn btn-sm btn-outline-secondary" title="Marcadores">
-                        <i class="fas fa-bookmark"></i>
-                    </button>
-                    <button id="bookmark-button" class="btn btn-sm btn-outline-secondary" title="Agregar marcador">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                    <button id="toggle-notes" class="btn btn-sm btn-outline-secondary" title="Mis Notas">
-                        <i class="fas fa-sticky-note"></i>
-                    </button>
                     <button id="theme-button" class="btn btn-sm btn-outline-secondary" title="Cambiar tema">
                         <i class="fas fa-adjust"></i>
                     </button>
@@ -144,6 +135,7 @@
 
     <div class="reader-layout">
         <!-- Panel lateral (para marcadores y tabla de contenidos) -->
+        <!-- Panel lateral (para marcadores, tabla de contenidos y notas) -->
         <div id="side-panel" class="border rounded bg-light p-2 shadow-sm" style="display: none;">
             <ul class="nav nav-tabs" id="side-panel-tabs" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -158,23 +150,14 @@
                         Bookmarks
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes-content"
+                            type="button" role="tab" aria-controls="notes-content" aria-selected="false">
+                        Notes
+                    </button>
+                </li>
             </ul>
             <div class="tab-content" id="side-panel-tab-content">
-                <!-- Contenido de Marcadores -->
-                <div class="tab-pane fade show active p-2" id="bookmarks-content" role="tabpanel" aria-labelledby="bookmarks-tab">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <button id="close-side-panel" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div id="bookmarks-list" class="list-group">
-                        <!-- Marcadores se añadirán aquí -->
-                        <div class="text-center p-3 text-muted small">
-                            No hay marcadores guardados
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Contenido de la Tabla de Contenidos -->
                 <div class="tab-pane fade p-2" id="toc-content" role="tabpanel" aria-labelledby="toc-tab">
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -195,35 +178,66 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Contenido de Marcadores -->
+                <div class="tab-pane fade show active p-2" id="bookmarks-content" role="tabpanel" aria-labelledby="bookmarks-tab">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <button id="close-side-panel" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <!-- Formulario para añadir marcadores -->
+                    <div class="mb-3">
+                        <div class="mb-2">
+                            <label for="bookmark-title" class="form-label small">Título del marcador</label>
+                            <input type="text" class="form-control form-control-sm" id="bookmark-title" placeholder="Ej: Página importante">
+                        </div>
+                        <p class="text-muted small mb-2">Página: <span id="bookmark-page">1</span></p>
+                        <button type="button" class="btn btn-sm btn-primary w-100" id="save-bookmark">
+                            <i class="fas fa-plus me-1"></i> Guardar Marcador
+                        </button>
+                    </div>
+                    <hr>
+
+                    <div id="bookmarks-list" class="list-group">
+                        <!-- Marcadores se añadirán aquí -->
+                        <div class="text-center p-3 text-muted small">
+                            No hay marcadores guardados
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contenido de Notas -->
+                <div class="tab-pane fade p-2" id="notes-content" role="tabpanel" aria-labelledby="notes-tab">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <button id="close-notes-panel" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <!-- Formulario para añadir notas -->
+                    <div class="mb-3">
+                        <textarea id="new-note-content" class="form-control" rows="3" placeholder="Escribe una nueva nota sobre este libro..."></textarea>
+                        <div class="mt-2 d-flex justify-content-end">
+                            <button id="save-new-note" class="btn btn-sm btn-primary">
+                                <i class="fas fa-save me-1"></i> Guardar Nota
+                            </button>
+                        </div>
+                    </div>
+                    <hr>
+
+                    <div id="notes-list" class="overflow-auto" style="max-height: 300px;">
+                        <!-- Las notas se cargarán aquí dinámicamente -->
+                        <div class="text-center p-3 text-muted small notes-empty">
+                            No hay notas para este libro
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Panel de Notas -->
-        <div id="notes-panel" class="border rounded bg-light p-2 shadow-sm" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0"><i class="fas fa-sticky-note me-2"></i> Mis Notas</h6>
-                <button id="close-notes-panel" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="mb-3">
-                <textarea id="new-note-content" class="form-control" rows="4" placeholder="Escribe una nueva nota sobre este libro..."></textarea>
-                <div class="mt-2 d-flex justify-content-end">
-                    <button id="save-new-note" class="btn btn-sm btn-primary">
-                        <i class="fas fa-save me-1"></i> Guardar Nota
-                    </button>
-                </div>
-            </div>
-            <hr>
-            <div id="notes-list" class="overflow-auto" style="max-height: 400px;">
-                <!-- Las notas se cargarán aquí dinámicamente -->
-                <div class="text-center p-3 text-muted small notes-empty">
-                    No hay notas para este libro
-                </div>
-            </div>
-        </div>
-
-        <!-- Contenedor del libro maximizado -->
+          <!-- Contenedor del libro maximizado -->
         <div id="book-container" class="border rounded shadow" data-book-id="@Model.IdBook" data-pdf-path="@Model.PdfPath">
             <div id="loading-indicator" class="text-center p-5">
                 <div class="spinner-border text-primary" role="status">
@@ -258,28 +272,6 @@
 
     </div>
 
-    <!-- Modal para añadir marcadores -->
-    <div class="modal fade" id="bookmark-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Añadir marcador</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="bookmark-title" class="form-label">Título del marcador</label>
-                        <input type="text" class="form-control" id="bookmark-title" placeholder="Ej: Página importante">
-                    </div>
-                    <p class="text-muted small">Página: <span id="bookmark-page">1</span></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="save-bookmark">Guardar</button>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 

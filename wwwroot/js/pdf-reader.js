@@ -987,19 +987,6 @@ function saveBookmark() {
     bookmarks.push(bookmark);
     localStorage.setItem(`bookmarks_${bookId}`, JSON.stringify(bookmarks));
 
-    const modalElement = document.getElementById('bookmark-modal');
-    const modal = bootstrap.Modal.getInstance(modalElement);
-    if (modal) {
-        modal.hide();
-    } else {
-        modalElement.classList.remove('show');
-        modalElement.style.display = 'none';
-        document.body.classList.remove('modal-open');
-        const backdrop = document.querySelector('.modal-backdrop');
-        if (backdrop) backdrop.remove();
-    }
-
-    document.getElementById('bookmark-title').value = '';
     renderBookmarks();
     showNotification('Marcador guardado con éxito', 'success');
 }
@@ -2324,9 +2311,6 @@ async function editNote(note) {
 
 // Función para eliminar nota
 async function deleteNote(id) {
-    if (!confirm('¿Estás seguro de que deseas eliminar esta nota?')) {
-        return;
-    }
 
     try {
         // Obtener el token de antiforgery del formulario oculto
