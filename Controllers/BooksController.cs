@@ -86,7 +86,7 @@ namespace EReaderApp.Controllers
         [HttpPost]
         [Authorize(Policy = "RequireAdminRole")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Book book, IFormFile? file, int categoryId)
+        public async Task<IActionResult> Create(Book book, IFormFile? file, IFormFile? coverImage, int categoryId)
         {
             if (categoryId <= 0)
             {
@@ -102,7 +102,7 @@ namespace EReaderApp.Controllers
                 return View(book);
             }
 
-            // Handle file upload
+            // Handle PDF file upload
             if (file != null && file.Length > 0)
             {
                 // Create the full path to the uploads/books-PDF directory
@@ -137,6 +137,32 @@ namespace EReaderApp.Controllers
                 return View(book);
             }
 
+            // Handle cover image upload - takes precedence over URL
+            if (coverImage != null && coverImage.Length > 0)
+            {
+                // Create the full path to the uploads/book-covers directory
+                var coverUploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "book-covers");
+
+                // Ensure the directory exists
+                if (!Directory.Exists(coverUploadsFolder))
+                {
+                    Directory.CreateDirectory(coverUploadsFolder);
+                }
+
+                // Generate a unique filename to avoid collisions
+                string coverFileName = Guid.NewGuid().ToString() + "_" + coverImage.FileName;
+                var coverFilePath = Path.Combine(coverUploadsFolder, coverFileName);
+
+                // Save the cover image file
+                using (var stream = new FileStream(coverFilePath, FileMode.Create))
+                {
+                    await coverImage.CopyToAsync(stream);
+                }
+
+                // Save the relative path to the database (accessible from the browser)
+                book.ImageLink = "/uploads/book-covers/" + coverFileName;
+            }
+
             // Ensure book has at least minimal required data
             if (string.IsNullOrWhiteSpace(book.Title) || string.IsNullOrWhiteSpace(book.Author))
             {
@@ -168,7 +194,7 @@ namespace EReaderApp.Controllers
                 await TryFetchBookDetailsFromOpenLibrary(book);
             }
 
-            // Try to fetch cover image from Google Books if not provided
+            // Try to fetch cover image from Google Books if no manual image/URL provided
             if (string.IsNullOrWhiteSpace(book.ImageLink))
             {
                 await TryFetchCoverImageFromGoogleBooks(book);

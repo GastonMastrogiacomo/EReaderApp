@@ -89,9 +89,40 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label asp-for="ImageLink" class="form-label">Cover Image URL</label>
-                        <input asp-for="ImageLink" class="form-control" />
+                        <label class="form-label">Cover Image</label>
+
+                        <!-- Tab navigation for image options -->
+                        <ul class="nav nav-pills nav-sm mb-2" id="cover-image-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active small" id="url-tab" data-bs-toggle="pill" data-bs-target="#url-panel" type="button" role="tab">
+                                    <i class="fas fa-link me-1"></i>URL
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link small" id="upload-tab" data-bs-toggle="pill" data-bs-target="#upload-panel" type="button" role="tab">
+                                    <i class="fas fa-upload me-1"></i>Upload
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab content -->
+                        <div class="tab-content" id="cover-image-content">
+                            <!-- URL Panel -->
+                            <div class="tab-pane fade show active" id="url-panel" role="tabpanel">
+                                <input asp-for="ImageLink" class="form-control" placeholder="Enter image URL or use book search" />
+                                <div class="form-text">Image URL will be auto-filled when searching for books</div>
+                            </div>
+
+                            <!-- Upload Panel -->
+                            <div class="tab-pane fade" id="upload-panel" role="tabpanel">
+                                <input type="file" name="coverImage" id="coverImageFile" class="form-control" accept="image/*" />
+                                <div class="form-text">Upload a custom cover image (JPG, PNG, etc.)</div>
+                            </div>
+                        </div>
+
                         <span asp-validation-for="ImageLink" class="text-danger"></span>
+
+                        <!-- Preview (works for both URL and upload) -->
                         <div id="cover-preview" class="mt-2" style="display: none;">
                             <img src="" alt="Book cover preview" class="img-thumbnail" style="max-height: 150px;" />
                         </div>
@@ -174,7 +205,7 @@
     </script>
 
     <script>
-               document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function() {
             // Elements
             const searchBtn = document.getElementById('search-book-btn');
             const titleSearchInput = document.getElementById('book-title-search');
@@ -187,6 +218,7 @@
             const pageCountInput = document.querySelector('input[name="PageCount"]');
             const authorBioInput = document.querySelector('textarea[name="AuthorBio"]');
             const pdfFileInput = document.getElementById('pdfFile');
+            const coverImageFile = document.getElementById('coverImageFile');
 
             const searchStatus = document.getElementById('search-status');
             const searchResults = document.getElementById('search-results');
@@ -222,6 +254,24 @@
             imageLinkInput.addEventListener('change', updateCoverPreview);
             imageLinkInput.addEventListener('input', updateCoverPreview);
 
+            // Add new event listener for file upload
+            coverImageFile.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        coverImage.src = e.target.result;
+                        coverPreview.style.display = 'block';
+                    };
+
+                    reader.readAsDataURL(file);
+
+                    // Clear the URL input when file is selected
+                    imageLinkInput.value = '';
+                }
+            });
+
             // PDF file change event for page count detection
             pdfFileInput.addEventListener('change', function() {
                 if (this.files && this.files[0]) {
@@ -230,17 +280,20 @@
             });
 
             function updateCoverPreview() {
-                const imageUrl = imageLinkInput.value.trim();
-                if (imageUrl) {
-                    coverImage.src = imageUrl;
-                    coverPreview.style.display = 'block';
+                // Only update if no file is selected
+                if (!coverImageFile.files || coverImageFile.files.length === 0) {
+                    const imageUrl = imageLinkInput.value.trim();
+                    if (imageUrl) {
+                        coverImage.src = imageUrl;
+                        coverPreview.style.display = 'block';
 
-                    // Handle image load error
-                    coverImage.onerror = function() {
+                        // Handle image load error
+                        coverImage.onerror = function() {
+                            coverPreview.style.display = 'none';
+                        }
+                    } else {
                         coverPreview.style.display = 'none';
                     }
-                } else {
-                    coverPreview.style.display = 'none';
                 }
             }
 
@@ -378,8 +431,8 @@
                     if (data.items && data.items.length > 0) {
                         const bookInfo = data.items[0].volumeInfo;
 
-                        // Set image link if available
-                        if (bookInfo.imageLinks) {
+                        // Set image link if available and no file is uploaded
+                        if (bookInfo.imageLinks && (!coverImageFile.files || coverImageFile.files.length === 0)) {
                             imageLinkInput.value = bookInfo.imageLinks.extraLarge ||
                                                   bookInfo.imageLinks.large ||
                                                   bookInfo.imageLinks.medium ||

@@ -8,9 +8,9 @@
  * ============================== */
 :root {
     /* Colores principales - Modificados para favorecer tema claro */
-    --reader-bg-color: #ffffff !important; /* Cambiado de #f6f6f6 a blanco puro */
-    --reader-page-color: #ffffff !important; /* Cambiado de #fffff8 a blanco puro */
-    --reader-text-color: #333333 !important;
+    --reader-bg-color: #ffffff;
+    --reader-page-color: #ffffff;
+    --reader-text-color: #333333;
     --reader-border-color: #ddd;
     --reader-shadow-color: rgba(0, 0, 0, 0.08);
     --reader-primary-color: #4361ee;
@@ -34,6 +34,8 @@
     max-width: 1400px;
     margin: 0 auto;
     padding: 1rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -46,17 +48,32 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 1rem;
     border-bottom: 1px solid var(--reader-border-color);
     background-color: var(--reader-bg-color);
     font-size: 0.85rem;
+    min-height: 45px;
 }
 
 .kindle-title {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
+
+    .kindle-title .book-author {
+        font-weight: 500;
+        line-height: 1.2;
+    }
+
+    .kindle-title small {
+        font-size: 0.75rem;
+        line-height: 1;
+    }
 
 .book-title {
     font-weight: 500;
@@ -95,25 +112,53 @@
     background-color: var(--reader-bg-color);
     font-size: 0.7rem;
     color: #666;
+    width: 100%;
 }
 
-.progress-text {
-    margin-right: 0.5rem;
-    min-width: 40px;
+    .kindle-progress .progress-text {
+        margin-right: 0.5rem;
+        min-width: 40px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+    }
+
+    .kindle-progress .progress {
+        flex-grow: 1;
+        height: 3px;
+        background-color: #ddd;
+        border-radius: 0;
+        margin: 0;
+    }
+
+    .kindle-progress .progress-bar {
+        background-color: var(--reader-primary-color);
+        transition: width 0.3s ease;
+    }
+
+/* Inline progress bar in header (smaller version) */
+.kindle-progress-inline {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+    max-width: 200px;
 }
 
-.kindle-progress .progress {
-    flex-grow: 1;
-    height: 3px;
-    background-color: #ddd;
-    border-radius: 0;
-    margin: 0;
-}
+    .kindle-progress-inline .progress {
+        border-radius: 2px;
+        flex-grow: 1;
+        margin: 0 0.5rem;
+        height: 4px;
+    }
 
-.kindle-progress .progress-bar {
-    background-color: var(--reader-primary-color);
-    transition: width 0.5s ease;
-}
+    .kindle-progress-inline .progress-bar {
+        transition: width 0.3s ease;
+    }
+
+    .kindle-progress-inline .progress-text {
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
 
 /* Estilo general para la barra de progreso */
 .progress {
@@ -135,10 +180,18 @@
     margin: 0;
     border-radius: 8px;
     border-bottom: 1px solid var(--reader-border-color);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     background-color: var(--reader-page-color);
     transition: all 0.3s ease;
+    margin-bottom: 0.5rem;
+    padding: 0.75rem;
+    position: relative;
+    z-index: 1000;
 }
+
+    #reader-controls-panel .gap-2 > * {
+        margin-bottom: 0;
+    }
 
     #reader-controls-panel .btn-outline-secondary {
         border-color: #ccc;
@@ -149,6 +202,18 @@
             background-color: #f8f8f8;
             color: #333;
         }
+
+    /* Ensure all dropdowns in controls have high z-index */
+    #reader-controls-panel .dropdown-menu {
+        z-index: 10000 !important;
+    }
+
+    .fullscreen-mode .dropdown-menu.show {
+    position: fixed !important;
+    z-index: 999999 !important;
+    contain: none !important;
+    clip-path: none !important;
+}
 
 /* Mejoras para los controles del lector */
 .reader-controls {
@@ -185,8 +250,8 @@
     flex-direction: row;
     flex-grow: 1;
     position: relative;
-    height: calc(100vh - 80px);
-    gap: 1rem;
+    height: calc(100vh - 120px);
+    gap: 0.75rem;
     min-height: 80vh;
 }
 
@@ -194,8 +259,8 @@
  * 7. PANELES LATERALES
  * ============================== */
 #side-panel, #notes-panel {
-    flex: 0 0 300px;
-    max-height: 80vh;
+    flex: 0 0 280px;
+    max-height: calc(100vh - 120px);
     overflow-y: auto;
     position: sticky;
     top: 1rem;
@@ -203,7 +268,23 @@
     box-shadow: 0 2px 8px var(--reader-shadow-color);
     transition: all 0.3s ease;
     z-index: 100;
+    padding: 0;
 }
+
+    #side-panel .nav-tabs {
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 0;
+    }
+
+        #side-panel .nav-tabs .nav-link {
+            font-size: 0.85rem;
+            border-radius: 0;
+        }
+
+    #side-panel .tab-content {
+        height: calc(100% - 42px);
+        overflow-y: auto;
+    }
 
 /* ==============================
  * 8. CONTENEDOR DEL LIBRO
@@ -214,6 +295,7 @@
     border-radius: 8px;
     box-shadow: 0 2px 8px var(--reader-shadow-color);
     background-color: var(--reader-bg-color);
+    min-height: calc(100vh - 120px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -221,8 +303,8 @@
     position: relative;
     height: 100%;
     transition: all 0.3s ease;
-    min-height: 80vh;
     overflow: hidden;
+    min-width: 0;
 }
 
 #book-view {
@@ -233,7 +315,8 @@
     align-items: center;
     position: relative;
     overflow: auto;
-    padding: 1rem;
+    flex-grow: 1;
+    padding: 0.75rem;
 }
 
 /* ==============================
@@ -291,7 +374,7 @@
 /* Lomo del libro */
 .book-spine {
     width: 4px;
-    background: linear-gradient(to right, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.05) 100%);
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.05) 100%);
     align-self: stretch;
     position: relative;
 }
@@ -301,7 +384,7 @@
         position: absolute;
         height: 100%;
         width: 1px;
-        background-color: rgba(0,0,0,0.1);
+        background-color: rgba(0, 0, 0, 0.1);
     }
 
     .book-spine::before {
@@ -314,10 +397,10 @@
 
 /* Canvas de páginas */
 .page-canvas {
-    display: block; /* Elimina espacio extra bajo el canvas */
+    display: block;
     max-width: 100%;
     height: auto;
-    filter: none !important; /* Asegurar que no haya filtros por defecto */
+    filter: none !important;
 }
 
 /* ==============================
@@ -393,7 +476,7 @@
 /* ==============================
  * 11. TEMAS DEL LECTOR
  * ============================== */
-/* Tema claro - Mayor especificidad y !important para forzar este tema */
+/* Tema claro */
 html body .theme-light,
 body #book-container.theme-light,
 .theme-light {
@@ -411,7 +494,7 @@ body #book-container.theme-light,
     color: var(--theme-dark-text);
 }
 
-/* Tema claro para las páginas del libro - Alta especificidad */
+/* Páginas del libro */
 html body .theme-light .book-page,
 body #book-container.theme-light .book-page {
     background-color: var(--theme-light-bg) !important;
@@ -428,26 +511,23 @@ body #book-container.theme-light .book-page {
     color: var(--theme-dark-text);
 }
 
-/* Reglas específicas para canvas en tema claro */
+/* Canvas filters por tema */
 html body .theme-light .page-canvas {
     filter: none !important;
     -webkit-filter: none !important;
 }
 
-/* Reglas específicas para canvas en tema sepia - misma especificidad */
 html body .theme-sepia .page-canvas {
     filter: sepia(0.5) !important;
     -webkit-filter: sepia(0.5) !important;
 }
 
-/* Reglas específicas para canvas en tema oscuro - misma especificidad */
 html body .theme-dark .page-canvas {
     filter: invert(0.85) hue-rotate(180deg) !important;
     -webkit-filter: invert(0.85) hue-rotate(180deg) !important;
 }
 
-
-/* Reglas específicas para los contenedores de página en tema claro */
+/* Contenedores de página */
 html body .theme-light #single-page-container,
 html body .theme-light #double-page-container,
 html body .theme-light .single-page,
@@ -456,7 +536,7 @@ html body .theme-light .right-page {
     background-color: var(--theme-light-bg) !important;
 }
 
-/* Asegurar que #book-container siempre tenga el tema claro por defecto */
+/* Tema por defecto para book-container */
 #book-container {
     background-color: var(--theme-light-bg) !important;
     color: var(--theme-light-text) !important;
@@ -467,15 +547,17 @@ html body .theme-light .right-page {
  * ============================== */
 .theme-menu {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 5px);
     right: 0;
-    background-color: white;
+    background-color: white !important;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     padding: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
+    z-index: 9999;
     min-width: 200px;
+    transform: translateX(0);
+    color: #333333 !important;
 }
 
 .theme-options {
@@ -489,10 +571,17 @@ html body .theme-light .right-page {
     border-radius: 4px;
     text-align: center;
     transition: background-color 0.2s;
+    color: #333333 !important;
 }
 
     .theme-option:hover {
-        background-color: #f0f0f0;
+        background-color: #f0f0f0 !important;
+        color: #333333 !important;
+    }
+
+    .theme-option span {
+        color: #333333 !important;
+        font-size: 0.85rem;
     }
 
 .theme-swatch {
@@ -516,9 +605,27 @@ html body .theme-light .right-page {
 }
 
 .theme-option.active {
-    background-color: #f0f0f0;
+    background-color: #f0f0f0 !important;
     font-weight: 500;
+    color: #333333 !important;
 }
+
+    .theme-option.active span {
+        color: #333333 !important;
+    }
+
+/* Ensure theme menu is never affected by dark theme */
+.theme-dark .theme-menu,
+.theme-dark .theme-option,
+.theme-dark .theme-option span {
+    background-color: white !important;
+    color: #333333 !important;
+}
+
+    .theme-dark .theme-option:hover {
+        background-color: #f0f0f0 !important;
+        color: #333333 !important;
+    }
 
 /* ==============================
  * 13. MODO PANTALLA COMPLETA
@@ -544,18 +651,79 @@ html body .theme-light .right-page {
         border: none;
         border-radius: 0;
         box-shadow: none;
+        z-index: 9999;
     }
 
     .fullscreen-mode #book-view {
         height: 100%;
         width: 100%;
         padding: 0;
+        z-index: 9999;
     }
 
     .fullscreen-mode .kindle-top-bar,
     .fullscreen-mode .kindle-progress,
     .fullscreen-mode #reader-controls-panel {
         display: none !important;
+    }
+
+    /* Show toggle controls button in fullscreen for accessibility */
+    .fullscreen-mode #toggle-controls {
+        position: fixed !important;
+        top: 10px !important;
+        right: 10px !important;
+        z-index: 10004 !important;
+        background-color: rgba(0, 0, 0, 0.7) !important;
+        color: white !important;
+        border-radius: 4px !important;
+        padding: 8px !important;
+        display: block !important;
+        border: none !important;
+    }
+
+        .fullscreen-mode #toggle-controls:hover {
+            background-color: rgba(0, 0, 0, 0.9) !important;
+        }
+
+    /* If controls are shown in fullscreen (via JS), ensure proper z-index */
+    .fullscreen-mode #reader-controls-panel[style*="block"] {
+        position: fixed !important;
+        top: 10px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 10003 !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    /* CRITICAL: Ensure all dropdowns in fullscreen have maximum z-index */
+    .fullscreen-mode .dropdown {
+        position: relative !important;
+        z-index: 10100 !important;
+    }
+
+    .fullscreen-mode .dropdown-menu {
+        z-index: 10110 !important;
+        position: absolute !important;
+        will-change: transform !important;
+    }
+
+    /* Specific fixes for zoom and view mode dropdowns */
+    .fullscreen-mode #zoom-level + .dropdown-menu,
+    .fullscreen-mode #view-mode + .dropdown-menu {
+        z-index: 10120 !important;
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        transform: none !important;
+    }
+
+    /* Make sure dropdown buttons themselves have high z-index */
+    .fullscreen-mode #zoom-level,
+    .fullscreen-mode #view-mode {
+        position: relative !important;
+        z-index: 10050 !important;
     }
 
     .fullscreen-mode::after {
@@ -570,11 +738,47 @@ html body .theme-light .right-page {
         font-size: 12px;
         opacity: 0.7;
         transition: opacity 0.3s ease;
+        z-index: 10002;
     }
 
     .fullscreen-mode:hover::after {
         opacity: 1;
     }
+
+/* Fix dropdown z-index issues in fullscreen and general use */
+.dropdown-menu {
+    z-index: 10000 !important;
+}
+
+.fullscreen-mode .dropdown-menu {
+    z-index: 10110 !important;
+}
+
+/* Ensure dropdowns appear above book content */
+#reader-controls-panel .dropdown {
+    position: relative;
+    z-index: 1000;
+}
+
+#reader-controls-panel .dropdown-menu {
+    z-index: 10000;
+}
+
+/* Additional fullscreen dropdown fixes */
+.fullscreen-mode #reader-controls-panel .dropdown {
+    position: relative !important;
+    z-index: 10100 !important;
+}
+
+.fullscreen-mode #reader-controls-panel .dropdown-menu {
+    z-index: 10110 !important;
+    position: absolute !important;
+}
+
+/* Fix theme menu in fullscreen */
+.fullscreen-mode .theme-menu {
+    z-index: 10115 !important;
+}
 
 /* ==============================
  * 14. INDICADOR DE CARGA
@@ -585,6 +789,7 @@ html body .theme-light .right-page {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 100;
+    padding: 2rem 1rem;
 }
 
 /* ==============================
@@ -604,6 +809,10 @@ html body .theme-light .right-page {
         background-color: rgba(67, 97, 238, 0.05);
         border-left-color: var(--reader-primary-color);
     }
+
+.list-group-flush .list-group-item {
+    padding: 0.5rem 0.75rem;
+}
 
 /* ==============================
  * 16. NOTAS
@@ -659,12 +868,14 @@ html body .theme-light .right-page {
 @media (max-width: 992px) {
     .reader-layout {
         flex-direction: column;
+        height: auto;
+        min-height: calc(100vh - 120px);
     }
 
     #side-panel, #notes-panel {
         flex: none;
         width: 100%;
-        max-height: 300px;
+        max-height: 250px;
     }
 
     #double-page-container {
@@ -681,7 +892,7 @@ html body .theme-light .right-page {
     .book-spine {
         width: 100%;
         height: 4px;
-        background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.05) 100%);
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.05) 100%);
     }
 
         .book-spine::before, .book-spine::after {
@@ -692,32 +903,37 @@ html body .theme-light .right-page {
     .reader-controls .row {
         flex-direction: column;
     }
-}
 
-/* ==============================
- * 19. FORZAR TEMA CLARO
- * ============================== */
-/* Reglas con máxima especificidad para sobrescribir cualquier tema oscuro */
-#book-container:not(.theme-sepia):not(.theme-dark) .page-canvas,
-#book-container:not(.theme-sepia):not(.theme-dark),
-#book-container:not(.theme-sepia):not(.theme-dark) .book-page,
-#book-container:not(.theme-sepia):not(.theme-dark) #single-page-container,
-#book-container:not(.theme-sepia):not(.theme-dark) #double-page-container {
-    filter: none !important;
-    background-color: #ffffff !important;
-    color: #333333 !important;
-}
+    .kindle-title {
+        font-size: 0.9rem;
+    }
 
-/* Si el usuario no ha seleccionado explícitamente sepia o dark, forzar light */
-body:not(.theme-sepia):not(.theme-dark) {
-    --reader-bg-color: #ffffff !important;
-    --reader-page-color: #ffffff !important;
-    --reader-text-color: #333333 !important;
+    #reader-controls-panel .d-flex {
+        gap: 0.5rem;
+    }
+
+    .kindle-progress-inline {
+        max-width: 150px;
+    }
 }
 
 @media (max-width: 768px) {
     .kindle-title {
         max-width: 200px;
+        font-size: 0.9rem;
+    }
+
+    .kindle-top-bar {
+        padding: 0.3rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    #reader-controls-panel {
+        padding: 0.5rem;
+    }
+
+    .reader-layout {
+        gap: 0.5rem;
     }
 
     #reader-controls-panel .btn-group {
@@ -732,11 +948,11 @@ body:not(.theme-sepia):not(.theme-dark) {
 
     .reader-container {
         padding: 0.5rem;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
     }
 
     #book-view {
         padding: 0.5rem;
     }
 }
-
-
