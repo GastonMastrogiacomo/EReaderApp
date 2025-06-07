@@ -1,7 +1,9 @@
 using EReaderApp.Data;
+using EReaderApp.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
+
 
 namespace EReaderApp
 {
@@ -14,8 +16,14 @@ namespace EReaderApp
             // Add all services BEFORE builder.Build()
 
             // Add database service
+            // builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            // options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(builder.Configuration.GetConnectionString("SupabaseConnection")));
+
+            // Add storage service
+            builder.Services.AddSingleton<StorageService>();
 
             builder.Services.AddControllersWithViews();
 
@@ -68,6 +76,14 @@ namespace EReaderApp
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+
+            app.Use(async (context, next) =>
+            {
+                context.Response.Headers.Add("X-Frame-Options", "DENY");
+                context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+                context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
+                await next();
+            });
 
             app.UseHttpsRedirection();
             app.UseStaticFiles(new StaticFileOptions

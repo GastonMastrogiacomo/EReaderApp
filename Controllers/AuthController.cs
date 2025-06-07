@@ -200,16 +200,20 @@ namespace EReaderApp.Controllers
         private string HashPassword(string password)
         {
             // For simplicity - in production use a proper hashing library
-            return Convert.ToBase64String(
+            /*return Convert.ToBase64String(
                 System.Security.Cryptography.SHA256.Create()
                 .ComputeHash(System.Text.Encoding.UTF8.GetBytes(password))
             );
+            */
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
         private bool VerifyPassword(string enteredPassword, string storedHash)
         {
-            var hashedEnteredPassword = HashPassword(enteredPassword);
-            return hashedEnteredPassword == storedHash;
+            //var hashedEnteredPassword = HashPassword(enteredPassword);
+            //return hashedEnteredPassword == storedHash;
+            return BCrypt.Net.BCrypt.Verify(enteredPassword, storedHash);
+
         }
 
         private bool IsPasswordValid(string password)

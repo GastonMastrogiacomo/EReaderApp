@@ -13,16 +13,19 @@ using System.Net.Http;
 using System.IO;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using EReaderApp.Services;
 
 namespace EReaderApp.Controllers
 {
     public class BooksController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly StorageService _storageService;
 
-        public BooksController(ApplicationDbContext context)
+        public BooksController(ApplicationDbContext context, StorageService storageService)
         {
             _context = context;
+            _storageService = storageService;
         }
 
         // GET: Books
@@ -210,6 +213,20 @@ namespace EReaderApp.Controllers
                 FKIdBook = book.IdBook,
                 FKIdCategory = categoryId
             };
+
+
+            //asd
+            if (file != null && file.Length > 0)
+            {
+                book.PdfPath = await _storageService.UploadPdfAsync(file, file.FileName);
+            }
+
+            if (coverImage != null && coverImage.Length > 0)
+            {
+                book.ImageLink = await _storageService.UploadImageAsync(coverImage, "book-covers");
+            }
+
+
             _context.BookCategories.Add(bookCategory);
             await _context.SaveChangesAsync();
 
