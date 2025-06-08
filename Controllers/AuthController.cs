@@ -196,10 +196,8 @@ namespace EReaderApp.Controllers
                 authProperties);
         }
 
-        // Simple password hashing (in production, use a more secure method)
         private string HashPassword(string password)
         {
-            // For simplicity - in production use a proper hashing library
             /*return Convert.ToBase64String(
                 System.Security.Cryptography.SHA256.Create()
                 .ComputeHash(System.Text.Encoding.UTF8.GetBytes(password))

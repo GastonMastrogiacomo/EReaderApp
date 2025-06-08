@@ -144,7 +144,7 @@ namespace EReaderApp.Controllers
             if (coverImage != null && coverImage.Length > 0)
             {
                 // Create the full path to the uploads/book-covers directory
-                var coverUploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "book-covers");
+                var coverUploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "book-cover");
 
                 // Ensure the directory exists
                 if (!Directory.Exists(coverUploadsFolder))
@@ -163,7 +163,7 @@ namespace EReaderApp.Controllers
                 }
 
                 // Save the relative path to the database (accessible from the browser)
-                book.ImageLink = "/uploads/book-covers/" + coverFileName;
+                book.ImageLink = "/uploads/book-cover/" + coverFileName;
             }
 
             // Ensure book has at least minimal required data
@@ -215,15 +215,72 @@ namespace EReaderApp.Controllers
             };
 
 
-            //asd
             if (file != null && file.Length > 0)
             {
-                book.PdfPath = await _storageService.UploadPdfAsync(file, file.FileName);
+                try
+                {
+                    // Try Supabase upload first
+                    book.PdfPath = await _storageService.UploadPdfAsync(file, file.FileName);
+
+                    if (string.IsNullOrEmpty(book.PdfPath))
+                    {
+                        // Fallback to local storage
+                        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "books-PDF");
+                        if (!Directory.Exists(uploadsFolder))
+                        {
+                            Directory.CreateDirectory(uploadsFolder);
+                        }
+
+                        string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+                        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+
+                        book.PdfPath = "/uploads/books-PDF/" + uniqueFileName;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("file", $"Error uploading file: {ex.Message}");
+                    ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
+                    return View(book);
+                }
             }
 
             if (coverImage != null && coverImage.Length > 0)
             {
-                book.ImageLink = await _storageService.UploadImageAsync(coverImage, "book-covers");
+                try
+                {
+                    book.ImageLink = await _storageService.UploadImageAsync(coverImage, "book-covers");
+
+                    if (string.IsNullOrEmpty(book.ImageLink))
+                    {
+                        // Fallback to local storage
+                        var coverUploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "book-covers");
+                        if (!Directory.Exists(coverUploadsFolder))
+                        {
+                            Directory.CreateDirectory(coverUploadsFolder);
+                        }
+
+                        string coverFileName = Guid.NewGuid().ToString() + "_" + coverImage.FileName;
+                        var coverFilePath = Path.Combine(coverUploadsFolder, coverFileName);
+
+                        using (var stream = new FileStream(coverFilePath, FileMode.Create))
+                        {
+                            await coverImage.CopyToAsync(stream);
+                        }
+
+                        book.ImageLink = "/uploads/book-covers/" + coverFileName;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log error but continue - cover image is optional
+                    Console.WriteLine($"Error uploading cover image: {ex.Message}");
+                }
             }
 
 

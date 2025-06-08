@@ -14,42 +14,65 @@ namespace EReaderApp.Services
             var url = configuration["Supabase:Url"];
             var key = configuration["Supabase:AnonKey"];
 
-            _supabase = new Supabase.Client(url, key);
+            var options = new Supabase.SupabaseOptions
+            {
+                AutoConnectRealtime = true
+            };
+
+            _supabase = new Supabase.Client(url, key, options);
+            _supabase.InitializeAsync().Wait();
         }
 
         public async Task<string> UploadPdfAsync(IFormFile file, string fileName)
         {
-            using var memoryStream = new MemoryStream();
-            await file.CopyToAsync(memoryStream);
-            var bytes = memoryStream.ToArray();
+            try
+            {
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                var bytes = memoryStream.ToArray();
 
-            var path = $"pdfs/{Guid.NewGuid()}_{fileName}";
+                var path = $"pdfs/{Guid.NewGuid()}_{fileName}";
 
-            await _supabase.Storage
-                .From(BOOKS_BUCKET)
-                .Upload(bytes, path);
+                await _supabase.Storage
+                    .From(BOOKS_BUCKET)
+                    .Upload(bytes, path);
 
-            // Return public URL
-            return _supabase.Storage
-                .From(BOOKS_BUCKET)
-                .GetPublicUrl(path);
+                // Return public URL
+                return _supabase.Storage
+                    .From(BOOKS_BUCKET)
+                    .GetPublicUrl(path);
+            }
+            catch (Exception ex)
+            {
+                // Log error and return local path as fallback
+                Console.WriteLine($"Error uploading to Supabase: {ex.Message}");
+                return null;
+            }
         }
 
         public async Task<string> UploadImageAsync(IFormFile file, string folder)
         {
-            using var memoryStream = new MemoryStream();
-            await file.CopyToAsync(memoryStream);
-            var bytes = memoryStream.ToArray();
+            try
+            {
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                var bytes = memoryStream.ToArray();
 
-            var path = $"{folder}/{Guid.NewGuid()}_{file.FileName}";
+                var path = $"{folder}/{Guid.NewGuid()}_{file.FileName}";
 
-            await _supabase.Storage
-                .From(IMAGES_BUCKET)
-                .Upload(bytes, path);
+                await _supabase.Storage
+                    .From(IMAGES_BUCKET)
+                    .Upload(bytes, path);
 
-            return _supabase.Storage
-                .From(IMAGES_BUCKET)
-                .GetPublicUrl(path);
+                return _supabase.Storage
+                    .From(IMAGES_BUCKET)
+                    .GetPublicUrl(path);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error uploading image to Supabase: {ex.Message}");
+                return null;
+            }
         }
     }
 }

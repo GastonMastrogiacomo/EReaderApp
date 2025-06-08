@@ -16,8 +16,8 @@ namespace EReaderApp
             // Add all services BEFORE builder.Build()
 
             // Add database service
-            // builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            // options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+             //builder.Services.AddDbContext<ApplicationDbContext>(options =>
+             //options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("SupabaseConnection")));
@@ -65,6 +65,9 @@ namespace EReaderApp
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
             });
+
+
+
 
             // Build app AFTER adding all services
             var app = builder.Build();

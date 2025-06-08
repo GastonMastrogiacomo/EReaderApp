@@ -1,19 +1,27 @@
-﻿FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+﻿FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base
 WORKDIR /app
-
-# Copy project file and restore dependencies
-COPY *.csproj ./
-RUN dotnet restore
-
-# Copy all files and build the app
-COPY . ./
-RUN dotnet publish -c Release -o out
-
-# Create the runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:7.0
-WORKDIR /app
-COPY --from=build /app/out .
-
-# Tell Render which port to use
 EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+WORKDIR /src
+COPY ["EReaderApp.csproj", "."]
+RUN dotnet restore "./EReaderApp.csproj"
+COPY . .
+WORKDIR "/src/."
+RUN dotnet build "EReaderApp.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "EReaderApp.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+# Create directories for local storage fallback
+RUN mkdir -p /app/wwwroot/uploads/books-PDF
+RUN mkdir -p /app/wwwroot/uploads/book-covers
+RUN mkdir -p /app/wwwroot/uploads/publications
+RUN mkdir -p /app/wwwroot/uploads/profile-pictures
+
 ENTRYPOINT ["dotnet", "EReaderApp.dll"]
