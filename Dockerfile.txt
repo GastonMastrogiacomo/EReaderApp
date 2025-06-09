@@ -24,4 +24,11 @@ RUN mkdir -p /app/wwwroot/uploads/book-covers
 RUN mkdir -p /app/wwwroot/uploads/publications
 RUN mkdir -p /app/wwwroot/uploads/profile-pictures
 
+# Set environment variables
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
+# Install ICU for globalization
+RUN apt-get update && apt-get install -y libicu-dev && rm -rf /var/lib/apt/lists/*
+
 ENTRYPOINT ["dotnet", "EReaderApp.dll"]

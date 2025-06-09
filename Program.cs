@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace EReaderApp
 {
     public class Program
@@ -13,73 +12,136 @@ namespace EReaderApp
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add all services BEFORE builder.Build()
+            // Configure database based on environment
+            if (builder.Environment.IsDevelopment())
+            {
+                // Use SQL Server for local development
+                builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            }
+            else
+            {
+                // Use PostgreSQL (Supabase) for production
+                string connectionString = Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING")
+                    ?? builder.Configuration.GetConnectionString("SupabaseConnection");
 
-            // Add database service
-             //builder.Services.AddDbContext<ApplicationDbContext>(options =>
-             //options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    throw new InvalidOperationException("Supabase connection string is not configured for production.");
+                }
 
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("SupabaseConnection")));
+                builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseNpgsql(connectionString, npgsqlOptions =>
+                    {
+                        npgsqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 5,
+                            maxRetryDelay: TimeSpan.FromSeconds(30),
+                            errorCodesToAdd: null);
+                        npgsqlOptions.CommandTimeout(120);
+                    }));
+            }
 
             // Add storage service
             builder.Services.AddSingleton<StorageService>();
 
             builder.Services.AddControllersWithViews();
 
-            // Add authentication services (BEFORE builder.Build())
+            // Configure authentication
+            var googleClientId = builder.Environment.IsProduction()
+                ? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
+                : builder.Configuration["Authentication:Google:ClientId"];
+
+            var googleClientSecret = builder.Environment.IsProduction()
+                ? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET")
+                : builder.Configuration["Authentication:Google:ClientSecret"];
+
             builder.Services.AddAuthentication(options => {
                 options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             })
-                .AddCookie(options =>
-                {
-                    options.LoginPath = "/Auth/Login";
-                    options.LogoutPath = "/Auth/Logout";
-                    options.AccessDeniedPath = "/Auth/AccessDenied";
-                    options.ExpireTimeSpan = TimeSpan.FromDays(7);
-                    options.SlidingExpiration = true;
-                })
-                .AddGoogle(googleOptions =>
-                {
-                    googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-                    googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-                    googleOptions.CallbackPath = "/signin-google"; // Default callback path
+            .AddCookie(options =>
+            {
+                options.LoginPath = "/Auth/Login";
+                options.LogoutPath = "/Auth/Logout";
+                options.AccessDeniedPath = "/Auth/AccessDenied";
+                options.ExpireTimeSpan = TimeSpan.FromDays(7);
+                options.SlidingExpiration = true;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = builder.Environment.IsProduction()
+                    ? CookieSecurePolicy.Always
+                    : CookieSecurePolicy.SameAsRequest;
+            })
+            .AddGoogle(googleOptions =>
+            {
+                googleOptions.ClientId = googleClientId;
+                googleOptions.ClientSecret = googleClientSecret;
+                googleOptions.CallbackPath = "/signin-google";
 
-                    // Explicitly set the required scopes
-                    googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.email");
-                    googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.profile");
-                    googleOptions.Scope.Add("openid");
-                });
+                googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.email");
+                googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.profile");
+                googleOptions.Scope.Add("openid");
+            });
 
             builder.Services.AddAuthorization(options =>
             {
                 options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
             });
 
-            // Configure session (BEFORE builder.Build())
+            // Configure session
             builder.Services.AddDistributedMemoryCache();
             builder.Services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromMinutes(30);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
+                options.Cookie.SecurePolicy = builder.Environment.IsProduction()
+                    ? CookieSecurePolicy.Always
+                    : CookieSecurePolicy.SameAsRequest;
             });
 
-
-
-
-            // Build app AFTER adding all services
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline (middleware)
-            if (!app.Environment.IsDevelopment())
+            // Apply database migrations on startup
+            try
+            {
+                using var scope = app.Services.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                if (app.Environment.IsProduction())
+                {
+                    // For production (PostgreSQL), apply migrations
+                    context.Database.Migrate();
+                    app.Logger.LogInformation("PostgreSQL database migrations applied successfully");
+                }
+                else
+                {
+                    // For development (SQL Server), ensure database is created
+                    context.Database.EnsureCreated();
+                    app.Logger.LogInformation("SQL Server database ensured");
+                }
+            }
+            catch (Exception ex)
+            {
+                app.Logger.LogError(ex, "Error with database setup");
+                // Don't throw in production - let the app start and show health check errors
+                if (app.Environment.IsDevelopment())
+                {
+                    throw; // In development, we want to see the error immediately
+                }
+            }
+
+            // Configure the HTTP request pipeline
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
+            // Security headers
             app.Use(async (context, next) =>
             {
                 context.Response.Headers.Add("X-Frame-Options", "DENY");
@@ -95,12 +157,11 @@ namespace EReaderApp
                 {
                     ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=86400");
                 }
-            }); app.UseRouting();
+            });
 
-            // Authentication middleware
+            app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.UseSession();
 
             app.MapControllerRoute(
