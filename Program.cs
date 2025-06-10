@@ -21,16 +21,12 @@ namespace EReaderApp
             }
             else
             {
+                // Fix PostgreSQL DateTime timezone issues
+                AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
                 // Use PostgreSQL (Supabase) for production
                 string connectionString = Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING")
                     ?? builder.Configuration.GetConnectionString("SupabaseConnection");
-
-                Console.WriteLine($"Is Production: {builder.Environment.IsProduction()}");
-                Console.WriteLine($"Environment Name: {builder.Environment.EnvironmentName}");
-
-                Console.WriteLine($"Connection string from env: '{Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING")}'");
-                Console.WriteLine($"Final connection string: '{connectionString}'");
-                Console.WriteLine($"Connection string length: {connectionString?.Length ?? 0}");
 
                 if (string.IsNullOrEmpty(connectionString))
                 {
