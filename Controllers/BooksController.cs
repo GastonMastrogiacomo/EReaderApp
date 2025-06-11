@@ -105,33 +105,40 @@ namespace EReaderApp.Controllers
                 return View(book);
             }
 
-            // Handle PDF file upload
+            // Handle PDF file upload - SUPABASE FIRST APPROACH
             if (file != null && file.Length > 0)
             {
-                // Create the full path to the uploads/books-PDF directory
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "books-PDF");
-
-                // Ensure the directory exists
-                if (!Directory.Exists(uploadsFolder))
+                try
                 {
-                    Directory.CreateDirectory(uploadsFolder);
+                    // Try Supabase upload first
+                    book.PdfPath = await _storageService.UploadPdfAsync(file, file.FileName);
+
+                    if (string.IsNullOrEmpty(book.PdfPath))
+                    {
+                        // Fallback to local storage
+                        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "books-PDF");
+                        if (!Directory.Exists(uploadsFolder))
+                        {
+                            Directory.CreateDirectory(uploadsFolder);
+                        }
+
+                        string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+                        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+
+                        book.PdfPath = "/uploads/books-PDF/" + uniqueFileName;
+                    }
                 }
-
-                // Generate a unique filename to avoid collisions
-                string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                // Save the file
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                catch (Exception ex)
                 {
-                    await file.CopyToAsync(stream);
+                    ModelState.AddModelError("file", $"Error uploading file: {ex.Message}");
+                    ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
+                    return View(book);
                 }
-
-                // Save the relative path to the database (accessible from the browser)
-                book.PdfPath = "/uploads/books-PDF/" + uniqueFileName;
-
-                // Extract page count from PDF using JavaScript will be handled on client-side
-                // The page count will be set via JavaScript before form submission
             }
             else
             {
@@ -140,30 +147,38 @@ namespace EReaderApp.Controllers
                 return View(book);
             }
 
-            // Handle cover image upload - takes precedence over URL
+            // Handle cover image upload - SUPABASE FIRST APPROACH
             if (coverImage != null && coverImage.Length > 0)
             {
-                // Create the full path to the uploads/book-covers directory
-                var coverUploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "book-cover");
-
-                // Ensure the directory exists
-                if (!Directory.Exists(coverUploadsFolder))
+                try
                 {
-                    Directory.CreateDirectory(coverUploadsFolder);
+                    book.ImageLink = await _storageService.UploadImageAsync(coverImage, "book-covers");
+
+                    if (string.IsNullOrEmpty(book.ImageLink))
+                    {
+                        // Fallback to local storage
+                        var coverUploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "book-covers");
+                        if (!Directory.Exists(coverUploadsFolder))
+                        {
+                            Directory.CreateDirectory(coverUploadsFolder);
+                        }
+
+                        string coverFileName = Guid.NewGuid().ToString() + "_" + coverImage.FileName;
+                        var coverFilePath = Path.Combine(coverUploadsFolder, coverFileName);
+
+                        using (var stream = new FileStream(coverFilePath, FileMode.Create))
+                        {
+                            await coverImage.CopyToAsync(stream);
+                        }
+
+                        book.ImageLink = "/uploads/book-covers/" + coverFileName;
+                    }
                 }
-
-                // Generate a unique filename to avoid collisions
-                string coverFileName = Guid.NewGuid().ToString() + "_" + coverImage.FileName;
-                var coverFilePath = Path.Combine(coverUploadsFolder, coverFileName);
-
-                // Save the cover image file
-                using (var stream = new FileStream(coverFilePath, FileMode.Create))
+                catch (Exception ex)
                 {
-                    await coverImage.CopyToAsync(stream);
+                    // Log error but continue - cover image is optional
+                    Console.WriteLine($"Error uploading cover image: {ex.Message}");
                 }
-
-                // Save the relative path to the database (accessible from the browser)
-                book.ImageLink = "/uploads/book-cover/" + coverFileName;
             }
 
             // Ensure book has at least minimal required data
@@ -213,76 +228,6 @@ namespace EReaderApp.Controllers
                 FKIdBook = book.IdBook,
                 FKIdCategory = categoryId
             };
-
-
-            if (file != null && file.Length > 0)
-            {
-                try
-                {
-                    // Try Supabase upload first
-                    book.PdfPath = await _storageService.UploadPdfAsync(file, file.FileName);
-
-                    if (string.IsNullOrEmpty(book.PdfPath))
-                    {
-                        // Fallback to local storage
-                        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "books-PDF");
-                        if (!Directory.Exists(uploadsFolder))
-                        {
-                            Directory.CreateDirectory(uploadsFolder);
-                        }
-
-                        string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-                        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                        using (var stream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await file.CopyToAsync(stream);
-                        }
-
-                        book.PdfPath = "/uploads/books-PDF/" + uniqueFileName;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("file", $"Error uploading file: {ex.Message}");
-                    ViewBag.Categories = new SelectList(_context.Categories, "IdCategory", "CategoryName");
-                    return View(book);
-                }
-            }
-
-            if (coverImage != null && coverImage.Length > 0)
-            {
-                try
-                {
-                    book.ImageLink = await _storageService.UploadImageAsync(coverImage, "book-covers");
-
-                    if (string.IsNullOrEmpty(book.ImageLink))
-                    {
-                        // Fallback to local storage
-                        var coverUploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "book-covers");
-                        if (!Directory.Exists(coverUploadsFolder))
-                        {
-                            Directory.CreateDirectory(coverUploadsFolder);
-                        }
-
-                        string coverFileName = Guid.NewGuid().ToString() + "_" + coverImage.FileName;
-                        var coverFilePath = Path.Combine(coverUploadsFolder, coverFileName);
-
-                        using (var stream = new FileStream(coverFilePath, FileMode.Create))
-                        {
-                            await coverImage.CopyToAsync(stream);
-                        }
-
-                        book.ImageLink = "/uploads/book-covers/" + coverFileName;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Log error but continue - cover image is optional
-                    Console.WriteLine($"Error uploading cover image: {ex.Message}");
-                }
-            }
-
 
             _context.BookCategories.Add(bookCategory);
             await _context.SaveChangesAsync();
