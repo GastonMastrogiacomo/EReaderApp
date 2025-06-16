@@ -26,12 +26,10 @@ namespace EReaderApp.Controllers
                 return NotFound();
             }
 
-            // Verificar si el archivo existe físicamente
-            string webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            string filePath = book.PdfPath.TrimStart('/');
-            string physicalPath = Path.Combine(webRootPath, filePath);
+            // Check if PDF is available (either local file or Supabase URL)
+            bool pdfAvailable = await IsPdfAvailable(book.PdfPath);
 
-            if (!System.IO.File.Exists(physicalPath))
+            if (!pdfAvailable)
             {
                 TempData["ErrorMessage"] = "El archivo PDF no se encuentra disponible.";
                 return RedirectToAction("Details", "Books", new { id = id });
@@ -78,6 +76,32 @@ namespace EReaderApp.Controllers
             ViewBag.ReadingState = readingState;
 
             return View(book);
+        }
+
+        private async Task<bool> IsPdfAvailable(string pdfPath)
+        {
+            try
+            {
+                if (pdfPath.StartsWith("https://") && pdfPath.Contains("supabase.co"))
+                {
+                    using var httpClient = new HttpClient();
+                    var response = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, pdfPath));
+                    return response.IsSuccessStatusCode;
+                }
+                else
+                {
+                    // For local files, check if file exists physically
+                    string webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                    string filePath = pdfPath.TrimStart('/');
+                    string physicalPath = Path.Combine(webRootPath, filePath);
+                    return System.IO.File.Exists(physicalPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking PDF availability: {ex.Message}");
+                return false;
+            }
         }
 
         [HttpPost]

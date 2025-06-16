@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore;
 namespace EReaderApp.Controllers
 {
     [Authorize(Policy = "RequireAdminRole")]
-    public class AdminController : Controller
+    public class AuthApiController : Controller
     {
         private readonly ApplicationDbContext _context;
 
-        public AdminController(ApplicationDbContext context)
+        public AuthApiController(ApplicationDbContext context)
         {
             _context = context;
         }
