@@ -216,22 +216,54 @@ namespace EReaderApp.Controllers
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
                 Console.WriteLine($"[BOOKMARK] UserId: {userId}");
 
+                // Check if bookmark already exists
+                var existingBookmark = await _context.BookMarks
+                    .FirstOrDefaultAsync(b => b.UserId == userId && b.BookId == bookId && b.PageNumber == pageNumber);
+
+                if (existingBookmark != null)
+                {
+                    Console.WriteLine($"[BOOKMARK] Bookmark already exists with ID: {existingBookmark.Id}");
+                    return Json(new { success = true, bookmarkId = existingBookmark.Id, message = "Bookmark already exists" });
+                }
+
                 var bookmark = new Bookmark
                 {
                     UserId = userId,
                     BookId = bookId,
                     PageNumber = pageNumber,
                     Title = title,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow // Use UTC for PostgreSQL
                 };
 
                 _context.BookMarks.Add(bookmark);
+
+                // Log the entity state
+                var entry = _context.Entry(bookmark);
+                Console.WriteLine($"[BOOKMARK] Entity State before save: {entry.State}");
+
                 var result = await _context.SaveChangesAsync();
 
                 Console.WriteLine($"[BOOKMARK] SaveChanges result: {result}");
                 Console.WriteLine($"[BOOKMARK] Bookmark ID after save: {bookmark.Id}");
+                Console.WriteLine($"[BOOKMARK] Entity State after save: {entry.State}");
+
+                // Verify it was actually saved
+                var savedBookmark = await _context.BookMarks
+                    .FirstOrDefaultAsync(b => b.Id == bookmark.Id);
+
+                if (savedBookmark == null)
+                {
+                    Console.WriteLine("[BOOKMARK ERROR] Bookmark not found after save!");
+                    return Json(new { success = false, message = "Bookmark save verification failed" });
+                }
 
                 return Json(new { success = true, bookmarkId = bookmark.Id });
+            }
+            catch (DbUpdateException dbEx)
+            {
+                Console.WriteLine($"[BOOKMARK DB ERROR] {dbEx.Message}");
+                Console.WriteLine($"[BOOKMARK DB ERROR] Inner: {dbEx.InnerException?.Message}");
+                return Json(new { success = false, message = "Database error: " + dbEx.InnerException?.Message ?? dbEx.Message });
             }
             catch (Exception ex)
             {

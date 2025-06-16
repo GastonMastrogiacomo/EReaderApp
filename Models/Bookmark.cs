@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EReaderApp.Models
 {
+    [Table("BookMarks")] 
     public class Bookmark
     {
         [Key]

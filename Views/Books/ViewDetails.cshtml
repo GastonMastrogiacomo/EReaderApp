@@ -361,17 +361,17 @@
                             modal.hide();
 
                             // Show success message
-                            alert(data.message || 'Book added to new library successfully');
+                            //alert(data.message || 'Book added to new library successfully');
 
                             // Refresh the page to show the new library
                             window.location.reload();
                         } else {
-                            alert(data.message || 'Failed to create library');
+                            //alert(data.message || 'Failed to create library');
                         }
                     })
                     .catch(error => {
                         console.error('Error creating library:', error);
-                        alert('An error occurred while creating the library');
+                        //alert('An error occurred while creating the library');
                     });
                 });
             }

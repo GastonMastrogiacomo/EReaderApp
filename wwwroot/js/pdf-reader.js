@@ -40,7 +40,7 @@ const bookId = document.getElementById('book-container')?.dataset.bookId || 1;
 
 // Función de inicialización
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("PDF Reader initialized");
+    //console.log("PDF Reader initialized");
 
     // Cargar el PDF
     loadPDF();
@@ -90,11 +90,11 @@ async function loadPDF() {
             return;
         }
 
-        console.log("Cargando PDF desde:", pdfPath);
+        //console.log("Cargando PDF desde:", pdfPath);
         pdfDoc = await pdfjsLib.getDocument(pdfPath).promise;
         totalPages = pdfDoc.numPages;
 
-        console.log("PDF cargado, páginas totales:", totalPages);
+        //console.log("PDF cargado, páginas totales:", totalPages);
 
         // Actualizar interfaz
         document.getElementById('page-count').textContent = totalPages;
@@ -130,7 +130,7 @@ async function loadPDF() {
 
     const autoSaveInterval = setInterval(function () {
         if (pdfDoc) {
-            console.log("Auto-saving position...");
+            //console.log("Auto-saving position...");
             savePosition();
         }
     }, 150000); // Every 15 seconds
@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // The original initialization will run, but we need to make sure our fixes
     // are applied. Let's set a short timeout to ensure the original code has run.
     setTimeout(() => {
-        console.log("Applying PDF Reader fixes...");
+        //console.log("Applying PDF Reader fixes...");
         // We can override specific functions here if needed
     }, 100);
 });
@@ -727,7 +727,7 @@ function applyThemeToElement(element) {
 function applyTheme() {
     // Use the correct settings object
     const currentSettings = window.ReaderApp ? window.ReaderApp.readerSettings : readerSettings;
-    console.log("Aplicandos tema:", currentSettings.theme);
+    //console.log("Aplicandos tema:", currentSettings.theme);
 
     // Apply theme to body element (for CSS compatibility)
     document.body.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
@@ -823,7 +823,7 @@ function updateNavigationButtons() {
 function goToPage(pageNum) {
     if (!pageNum || pageNum < 1 || pageNum > totalPages) return;
 
-    console.log("goToPage called with page:", pageNum);
+    //console.log("goToPage called with page:", pageNum);
     showPageLoadingIndicator();
 
     const direction = pageNum > currentPage ? 'next' : 'prev';
@@ -1145,7 +1145,7 @@ async function deleteBookmark(id) {
 
 // Guardar posición
 function savePosition() {
-    console.log("savePosition called, currentPage:", currentPage);
+    //console.log("savePosition called, currentPage:", currentPage);
 
     // Ensure valid page
     if (!currentPage || currentPage < 1 || isNaN(currentPage)) {
@@ -1159,11 +1159,11 @@ function savePosition() {
 
     // Define hasPageChanged - always check against lastPageTracked
     const hasPageChanged = currentPage !== lastPageTracked;
-    console.log("lastPageTracked:", lastPageTracked, "hasPageChanged:", hasPageChanged);
+    //console.log("lastPageTracked:", lastPageTracked, "hasPageChanged:", hasPageChanged);
 
     // Always update the server when page changes or enough time has passed (reduced threshold)
     if (elapsedTimeMinutes >= 0.25 || hasPageChanged) {  // 15 seconds instead of 1 minute
-        console.log("Saving reading state to server:", {
+        //console.log("Saving reading state to server:", {
             bookId, currentPage, viewMode, elapsedTimeMinutes
         });
 
@@ -1212,13 +1212,13 @@ function savePosition() {
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Server response:", data);
+                    //console.log("Server response:", data);
                     if (data.success) {
-                        console.log("Reading state saved successfully");
+                        //console.log("Reading state saved successfully");
                     }
                 })
                 .catch(error => {
-                    console.error("Error saving reading state:", error);
+                    //console.error("Error saving reading state:", error);
                 });
         }
 
@@ -1249,7 +1249,7 @@ function savePosition() {
         timestamp: new Date().toISOString()
     };
 
-    console.log("Saving to localStorage:", positionData);
+    //console.log("Saving to localStorage:", positionData);
     localStorage.setItem(`position_${bookId}`, JSON.stringify(positionData));
 
 
@@ -1261,9 +1261,9 @@ function loadPosition() {
     if (readingState && readingState !== 'null' && readingState !== '') {
         try {
             const state = JSON.parse(readingState);
-            console.log("Parsed reading state:", state);
+            //console.log("Parsed reading state:", state);
             currentPage = state.currentPage || 1; 
-            console.log("Setting currentPage to:", currentPage);
+            //console.log("Setting currentPage to:", currentPage);
             currentLeftPage = state.currentPage || 1;  
             currentRightPage = currentLeftPage + 1;
             scale = state.zoomLevel || 1.0;  
@@ -1274,10 +1274,10 @@ function loadPosition() {
 
             return;
         } catch (e) {
-            console.error('Error parsing reading state:', e);
+            //console.error('Error parsing reading state:', e);
         }
     } else {
-        console.log("No reading state found in data attribute");
+        //console.log("No reading state found in data attribute");
     }
 
     // Try localStorage if no reading state in data attribute
@@ -1285,7 +1285,7 @@ function loadPosition() {
     if (savedPosition) {
         try {
             const position = JSON.parse(savedPosition);
-            console.log("Loaded position from localStorage:", position);
+            //console.log("Loaded position from localStorage:", position);
             currentPage = position.page || 1;
             currentLeftPage = position.leftPage || 1;
             currentRightPage = position.rightPage || 2;
@@ -1295,11 +1295,11 @@ function loadPosition() {
             // Also set lastPageTracked
             lastPageTracked = currentPage;
         } catch (e) {
-            console.error('Error loading saved position:', e);
+            //console.error('Error loading saved position:', e);
             setDefaultPosition();
         }
     } else {
-        console.log("No position in localStorage, using defaults");
+        //console.log("No position in localStorage, using defaults");
         setDefaultPosition();
     }
 }
@@ -1328,7 +1328,7 @@ async function loadReaderSettings() {
                 savedTheme = localSettings.theme || 'light';
             }
         } catch (e) {
-            console.error('Error loading theme from localStorage:', e);
+            //console.error('Error loading theme from localStorage:', e);
         }
 
         // Configure with the saved theme
@@ -1339,12 +1339,12 @@ async function loadReaderSettings() {
             viewMode: 'double'
         };
 
-        console.log("Initial theme set to:", readerSettings.theme);
+        //console.log("Initial theme set to:", readerSettings.theme);
 
         // Update with full localStorage settings
         if (localSettings) {
             Object.assign(readerSettings, localSettings);
-            console.log("Full settings loaded from localStorage:", readerSettings.theme);
+            //console.log("Full settings loaded from localStorage:", readerSettings.theme);
         }
 
         // Store the localStorage theme BEFORE server overwrites it
@@ -1356,17 +1356,17 @@ async function loadReaderSettings() {
                 const response = await fetch('/ReaderSettings/GetSettings');
                 if (response.ok) {
                     const serverSettings = await response.json();
-                    console.log("Server returned theme:", serverSettings.theme);
+                    //console.log("Server returned theme:", serverSettings.theme);
 
                     // Apply server settings but preserve localStorage theme
                     Object.assign(readerSettings, serverSettings);
                     readerSettings.theme = preservedTheme; // Restore localStorage theme
 
-                    console.log("Final theme after preserving localStorage:", readerSettings.theme);
+                    //console.log("Final theme after preserving localStorage:", readerSettings.theme);
                     localStorage.setItem(`settings_${bookId}`, JSON.stringify(readerSettings));
                 }
             } catch (serverError) {
-                console.error('Error getting server settings:', serverError);
+                //console.error('Error getting server settings:', serverError);
             }
         }
 
@@ -1399,7 +1399,7 @@ async function loadReaderSettings() {
                     if (defaultZoom) defaultZoom.value = zoomConfig.scale || '1.0';
                 }
             } catch (e) {
-                console.error('Error al analizar la configuración de zoom:', e);
+                //console.error('Error al analizar la configuración de zoom:', e);
             }
         } else {
             // Si no hay configuración de zoom, usar ajuste a página por defecto
@@ -1427,7 +1427,7 @@ async function loadReaderSettings() {
             bookContainer.classList.add(`theme-${readerSettings.theme}`);
         }
     } catch (error) {
-        console.error('Error loading reader settings:', error);
+        //console.error('Error loading reader settings:', error);
         readerSettings.theme = 'light';
         applyTheme();
     }
@@ -1517,7 +1517,7 @@ async function saveReaderSettings() {
             }
         }
     } catch (error) {
-        console.error('Error al guardar configuración en el servidor:', error);
+        //console.error('Error al guardar configuración en el servidor:', error);
         // No mostrar error al usuario, ya se guardó localmente
     }
 
@@ -1562,7 +1562,7 @@ async function safeRenderDoublePages() {
         const rightCanvas = document.getElementById('right-canvas');
 
         if (!leftCanvas || !rightCanvas) {
-            console.error('No se encontraron los canvas necesarios');
+            //console.error('No se encontraron los canvas necesarios');
             pagesRendering = false;
             return;
         }
@@ -1653,7 +1653,7 @@ async function safeRenderDoublePages() {
             goToPage(num);
         }
     } catch (error) {
-        console.error(`Error al renderizar páginas ${currentLeftPage}-${currentRightPage}: `, error);
+        //console.error(`Error al renderizar páginas ${currentLeftPage}-${currentRightPage}: `, error);
         pagesRendering = false;
         const doublePageContainer = document.getElementById('double-page-container');
         if (doublePageContainer) {
@@ -1674,7 +1674,7 @@ async function safeRenderDoublePages() {
             const leftCanvas = document.getElementById('left-canvas');
             if (leftCanvas && pdfDoc) {
                 renderPage(currentLeftPage, leftCanvas).catch(e =>
-                    console.error('Error en recuperación:', e));
+                    //console.error('Error en recuperación:', e));
             }
         }, 1000);
     }
@@ -1684,7 +1684,7 @@ async function safeRenderDoublePages() {
 function safeRenderBlankPage(canvas) {
     return new Promise((resolve) => {
         if (!canvas) {
-            console.error('Canvas no encontrado para página en blanco');
+            //console.error('Canvas no encontrado para página en blanco');
             resolve();
             return;
         }
@@ -1711,7 +1711,7 @@ function safeRenderBlankPage(canvas) {
             bgColor = getComputedStyle(document.documentElement)
                 .getPropertyValue('--reader-page-color').trim() || '#ffffff';
         } catch (e) {
-            console.warn('No se pudo obtener el color del tema:', e);
+            //console.warn('No se pudo obtener el color del tema:', e);
         }
 
         // Dibujar fondo

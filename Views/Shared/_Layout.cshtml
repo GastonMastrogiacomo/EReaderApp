@@ -40,6 +40,9 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-controller="Publications" asp-action="Index">Community</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-controller="Home" asp-action="About">About Us</a>
+                        </li>
                     </ul>
 
                     <div class="d-flex">
@@ -108,35 +111,46 @@
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
+    <footer class="footer border-top mt-5 bg-white">
         <div class="container">
-            <div class="row py-4">
+            <div class="row py-4 gy-4 text-center text-md-start">
                 <div class="col-md-4">
-                    <h5>LibroLibre</h5>
-                    <p>Your gateway to unlimited reading. Access, read, and share public domain books.</p>
+                    <h5 class="fw-bold text-primary">LibroLibre</h5>
+                    <p class="small text-muted mb-0">
+                        Your gateway to unlimited reading.<br>
+                        Access, read, and share timeless books with ease.
+                    </p>
                 </div>
                 <div class="col-md-4">
-                    <h5>Links</h5>
+                    <h6 class="fw-semibold text-secondary">Explore</h6>
                     <ul class="list-unstyled">
-                        <li><a asp-controller="Home" asp-action="Index">Home</a></li>
-                        <li><a asp-controller="Home" asp-action="Privacy">Privacy</a></li>
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="#">Contact</a></li>
+                        <li class="mb-2">
+                            <a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted">Home</a>
+                        </li>
+                        <li class="mb-2">
+                            <a asp-controller="Home" asp-action="Privacy" class="text-decoration-none text-muted">Privacy Policy</a>
+                        </li>
+                        <li class="mb-2">
+                            <a asp-controller="Home" asp-action="About" class="text-decoration-none text-muted">About Us</a>
+                        </li>
                     </ul>
                 </div>
                 <div class="col-md-4">
-                    <h5>Connect</h5>
-                    <div class="social-icons">
-                        <a href="#" class="me-2"><i class="fab fa-twitter fa-lg"></i></a>
-                        <a href="#" class="me-2"><i class="fab fa-instagram fa-lg"></i></a>
+                    <h6 class="fw-semibold text-secondary">Stay Connected</h6>
+                    <div class="d-flex justify-content-center justify-content-md-start gap-3 mt-2 social-icons">
+                        <a href="#"><i class="fab fa-twitter fa-lg"></i></a>
+                        <a href="#"><i class="fab fa-instagram fa-lg"></i></a>
+                        <a href="#"><i class="fab fa-github fa-lg"></i></a>
                     </div>
                 </div>
             </div>
-            <div class="text-center py-3">
-                &copy; 2025 - LibroLibreDV - All rights reserved
+            <div class="text-center pt-3 border-top border-light small text-muted">
+                &copy; 2025 LibroLibreDV — All rights reserved.
             </div>
         </div>
     </footer>
+
+
 
     <form id="antiforgery-form" method="post" style="display:none;">
         @Html.AntiForgeryToken()

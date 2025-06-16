@@ -1,0 +1,278 @@
+﻿@{
+    ViewData["Title"] = "About Us";
+}
+
+<div class="about-hero-section py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <img src="~/images/undraw_book-lover_f1dq.svg" alt="Our Story Illustration" class="img-fluid">
+            </div>
+            <div class="col-lg-6">
+                <h2 class="fw-bold mb-3">Our Story</h2>
+                <p class="text-muted lead mb-0">
+                    LibroLibre was born from a deep passion for literature and a vision to modernize the way we read.
+                    We aim to create a space where timeless books and smart technology work together to make reading more accessible, meaningful, and fun.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="h3 mb-4 text-center">Why We Built This</h2>
+                <p class="text-center mb-5">
+                    As avid readers ourselves, we understood the need for a platform that respects both
+                    the tradition of reading and the convenience of modern technology.
+                </p>
+
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="icon-box mb-3">
+                                <i class="fas fa-heart text-danger" style="font-size: 3rem;"></i>
+                            </div>
+                            <h4>Passion for Reading</h4>
+                            <p class="text-muted">
+                                Every feature is crafted by readers, for readers. We believe in the
+                                transformative power of books.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="icon-box mb-3">
+                                <i class="fas fa-users text-primary" style="font-size: 3rem;"></i>
+                            </div>
+                            <h4>Community First</h4>
+                            <p class="text-muted">
+                                Reading is better when shared. Connect with fellow book lovers,
+                                share reviews, and discover new favorites.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="icon-box mb-3">
+                                <i class="fas fa-mobile-alt text-success" style="font-size: 3rem;"></i>
+                            </div>
+                            <h4>Read Anywhere</h4>
+                            <p class="text-muted">
+                                Your entire library in your pocket. Seamlessly switch between
+                                devices and never lose your place.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <h3 class="mb-4">Our Mission</h3>
+                <p class="mb-4">
+                    We're on a mission to make reading more accessible, enjoyable, and social.
+                    By combining the best of traditional reading experiences with innovative
+                    digital features, we're creating a platform where stories come alive.
+                </p>
+                <blockquote class="blockquote">
+                    <p class="mb-3 fst-italic">
+                        "A reader lives a thousand lives before he dies. The man who never reads lives only one."
+                    </p>
+                    <footer class="blockquote-footer">George R.R. Martin</footer>
+                </blockquote>
+            </div>
+            <div class="col-lg-6">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="stat-box text-center p-4 bg-light rounded">
+                            <h2 class="text-primary mb-2">Curated</h2>
+                            <p class="text-muted mb-0">Handpicked Reads</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-box text-center p-4 bg-light rounded">
+                            <h2 class="text-success mb-2">24/7</h2>
+                            <p class="text-muted mb-0">Access Your Library</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-box text-center p-4 bg-light rounded">
+                            <h2 class="text-warning mb-2">∞</h2>
+                            <p class="text-muted mb-0">Stories to Discover</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-box text-center p-4 bg-light rounded">
+                            <h2 class="text-info mb-2">100%</h2>
+                            <p class="text-muted mb-0">Reading Focused</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h3 class="mb-4">Join Our Reading Journey</h3>
+                <p class="mb-4">
+                    Whether you're a casual reader or a literary enthusiast, E-Reader App is designed
+                    to enhance your reading experience. Start your journey with us today.
+                </p>
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a asp-controller="Books" asp-action="Search" class="btn btn-light btn-lg">
+                        <i class="fas fa-search me-2"></i>Explore Books
+                    </a>
+                    @if (!User.Identity.IsAuthenticated)
+                    {
+                        <a asp-controller="Auth" asp-action="Register" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Join Now
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-10 mx-auto">
+                <h3 class="text-center mb-5">What Makes Us Different</h3>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="feature-card h-100 p-4 border rounded">
+                            <div class="d-flex align-items-start">
+                                <div class="feature-icon me-3">
+                                    <i class="fas fa-bookmark text-primary" style="font-size: 2rem;"></i>
+                                </div>
+                                <div>
+                                    <h5>Smart Bookmarking</h5>
+                                    <p class="text-muted mb-0">
+                                        Never lose your place. Our intelligent bookmarking system remembers
+                                        where you left off across all your devices.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-card h-100 p-4 border rounded">
+                            <div class="d-flex align-items-start">
+                                <div class="feature-icon me-3">
+                                    <i class="fas fa-moon text-primary" style="font-size: 2rem;"></i>
+                                </div>
+                                <div>
+                                    <h5>Comfortable Reading</h5>
+                                    <p class="text-muted mb-0">
+                                        Customizable themes, fonts, and layouts ensure comfortable reading
+                                        any time of day or night.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-card h-100 p-4 border rounded">
+                            <div class="d-flex align-items-start">
+                                <div class="feature-icon me-3">
+                                    <i class="fas fa-folder-open text-primary" style="font-size: 2rem;"></i>
+                                </div>
+                                <div>
+                                    <h5>Personal Libraries</h5>
+                                    <p class="text-muted mb-0">
+                                        Organize your reading with custom libraries. Create collections
+                                        for every mood and interest.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-card h-100 p-4 border rounded">
+                            <div class="d-flex align-items-start">
+                                <div class="feature-icon me-3">
+                                    <i class="fas fa-comments text-primary" style="font-size: 2rem;"></i>
+                                </div>
+                                <div>
+                                    <h5>Reading Community</h5>
+                                    <p class="text-muted mb-0">
+                                        Share reviews, discover recommendations, and connect with readers
+                                        who share your literary tastes.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .about-hero-section {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 50vh;
+        display: flex;
+        align-items: center;
+    }
+
+    .min-vh-50 {
+        min-height: 50vh;
+    }
+
+    .stat-box {
+        transition: transform 0.3s ease;
+    }
+
+        .stat-box:hover {
+            transform: translateY(-5px);
+        }
+
+    .feature-card {
+        transition: all 0.3s ease;
+        background: #fff;
+    }
+
+        .feature-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+    .icon-box {
+        width: 80px;
+        height: 80px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,123,255,0.1);
+        border-radius: 50%;
+    }
+
+    .about-hero-section img {
+        max-width: 100%;
+        height: auto;
+        border: none;
+        box-shadow: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+
+
+</style>
