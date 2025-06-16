@@ -206,27 +206,48 @@ namespace EReaderApp.Controllers
             if (!User.Identity.IsAuthenticated)
                 return Unauthorized();
 
-            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-            // Verificar que el libro existe
-            var book = await _context.Books.FindAsync(bookId);
-            if (book == null)
-                return NotFound("Libro no encontrado");
-
-            // Crear marcador
-            var bookmark = new Bookmark
+            try
             {
-                UserId = userId,
-                BookId = bookId,
-                PageNumber = pageNumber,
-                Title = title,
-                CreatedAt = DateTime.Now
-            };
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            _context.BookMarks.Add(bookmark);
-            await _context.SaveChangesAsync();
+                // Verificar que el libro existe
+                var book = await _context.Books.FindAsync(bookId);
+                if (book == null)
+                    return NotFound("Libro no encontrado");
 
-            return Json(new { success = true, bookmarkId = bookmark.Id });
+                // Crear marcador
+                var bookmark = new Bookmark
+                {
+                    UserId = userId,
+                    BookId = bookId,
+                    PageNumber = pageNumber,
+                    Title = title,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.BookMarks.Add(bookmark);
+
+                // Ensure the changes are saved and committed
+                var result = await _context.SaveChangesAsync();
+
+                if (result > 0)
+                {
+                    // Log successful save
+                    Console.WriteLine($"Bookmark saved successfully: BookId={bookId}, UserId={userId}, Page={pageNumber}");
+                    return Json(new { success = true, bookmarkId = bookmark.Id });
+                }
+                else
+                {
+                    Console.WriteLine("SaveChanges returned 0 - no changes were saved");
+                    return Json(new { success = false, message = "No changes were saved to database" });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving bookmark: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return Json(new { success = false, message = "Database error: " + ex.Message });
+            }
         }
 
         [HttpGet]
@@ -273,7 +294,6 @@ namespace EReaderApp.Controllers
             return Json(new { success = true });
         }
 
-        // Métodos privados de ayuda
         private async Task TrackReading(int userId, int bookId, int currentPage)
         {
             var readingActivity = await _context.ReadingActivities

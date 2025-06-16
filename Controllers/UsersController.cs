@@ -9,16 +9,19 @@ using EReaderApp.Data;
 using EReaderApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using EReaderApp.Services;
 
 namespace EReaderApp.Controllers
 {
     public class UsersController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly StorageService _storageService;
 
-        public UsersController(ApplicationDbContext context)
+        public UsersController(ApplicationDbContext context, StorageService storageService)
         {
             _context = context;
+            _storageService = storageService;
         }
 
         // GET: Users
@@ -527,7 +530,7 @@ namespace EReaderApp.Controllers
             // If no new password is provided, keep the existing one
             // No need to set it explicitly as we're not changing it
 
-            // Handle profile picture upload
+            // Handle profile picture upload with Supabase storage
             if (model.ProfilePictureFile != null && model.ProfilePictureFile.Length > 0)
             {
                 // Validate file type
@@ -545,28 +548,37 @@ namespace EReaderApp.Controllers
                     return View("ProfileEdit", model);
                 }
 
-                // Generate a unique filename
-                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ProfilePictureFile.FileName);
-
-                // Set the path where the file will be saved
-                string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profile-pictures");
-
-                // Create directory if it doesn't exist
-                if (!Directory.Exists(uploadsFolder))
+                try
                 {
-                    Directory.CreateDirectory(uploadsFolder);
+                    // Try Supabase upload first (same pattern as books)
+                    user.ProfilePicture = await _storageService.UploadImageAsync(model.ProfilePictureFile, "profile-pictures");
+
+                    if (string.IsNullOrEmpty(user.ProfilePicture))
+                    {
+                        // Fallback to local storage
+                        string fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ProfilePictureFile.FileName);
+                        string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profile-pictures");
+
+                        if (!Directory.Exists(uploadsFolder))
+                        {
+                            Directory.CreateDirectory(uploadsFolder);
+                        }
+
+                        string filePath = Path.Combine(uploadsFolder, fileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await model.ProfilePictureFile.CopyToAsync(stream);
+                        }
+
+                        user.ProfilePicture = "/uploads/profile-pictures/" + fileName;
+                    }
                 }
-
-                string filePath = Path.Combine(uploadsFolder, fileName);
-
-                // Save the file
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                catch (Exception ex)
                 {
-                    await model.ProfilePictureFile.CopyToAsync(stream);
+                    ModelState.AddModelError("ProfilePictureFile", $"Error uploading profile picture: {ex.Message}");
+                    return View("ProfileEdit", model);
                 }
-
-                // Update the user's profile picture path
-                user.ProfilePicture = "/uploads/profile-pictures/" + fileName;
             }
 
             // Update user information
@@ -616,7 +628,6 @@ namespace EReaderApp.Controllers
             return true;
         }
 
-
         // Password hashing method
         [HttpPost]
         // Same password hashing method as in AuthController
@@ -627,7 +638,5 @@ namespace EReaderApp.Controllers
                 .ComputeHash(System.Text.Encoding.UTF8.GetBytes(password))
             );
         }
-
-       
     }
 }
