@@ -961,7 +961,30 @@ function showNotification(message, type = 'info') {
 }
 
 // Funciones para marcadores
-function loadBookmarks() {
+async function loadBookmarks() {
+    try {
+        // Try to fetch from server first
+        const response = await fetch(`/Reader/GetBookMarks?bookId=${bookId}`);
+
+        if (response.ok) {
+            const serverBookmarks = await response.json();
+
+            // Convert server format to client format
+            bookmarks = serverBookmarks.map(bookmark => ({
+                id: bookmark.id,
+                page: bookmark.pageNumber,
+                title: bookmark.title,
+                createdAt: bookmark.createdAt
+            }));
+
+            renderBookmarks();
+            return;
+        }
+    } catch (error) {
+        console.error('Error loading bookmarks from server:', error);
+    }
+
+    // Fallback to localStorage
     const savedBookmarks = localStorage.getItem(`bookmarks_${bookId}`);
     if (savedBookmarks) {
         try {
@@ -974,21 +997,56 @@ function loadBookmarks() {
     }
 }
 
-function saveBookmark() {
+async function saveBookmark() {
     const title = document.getElementById('bookmark-title').value.trim() || `Página ${currentPage}`;
 
-    const bookmark = {
-        id: Date.now(),
-        page: currentPage,
-        title: title,
-        createdAt: new Date().toISOString()
-    };
+    try {
+        // Get CSRF token
+        const token = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]')?.value;
 
-    bookmarks.push(bookmark);
-    localStorage.setItem(`bookmarks_${bookId}`, JSON.stringify(bookmarks));
+        if (!token) {
+            console.error('CSRF token not found');
+            showNotification('Error de autenticación', 'danger');
+            return;
+        }
 
-    renderBookmarks();
-    showNotification('Marcador guardado con éxito', 'success');
+        // Create form data
+        const formData = new FormData();
+        formData.append('bookId', bookId);
+        formData.append('pageNumber', currentPage);
+        formData.append('title', title);
+
+        // Call server
+        const response = await fetch('/Reader/SaveBookMark', {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': token
+            },
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Add to local array with server ID
+            const bookmark = {
+                id: result.bookmarkId,
+                page: currentPage,
+                title: title,
+                createdAt: new Date().toISOString()
+            };
+
+            bookmarks.push(bookmark);
+            localStorage.setItem(`bookmarks_${bookId}`, JSON.stringify(bookmarks));
+            renderBookmarks();
+            showNotification('Marcador guardado con éxito', 'success');
+        } else {
+            showNotification('Error al guardar marcador: ' + (result.message || 'Error desconocido'), 'danger');
+        }
+    } catch (error) {
+        console.error('Error saving bookmark:', error);
+        showNotification('Error de conexión al guardar marcador', 'danger');
+    }
 }
 
 function renderBookmarks() {
@@ -1049,11 +1107,40 @@ function renderBookmarks() {
     });
 }
 
-function deleteBookmark(id) {
-    bookmarks = bookmarks.filter(b => b.id !== id);
-    localStorage.setItem(`bookmarks_${bookId}`, JSON.stringify(bookmarks));
-    renderBookmarks();
-    showNotification('Marcador eliminado', 'warning');
+async function deleteBookmark(id) {
+    try {
+        // Get CSRF token
+        const token = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]')?.value;
+
+        if (!token) {
+            console.error('CSRF token not found');
+            showNotification('Error de autenticación', 'danger');
+            return;
+        }
+
+        // Call server to delete
+        const response = await fetch(`/Reader/DeleteBookMark/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'RequestVerificationToken': token
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Remove from local array
+            bookmarks = bookmarks.filter(b => b.id !== id);
+            localStorage.setItem(`bookmarks_${bookId}`, JSON.stringify(bookmarks));
+            renderBookmarks();
+            showNotification('Marcador eliminado', 'warning');
+        } else {
+            showNotification('Error al eliminar marcador', 'danger');
+        }
+    } catch (error) {
+        console.error('Error deleting bookmark:', error);
+        showNotification('Error de conexión al eliminar marcador', 'danger');
+    }
 }
 
 // Guardar posición

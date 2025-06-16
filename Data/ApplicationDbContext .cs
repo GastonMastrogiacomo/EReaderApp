@@ -41,7 +41,6 @@ namespace EReaderApp.Data
             modelBuilder.Entity<PublicationLike>()
                 .HasKey(pl => new { pl.FKIdUser, pl.FKIdPublication });
 
-            // Disable cascade delete for all User-related relationships
             modelBuilder.Entity<Publication>()
                 .HasOne(p => p.User)
                 .WithMany()

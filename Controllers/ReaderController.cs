@@ -203,19 +203,19 @@ namespace EReaderApp.Controllers
         [Authorize]
         public async Task<IActionResult> SaveBookMark(int bookId, int pageNumber, string title)
         {
-            if (!User.Identity.IsAuthenticated)
-                return Unauthorized();
-
             try
             {
+                Console.WriteLine($"[BOOKMARK] Method called - BookId: {bookId}, Page: {pageNumber}, Title: '{title}'");
+
+                if (!User.Identity.IsAuthenticated)
+                {
+                    Console.WriteLine("[BOOKMARK] User not authenticated");
+                    return Unauthorized();
+                }
+
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                Console.WriteLine($"[BOOKMARK] UserId: {userId}");
 
-                // Verificar que el libro existe
-                var book = await _context.Books.FindAsync(bookId);
-                if (book == null)
-                    return NotFound("Libro no encontrado");
-
-                // Crear marcador
                 var bookmark = new Bookmark
                 {
                     UserId = userId,
@@ -226,27 +226,18 @@ namespace EReaderApp.Controllers
                 };
 
                 _context.BookMarks.Add(bookmark);
-
-                // Ensure the changes are saved and committed
                 var result = await _context.SaveChangesAsync();
 
-                if (result > 0)
-                {
-                    // Log successful save
-                    Console.WriteLine($"Bookmark saved successfully: BookId={bookId}, UserId={userId}, Page={pageNumber}");
-                    return Json(new { success = true, bookmarkId = bookmark.Id });
-                }
-                else
-                {
-                    Console.WriteLine("SaveChanges returned 0 - no changes were saved");
-                    return Json(new { success = false, message = "No changes were saved to database" });
-                }
+                Console.WriteLine($"[BOOKMARK] SaveChanges result: {result}");
+                Console.WriteLine($"[BOOKMARK] Bookmark ID after save: {bookmark.Id}");
+
+                return Json(new { success = true, bookmarkId = bookmark.Id });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error saving bookmark: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                return Json(new { success = false, message = "Database error: " + ex.Message });
+                Console.WriteLine($"[BOOKMARK ERROR] {ex.Message}");
+                Console.WriteLine($"[BOOKMARK ERROR] Stack: {ex.StackTrace}");
+                return Json(new { success = false, message = ex.Message });
             }
         }
 

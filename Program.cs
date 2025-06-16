@@ -252,9 +252,18 @@ namespace EReaderApp
                 }
             });
 
+            // Force HTTPS scheme for OAuth redirects in production
+            if (app.Environment.IsProduction())
+            {
+                app.Use((context, next) =>
+                {
+                    context.Request.Scheme = "https";
+                    return next();
+                });
+            }
+
             app.UseRouting();
 
-            // CORS must be after UseRouting and before UseAuthentication
             app.UseCors("MobileAppPolicy");
 
             app.UseAuthentication();
@@ -262,10 +271,6 @@ namespace EReaderApp
             app.UseSession();
 
             // Configure routes
-            app.MapControllerRoute(
-                name: "api",
-                pattern: "api/{controller=Home}/{action=Index}/{id?}");
-
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
