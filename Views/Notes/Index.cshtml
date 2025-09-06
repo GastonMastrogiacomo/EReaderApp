@@ -4,12 +4,12 @@
 }
 
 <div class="container py-4">
-    <h1>Mis Notas</h1>
+    <h1>My Notes</h1>
 
     @if (!Model.Any())
     {
         <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i> Aún no tienes notas guardadas.
+            <i class="fas fa-info-circle me-2"></i> You have no saved Notes.
         </div>
     }
     else
@@ -31,7 +31,7 @@
                         <div class="card-footer bg-white border-top-0">
                             <div class="d-flex justify-content-between">
                                 <a href="@Url.Action("Read", "Reader", new { id = note.BookId })" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-book-open me-1"></i> Ir al libro
+                                    <i class="fas fa-book-open me-1"></i> View Book
                                 </a>
                                 <div>
                                     <button class="btn btn-outline-secondary btn-sm me-2 edit-note" data-note-id="@note.Id">
@@ -55,19 +55,19 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Editar Nota</h5>
+                <h5 class="modal-title">Edit Note</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="edit-note-id">
                 <div class="mb-3">
-                    <label for="edit-note-content" class="form-label">Contenido</label>
+                    <label for="edit-note-content" class="form-label">Content</label>
                     <textarea id="edit-note-content" class="form-control" rows="5"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="save-edit-note">Guardar Cambios</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-edit-note">Save Changes</button>
             </div>
         </div>
     </div>

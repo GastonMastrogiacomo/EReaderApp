@@ -85,7 +85,7 @@
                                 <span class="fw-bold me-1">@averageRating.ToString("0.0")</span>
                                 <i class="fas fa-star ms-1"></i>
                             </div>
-                            <div class="small text-center">@totalReviews reseña@(totalReviews != 1 ? "s" : "")</div>
+                            <div class="small text-center">@totalReviews review@(totalReviews != 1 ? "s" : "")</div>
                         </div>
                     }
                 </div>
@@ -96,7 +96,7 @@
                         @if (!string.IsNullOrEmpty(Model.PdfPath))
                         {
                             <a asp-controller="Reader" asp-action="Read" asp-route-id="@Model.IdBook" class="btn btn-primary">
-                                <i class="fas fa-book-open me-2"></i> Leer libro
+                                <i class="fas fa-book-open me-2"></i> Read Book
                             </a>
                         }
 
@@ -105,7 +105,7 @@
                             <div class="dropdown">
                                 <button class="btn btn-outline-primary dropdown-toggle w-100" type="button"
                                         id="addToLibraryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-bookmark me-2"></i> Añadir a biblioteca
+                                    <i class="fas fa-bookmark me-2"></i> Add to your Library
                                 </button>
                                 <ul class="dropdown-menu w-100" aria-labelledby="addToLibraryDropdown">
                                     @foreach (var library in userLibraries)
@@ -122,7 +122,7 @@
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#newLibraryModal">
-                                            <i class="fas fa-plus me-2"></i> Crear nueva biblioteca
+                                            <i class="fas fa-plus me-2"></i> Create new Library
                                         </a>
                                     </li>
                                 </ul>
@@ -131,21 +131,21 @@
                         else if (User.Identity.IsAuthenticated)
                         {
                             <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newLibraryModal">
-                                <i class="fas fa-bookmark me-2"></i> Añadir a nueva biblioteca
+                                <i class="fas fa-bookmark me-2"></i> Add to new Library
                             </button>
                         }
                         else
                         {
                             <a asp-controller="Auth" asp-action="Login" asp-route-returnUrl="@Url.Action("ViewDetails", "Books", new { id = Model.IdBook })"
                                class="btn btn-outline-primary">
-                                <i class="fas fa-bookmark me-2"></i> Inicia sesión para guardar
+                                <i class="fas fa-bookmark me-2"></i> Log in to save
                             </a>
                         }
 
                         <!-- Share button -->
                         <button type="button" class="btn btn-outline-secondary"
                                 onclick="shareBook(@Model.IdBook, '@Model.Title.Replace("'", "\\'")'); return false;">
-                            <i class="fas fa-share-alt me-2"></i> Compartir libro
+                            <i class="fas fa-share-alt me-2"></i> Share Book
                         </button>
                     </div>
                 </div>
@@ -185,17 +185,17 @@
                 <div class="d-flex">
                     <div class="me-4 pb-2">
                         <button class="btn btn-link text-decoration-none tab-button active" data-target="overview-panel">
-                            <i class="fas fa-info-circle me-1"></i> Información
+                            <i class="fas fa-info-circle me-1"></i> Information
                         </button>
                     </div>
                     <div class="me-4 pb-2">
                         <button class="btn btn-link text-decoration-none tab-button" data-target="author-panel">
-                            <i class="fas fa-user me-1"></i> Autor
+                            <i class="fas fa-user me-1"></i> Author
                         </button>
                     </div>
                     <div class="pb-2">
                         <button class="btn btn-link text-decoration-none tab-button" data-target="reviews-panel">
-                            <i class="fas fa-star me-1"></i> Reseñas <span class="badge bg-primary rounded-pill">@totalReviews</span>
+                            <i class="fas fa-star me-1"></i> Reviews <span class="badge bg-primary rounded-pill">@totalReviews</span>
                         </button>
                     </div>
                 </div>
@@ -207,7 +207,7 @@
                 <div id="overview-panel" class="tab-panel active">
                     <div class="card mb-4 shadow-sm">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Acerca de este libro</h5>
+                            <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>About this book</h5>
                         </div>
                         <div class="card-body">
                             <div id="book-description" class="mb-3">
@@ -217,7 +217,7 @@
                                 }
                                 else
                                 {
-                                    <p class="text-muted fst-italic">No hay descripción disponible.</p>
+                                    <p class="text-muted fst-italic">There is no description available.</p>
                                 }
                             </div>
 
@@ -229,7 +229,7 @@
                                         <div class="d-flex align-items-center">
                                             <i class="fas fa-file me-2 text-primary"></i>
                                             <div>
-                                                <small class="text-muted d-block">Páginas</small>
+                                                <small class="text-muted d-block"># of Pages</small>
                                                 <span>@Model.PageCount</span>
                                             </div>
                                         </div>
@@ -258,14 +258,14 @@
                 <div id="author-panel" class="tab-panel">
                     <div class="card mb-4 shadow-sm">
                         <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Sobre el autor</h5>
+                            <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>About the author</h5>
                         </div>
                         <div class="card-body">
                             <div class="row">
                                 <!-- Author text content -->
                                 <div id="author-text-container" class="col-12">
                                     <!-- Author biography -->
-                                    <h5 class="mb-3">Biografía</h5>
+                                    <h5 class="mb-3">Biography</h5>
                                     <p id="author-bio" class="@(string.IsNullOrEmpty(Model.AuthorBio) ? "text-muted fst-italic" : "")">
                                         @if (!string.IsNullOrEmpty(Model.AuthorBio))
                                         {
@@ -273,7 +273,7 @@
                                         }
                                         else
                                         {
-                                            <text>No hay información biográfica disponible para este autor.</text>
+                                            <text>There is no information available for this author.</text>
                                         }
                                     </p>
                                 </div>
