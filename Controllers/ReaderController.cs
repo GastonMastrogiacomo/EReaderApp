@@ -18,6 +18,7 @@ namespace EReaderApp.Controllers
             _context = context;
         }
 
+        [Authorize] // Add this attribute to require authentication
         public async Task<IActionResult> Read(int id)
         {
             var book = await _context.Books.FindAsync(id);
@@ -32,48 +33,33 @@ namespace EReaderApp.Controllers
             if (!pdfAvailable)
             {
                 TempData["ErrorMessage"] = "El archivo PDF no se encuentra disponible.";
-                return RedirectToAction("Details", "Books", new { id = id });
+                return RedirectToAction("ViewDetails", "Books", new { id = id });
             }
 
-            ReadingState readingState = new ReadingState
-            {
-                UserId = 0,
-                BookId = id,
-                CurrentPage = 1,
-                ZoomLevel = 1.0f,
-                ViewMode = "double",
-                LastAccessed = DateTime.Now
-            };
+            // Get the authenticated user's ID
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // Si el usuario está autenticado, cargar o crear estado de lectura
-            if (User.Identity.IsAuthenticated)
+            // Get or create reading state for authenticated user
+            var userReadingState = await GetReadingState(userId, id);
+            if (userReadingState == null)
             {
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-                // Get reading state first
-                var userReadingState = await GetReadingState(userId, id);
-                if (userReadingState == null)
+                // Create new reading state for authenticated user
+                userReadingState = new ReadingState
                 {
-                    // Create new reading state for authenticated user
-                    userReadingState = new ReadingState
-                    {
-                        UserId = userId,
-                        BookId = id,
-                        CurrentPage = 1,
-                        ZoomLevel = 1.0f,
-                        ViewMode = "double",
-                        LastAccessed = DateTime.Now
-                    };
-                    _context.ReadingStates.Add(userReadingState);
-                    await _context.SaveChangesAsync();
-                }
-
-                readingState = userReadingState;
-                await TrackReading(userId, id, readingState.CurrentPage);
-                ViewBag.BookMarks = await GetBookMarks(userId, id);
+                    UserId = userId,
+                    BookId = id,
+                    CurrentPage = 1,
+                    ZoomLevel = 1.0f,
+                    ViewMode = "double",
+                    LastAccessed = DateTime.Now
+                };
+                _context.ReadingStates.Add(userReadingState);
+                await _context.SaveChangesAsync();
             }
 
-            ViewBag.ReadingState = readingState;
+            await TrackReading(userId, id, userReadingState.CurrentPage);
+            ViewBag.BookMarks = await GetBookMarks(userId, id);
+            ViewBag.ReadingState = userReadingState;
 
             return View(book);
         }
@@ -108,9 +94,6 @@ namespace EReaderApp.Controllers
         [Authorize]
         public async Task<IActionResult> SaveReadingState(int bookId, int currentPage, float zoomLevel, string viewMode, int readingTimeMinutes = 0)
         {
-            if (!User.Identity.IsAuthenticated)
-                return Unauthorized();
-
             int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
             // First get the book to check its page count
@@ -207,12 +190,6 @@ namespace EReaderApp.Controllers
             {
                 Console.WriteLine($"[BOOKMARK] Method called - BookId: {bookId}, Page: {pageNumber}, Title: '{title}'");
 
-                if (!User.Identity.IsAuthenticated)
-                {
-                    Console.WriteLine("[BOOKMARK] User not authenticated");
-                    return Unauthorized();
-                }
-
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
                 Console.WriteLine($"[BOOKMARK] UserId: {userId}");
 
@@ -277,9 +254,6 @@ namespace EReaderApp.Controllers
         [Authorize]
         public async Task<IActionResult> GetBookMarks(int bookId)
         {
-            if (!User.Identity.IsAuthenticated)
-                return Unauthorized();
-
             int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
             var bookmarks = await _context.BookMarks
@@ -300,9 +274,6 @@ namespace EReaderApp.Controllers
         [Authorize]
         public async Task<IActionResult> DeleteBookMark(int id)
         {
-            if (!User.Identity.IsAuthenticated)
-                return Unauthorized();
-
             int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
             var bookmark = await _context.BookMarks
@@ -377,6 +348,4 @@ namespace EReaderApp.Controllers
                 .ToListAsync();
         }
     }
-
-
 }

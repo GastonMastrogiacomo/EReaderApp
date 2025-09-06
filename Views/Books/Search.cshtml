@@ -159,6 +159,45 @@
                                 </div>
                             </a>
 
+                            <!-- Hover overlay with read button -->
+                            <div class="book-overlay">
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    @if (!string.IsNullOrEmpty(book.PdfPath))
+                                    {
+                                        <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook"
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-book-open me-1"></i> Read Now
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="btn btn-secondary btn-sm disabled">
+                                            <i class="fas fa-times me-1"></i> Not Available
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    @if (!string.IsNullOrEmpty(book.PdfPath))
+                                    {
+                                        <button type="button" class="btn btn-primary btn-sm"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#searchLoginModal"
+                                                data-book-id="@book.IdBook"
+                                                data-book-title="@book.Title">
+                                            <i class="fas fa-lock me-1"></i> Login to Read
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="btn btn-secondary btn-sm disabled">
+                                            <i class="fas fa-times me-1"></i> Not Available
+                                        </span>
+                                    }
+                                }
+                            </div>
+
                             @if (hasReviewStats && reviewCount > 0)
                             {
                                 <div class="book-score">
@@ -172,9 +211,40 @@
                             <p class="card-text text-muted small text-truncate mb-3" title="@book.Author">@book.Author</p>
 
                             <div class="mt-auto d-flex gap-2">
-                                <a href="@Url.Action("Read", "Reader", new { id = book.IdBook })" class="btn btn-primary btn-sm flex-grow-1">
-                                    <i class="fas fa-book-open me-1"></i> Read
-                                </a>
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    @if (!string.IsNullOrEmpty(book.PdfPath))
+                                    {
+                                        <a href="@Url.Action("Read", "Reader", new { id = book.IdBook })" class="btn btn-primary btn-sm flex-grow-1">
+                                            <i class="fas fa-book-open me-1"></i> Read
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-secondary btn-sm flex-grow-1 disabled">
+                                            <i class="fas fa-times me-1"></i> Not Available
+                                        </button>
+                                    }
+                                }
+                                else
+                                {
+                                    @if (!string.IsNullOrEmpty(book.PdfPath))
+                                    {
+                                        <button type="button" class="btn btn-primary btn-sm flex-grow-1"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#searchLoginModal"
+                                                data-book-id="@book.IdBook"
+                                                data-book-title="@book.Title">
+                                            <i class="fas fa-lock me-1"></i> Login to Read
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-secondary btn-sm flex-grow-1 disabled">
+                                            <i class="fas fa-times me-1"></i> Not Available
+                                        </button>
+                                    }
+                                }
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fas fa-ellipsis-v"></i>
@@ -249,9 +319,40 @@
                             </div>
                             <div class="col-md-2 col-12 mt-3 mt-md-0">
                                 <div class="d-flex gap-2 justify-content-md-end">
-                                    <a href="@Url.Action("Read", "Reader", new { id = book.IdBook })" class="btn btn-sm btn-primary flex-grow-1 flex-md-grow-0">
-                                        <i class="fas fa-book-open me-1"></i> Read
-                                    </a>
+                                    @if (User.Identity.IsAuthenticated)
+                                    {
+                                        @if (!string.IsNullOrEmpty(book.PdfPath))
+                                        {
+                                            <a href="@Url.Action("Read", "Reader", new { id = book.IdBook })" class="btn btn-sm btn-primary flex-grow-1 flex-md-grow-0">
+                                                <i class="fas fa-book-open me-1"></i> Read
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-secondary flex-grow-1 flex-md-grow-0 disabled">
+                                                <i class="fas fa-times me-1"></i> Not Available
+                                            </button>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @if (!string.IsNullOrEmpty(book.PdfPath))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-primary flex-grow-1 flex-md-grow-0"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#searchLoginModal"
+                                                    data-book-id="@book.IdBook"
+                                                    data-book-title="@book.Title">
+                                                <i class="fas fa-lock me-1"></i> Login to Read
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-secondary flex-grow-1 flex-md-grow-0 disabled">
+                                                <i class="fas fa-times me-1"></i> Not Available
+                                            </button>
+                                        }
+                                    }
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="fas fa-ellipsis-v"></i>
@@ -384,6 +485,45 @@
     }
 </div>
 
+<!-- Login Required Modal for Search Page -->
+<div class="modal fade" id="searchLoginModal" tabindex="-1" aria-labelledby="searchLoginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="searchLoginModalLabel">
+                    <i class="fas fa-lock me-2 text-primary"></i>Login Required
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-4">
+                    <i class="fas fa-book-reader fa-3x text-primary mb-3"></i>
+                    <h6 class="fw-bold" id="search-modal-book-title">Ready to dive into this book?</h6>
+                    <p class="text-muted mb-0">
+                        Please log in to your account to start reading this book and track your progress.
+                    </p>
+                </div>
+
+                <div class="d-flex gap-3 justify-content-center">
+                    <a id="search-modal-login-link" href="#" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </a>
+                    <a id="search-modal-register-link" href="#" class="btn btn-outline-primary">
+                        <i class="fas fa-user-plus me-2"></i>Sign Up
+                    </a>
+                </div>
+
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Free account • Track your reading progress
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     /* Card hover effects */
     .hover-elevate {
@@ -426,6 +566,35 @@
         color: #6c757d;
         padding: 1rem;
         text-align: center;
+    }
+
+    /* Book overlay styles */
+    .book-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .book-card:hover .book-overlay {
+        opacity: 1;
+    }
+
+    .book-overlay .btn {
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    .book-card:hover .book-overlay .btn {
+        transform: translateY(0);
     }
 
     /* Book cover styling for list view */
@@ -534,6 +703,35 @@
                 gridViewBtn.classList.remove('active');
                 localStorage.setItem('book-view-mode', 'list');
             });
+
+            // Handle login modal for search page
+            const searchLoginModal = document.getElementById('searchLoginModal');
+            if (searchLoginModal) {
+                searchLoginModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const bookId = button.getAttribute('data-book-id');
+                    const bookTitle = button.getAttribute('data-book-title');
+
+                    // Update modal content
+                    const modalTitle = document.getElementById('search-modal-book-title');
+                    const loginLink = document.getElementById('search-modal-login-link');
+                    const registerLink = document.getElementById('search-modal-register-link');
+
+                    if (modalTitle && bookTitle) {
+                        modalTitle.textContent = `Ready to dive into "${bookTitle}"?`;
+                    }
+
+                    if (loginLink && bookId) {
+                        const returnUrl = encodeURIComponent(`/Reader/Read/${bookId}`);
+                        loginLink.href = `/Auth/Login?returnUrl=${returnUrl}`;
+                    }
+
+                    if (registerLink && bookId) {
+                        const returnUrl = encodeURIComponent(`/Reader/Read/${bookId}`);
+                        registerLink.href = `/Auth/Register?returnUrl=${returnUrl}`;
+                    }
+                });
+            }
         });
     </script>
 }
