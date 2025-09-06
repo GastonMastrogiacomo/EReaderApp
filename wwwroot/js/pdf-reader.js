@@ -719,7 +719,6 @@ function applyThemeToElement(element) {
 function applyTheme() {
     // Use the correct settings object
     const currentSettings = window.ReaderApp ? window.ReaderApp.readerSettings : readerSettings;
-    //console.log("Aplicandos tema:", currentSettings.theme);
 
     // Apply theme to body element (for CSS compatibility)
     document.body.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
@@ -815,7 +814,6 @@ function updateNavigationButtons() {
 function goToPage(pageNum) {
     if (!pageNum || pageNum < 1 || pageNum > totalPages) return;
 
-    //console.log("goToPage called with page:", pageNum);
     showPageLoadingIndicator();
 
     const direction = pageNum > currentPage ? 'next' : 'prev';
@@ -1137,7 +1135,6 @@ async function deleteBookmark(id) {
 
 // Guardar posición
 function savePosition() {
-
     // Ensure valid page
     if (!currentPage || currentPage < 1 || isNaN(currentPage)) {
         console.error("Invalid page number detected");
@@ -1150,98 +1147,81 @@ function savePosition() {
 
     // Define hasPageChanged - always check against lastPageTracked
     const hasPageChanged = currentPage !== lastPageTracked;
-    //console.log("lastPageTracked:", lastPageTracked, "hasPageChanged:", hasPageChanged);
 
     // Always update the server when page changes or enough time has passed (reduced threshold)
     if (elapsedTimeMinutes >= 0.25 || hasPageChanged) {  // 15 seconds instead of 1 minute
-        //console.log("Saving reading state to server:", {
-        bookId, currentPage, viewMode, elapsedTimeMinutes
+        if (elapsedTimeMinutes >= 0.25) {
+            readingStartTime = currentTime;
+        }
+
+        // Get antiforgery token - try multiple locations
+        let token = null;
+
+        // Try the dedicated form first
+        const antiForgeryForm = document.getElementById('antiforgery-form');
+        if (antiForgeryForm) {
+            token = antiForgeryForm.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        }
+
+        // If not found, try elsewhere
+        if (!token) {
+            token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        }
+
+        if (!token) {
+            console.error("CSRF token not found - cannot save state to server");
+            // Still update localStorage even without server update
+        } else {
+            // Create form data
+            const formData = new FormData();
+            formData.append('bookId', bookId);
+            formData.append('currentPage', currentPage);
+            formData.append('zoomLevel', scale);
+            formData.append('viewMode', viewMode);
+            formData.append('readingTimeMinutes', elapsedTimeMinutes);
+
+            // Send to server
+            fetch('/Reader/SaveReadingState', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // console.log("Reading state saved successfully");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error saving reading state:", error);
+                });
+        }
+
+        // Always update last page tracked
+        lastPageTracked = currentPage;
+    }
+
+    // Always save to localStorage
+    const positionData = {
+        page: currentPage,
+        leftPage: currentLeftPage,
+        rightPage: currentRightPage,
+        viewMode: viewMode,
+        scale: scale,
+        fitWidth: isFitWidth,
+        fitPage: isFitPage,
+        timestamp: new Date().toISOString()
     };
 
-    if (elapsedTimeMinutes >= 0.25) {
-        readingStartTime = currentTime;
-    }
-
-    // Get antiforgery token - try multiple locations
-    let token = null;
-
-    // Try the dedicated form first
-    const antiForgeryForm = document.getElementById('antiforgery-form');
-    if (antiForgeryForm) {
-        token = antiForgeryForm.querySelector('input[name="__RequestVerificationToken"]')?.value;
-    }
-
-    // If not found, try elsewhere
-    if (!token) {
-        token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-    }
-
-    if (!token) {
-        console.error("CSRF token not found - cannot save state to server");
-        // Still update localStorage even without server update
-    } else {
-        // Create form data
-        const formData = new FormData();
-        formData.append('bookId', bookId);
-        formData.append('currentPage', currentPage);
-        formData.append('zoomLevel', scale);
-        formData.append('viewMode', viewMode);
-        formData.append('readingTimeMinutes', elapsedTimeMinutes);
-
-        // Send to server
-        fetch('/Reader/SaveReadingState', {
-            method: 'POST',
-            headers: {
-                'RequestVerificationToken': token
-            },
-            body: formData
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Server returned ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                //console.log("Server response:", data);
-                if (data.success) {
-                    //console.log("Reading state saved successfully");
-                }
-            })
-            .catch(error => {
-                //console.error("Error saving reading state:", error);
-            });
-    }
-
-    // Always update last page tracked
-    lastPageTracked = currentPage;
+    localStorage.setItem(`position_${bookId}`, JSON.stringify(positionData));
 }
-
-// Always save to localStorage
-localStorage.setItem(`position_${bookId}`, JSON.stringify({
-    page: currentPage,
-    leftPage: currentLeftPage,
-    rightPage: currentRightPage,
-    viewMode: viewMode,
-    scale: scale,
-    fitWidth: isFitWidth,
-    fitPage: isFitPage,
-    timestamp: new Date().toISOString()
-}));
-
-const positionData = {
-    page: currentPage,
-    leftPage: currentLeftPage,
-    rightPage: currentRightPage,
-    viewMode: viewMode,
-    scale: scale,
-    fitWidth: isFitWidth,
-    fitPage: isFitPage,
-    timestamp: new Date().toISOString()
-};
-
-//console.log("Saving to localStorage:", positionData);
-localStorage.setItem(`position_${bookId}`, JSON.stringify(positionData));
 
 
 function loadPosition() {
@@ -1250,9 +1230,7 @@ function loadPosition() {
     if (readingState && readingState !== 'null' && readingState !== '') {
         try {
             const state = JSON.parse(readingState);
-            //console.log("Parsed reading state:", state);
             currentPage = state.currentPage || 1;
-            //console.log("Setting currentPage to:", currentPage);
             currentLeftPage = state.currentPage || 1;
             currentRightPage = currentLeftPage + 1;
             scale = state.zoomLevel || 1.0;
@@ -1263,10 +1241,10 @@ function loadPosition() {
 
             return;
         } catch (e) {
-            //console.error('Error parsing reading state:', e);
+            console.error('Error parsing reading state:', e);
         }
     } else {
-        //console.log("No reading state found in data attribute");
+        console.log("No reading state found in data attribute");
     }
 
     // Try localStorage if no reading state in data attribute
@@ -1274,7 +1252,6 @@ function loadPosition() {
     if (savedPosition) {
         try {
             const position = JSON.parse(savedPosition);
-            //console.log("Loaded position from localStorage:", position);
             currentPage = position.page || 1;
             currentLeftPage = position.leftPage || 1;
             currentRightPage = position.rightPage || 2;
@@ -1284,11 +1261,9 @@ function loadPosition() {
             // Also set lastPageTracked
             lastPageTracked = currentPage;
         } catch (e) {
-            //console.error('Error loading saved position:', e);
             setDefaultPosition();
         }
     } else {
-        //console.log("No position in localStorage, using defaults");
         setDefaultPosition();
     }
 }
@@ -1328,12 +1303,10 @@ async function loadReaderSettings() {
             viewMode: 'double'
         };
 
-        //console.log("Initial theme set to:", readerSettings.theme);
 
         // Update with full localStorage settings
         if (localSettings) {
             Object.assign(readerSettings, localSettings);
-            //console.log("Full settings loaded from localStorage:", readerSettings.theme);
         }
 
         // Store the localStorage theme BEFORE server overwrites it
@@ -1345,13 +1318,11 @@ async function loadReaderSettings() {
                 const response = await fetch('/ReaderSettings/GetSettings');
                 if (response.ok) {
                     const serverSettings = await response.json();
-                    //console.log("Server returned theme:", serverSettings.theme);
 
                     // Apply server settings but preserve localStorage theme
                     Object.assign(readerSettings, serverSettings);
                     readerSettings.theme = preservedTheme; // Restore localStorage theme
 
-                    //console.log("Final theme after preserving localStorage:", readerSettings.theme);
                     localStorage.setItem(`settings_${bookId}`, JSON.stringify(readerSettings));
                 }
             } catch (serverError) {
@@ -1662,8 +1633,9 @@ async function safeRenderDoublePages() {
             // Intentar cargar solo la página izquierda como respaldo
             const leftCanvas = document.getElementById('left-canvas');
             if (leftCanvas && pdfDoc) {
-                renderPage(currentLeftPage, leftCanvas).catch(e =>
-                    //console.error('Error en recuperación:', e));
+                renderPage(currentLeftPage, leftCanvas).catch(e => {
+                    console.error('Error en recuperación:', e);
+                });
             }
         }, 1000);
     }
