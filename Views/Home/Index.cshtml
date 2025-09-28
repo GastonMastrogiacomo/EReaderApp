@@ -78,8 +78,31 @@
                     {
                         <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
                             <div class="book-card">
-                                <a asp-controller="Books" asp-action="ViewDetails" asp-route-id="@book.IdBook">
-                                    <div class="book-cover-container">
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    <a asp-controller="Books" asp-action="ViewDetails" asp-route-id="@book.IdBook">
+                                        <div class="book-cover-container">
+                                            @if (!string.IsNullOrEmpty(book.ImageLink))
+                                            {
+                                                <div class="book-cover" style="background-image: url('@book.ImageLink');"></div>
+                                            }
+                                            else
+                                            {
+                                                <div class="book-cover bg-light d-flex align-items-center justify-content-center">
+                                                    <i class="fas fa-book fa-2x text-secondary"></i>
+                                                </div>
+                                            }
+                                        </div>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <div class="book-cover-container book-card-login-required"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#homeLoginModal"
+                                         data-book-id="@book.IdBook"
+                                         data-book-title="@book.Title"
+                                         style="cursor: pointer;">
                                         @if (!string.IsNullOrEmpty(book.ImageLink))
                                         {
                                             <div class="book-cover" style="background-image: url('@book.ImageLink');"></div>
@@ -90,47 +113,48 @@
                                                 <i class="fas fa-book fa-2x text-secondary"></i>
                                             </div>
                                         }
-
-                                        <!-- Hover overlay with read button -->
-                                        <div class="book-overlay">
-                                            @if (User.Identity.IsAuthenticated)
-                                            {
-                                                @if (!string.IsNullOrEmpty(book.PdfPath))
-                                                {
-                                                    <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook"
-                                                       class="btn btn-primary btn-sm">
-                                                        <i class="fas fa-book-open me-1"></i> Read Now
-                                                    </a>
-                                                }
-                                                else
-                                                {
-                                                    <span class="btn btn-secondary btn-sm disabled">
-                                                        <i class="fas fa-times me-1"></i> Not Available
-                                                    </span>
-                                                }
-                                            }
-                                            else
-                                            {
-                                                @if (!string.IsNullOrEmpty(book.PdfPath))
-                                                {
-                                                    <button type="button" class="btn btn-primary btn-sm"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#homeLoginModal"
-                                                            data-book-id="@book.IdBook"
-                                                            data-book-title="@book.Title">
-                                                        <i class="fas fa-lock me-1"></i> Login to Read
-                                                    </button>
-                                                }
-                                                else
-                                                {
-                                                    <span class="btn btn-secondary btn-sm disabled">
-                                                        <i class="fas fa-times me-1"></i> Not Available
-                                                    </span>
-                                                }
-                                            }
-                                        </div>
                                     </div>
-                                </a>
+                                }
+
+                                <!-- Hover overlay with read button -->
+                                <div class="book-overlay">
+                                    @if (User.Identity.IsAuthenticated)
+                                    {
+                                        @if (!string.IsNullOrEmpty(book.PdfPath))
+                                        {
+                                            <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook"
+                                               class="btn btn-primary btn-sm">
+                                                <i class="fas fa-book-open me-1"></i> Read Now
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="btn btn-secondary btn-sm disabled">
+                                                <i class="fas fa-times me-1"></i> Not Available
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @if (!string.IsNullOrEmpty(book.PdfPath))
+                                        {
+                                            <button type="button" class="btn btn-primary btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#homeLoginModal"
+                                                    data-book-id="@book.IdBook"
+                                                    data-book-title="@book.Title">
+                                                <i class="fas fa-lock me-1"></i> Login to Read
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="btn btn-secondary btn-sm disabled">
+                                                <i class="fas fa-times me-1"></i> Not Available
+                                            </span>
+                                        }
+                                    }
+                                </div>
+
                                 <div class="book-info">
                                     <h6 class="book-title text-truncate">@book.Title</h6>
                                     <p class="book-author text-muted small mb-0">@book.Author</p>
@@ -184,8 +208,31 @@
                     {
                         <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
                             <div class="book-card">
-                                <a asp-controller="Books" asp-action="ViewDetails" asp-route-id="@book.IdBook">
-                                    <div class="book-cover-container">
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    <a asp-controller="Books" asp-action="ViewDetails" asp-route-id="@book.IdBook">
+                                        <div class="book-cover-container">
+                                            @if (!string.IsNullOrEmpty(book.ImageLink))
+                                            {
+                                                <div class="book-cover" style="background-image: url('@book.ImageLink');"></div>
+                                            }
+                                            else
+                                            {
+                                                <div class="book-cover bg-light d-flex align-items-center justify-content-center">
+                                                    <i class="fas fa-book fa-2x text-secondary"></i>
+                                                </div>
+                                            }
+                                        </div>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <div class="book-cover-container book-card-login-required"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#homeLoginModal"
+                                         data-book-id="@book.IdBook"
+                                         data-book-title="@book.Title"
+                                         style="cursor: pointer;">
                                         @if (!string.IsNullOrEmpty(book.ImageLink))
                                         {
                                             <div class="book-cover" style="background-image: url('@book.ImageLink');"></div>
@@ -196,47 +243,48 @@
                                                 <i class="fas fa-book fa-2x text-secondary"></i>
                                             </div>
                                         }
-
-                                        <!-- Hover overlay with read button -->
-                                        <div class="book-overlay">
-                                            @if (User.Identity.IsAuthenticated)
-                                            {
-                                                @if (!string.IsNullOrEmpty(book.PdfPath))
-                                                {
-                                                    <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook"
-                                                       class="btn btn-primary btn-sm">
-                                                        <i class="fas fa-book-open me-1"></i> Read Now
-                                                    </a>
-                                                }
-                                                else
-                                                {
-                                                    <span class="btn btn-secondary btn-sm disabled">
-                                                        <i class="fas fa-times me-1"></i> Not Available
-                                                    </span>
-                                                }
-                                            }
-                                            else
-                                            {
-                                                @if (!string.IsNullOrEmpty(book.PdfPath))
-                                                {
-                                                    <button type="button" class="btn btn-primary btn-sm"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#homeLoginModal"
-                                                            data-book-id="@book.IdBook"
-                                                            data-book-title="@book.Title">
-                                                        <i class="fas fa-lock me-1"></i> Login to Read
-                                                    </button>
-                                                }
-                                                else
-                                                {
-                                                    <span class="btn btn-secondary btn-sm disabled">
-                                                        <i class="fas fa-times me-1"></i> Not Available
-                                                    </span>
-                                                }
-                                            }
-                                        </div>
                                     </div>
-                                </a>
+                                }
+
+                                <!-- Hover overlay with read button -->
+                                <div class="book-overlay">
+                                    @if (User.Identity.IsAuthenticated)
+                                    {
+                                        @if (!string.IsNullOrEmpty(book.PdfPath))
+                                        {
+                                            <a asp-controller="Reader" asp-action="Read" asp-route-id="@book.IdBook"
+                                               class="btn btn-primary btn-sm">
+                                                <i class="fas fa-book-open me-1"></i> Read Now
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="btn btn-secondary btn-sm disabled">
+                                                <i class="fas fa-times me-1"></i> Not Available
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @if (!string.IsNullOrEmpty(book.PdfPath))
+                                        {
+                                            <button type="button" class="btn btn-primary btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#homeLoginModal"
+                                                    data-book-id="@book.IdBook"
+                                                    data-book-title="@book.Title">
+                                                <i class="fas fa-lock me-1"></i> Login to Read
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="btn btn-secondary btn-sm disabled">
+                                                <i class="fas fa-times me-1"></i> Not Available
+                                            </span>
+                                        }
+                                    }
+                                </div>
+
                                 <div class="book-info">
                                     <h6 class="book-title text-truncate">@book.Title</h6>
                                     <p class="book-author text-muted small mb-0">@book.Author</p>
@@ -424,6 +472,28 @@
         transform: translateY(0);
     }
 
+    /* Login required book cards styling */
+    .book-card-login-required {
+        position: relative;
+    }
+
+        .book-card-login-required::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+    .book-card:hover .book-card-login-required::after {
+        opacity: 1;
+    }
+
     .book-info {
         padding: 0.75rem 0;
     }
@@ -551,12 +621,12 @@
                     }
 
                     if (loginLink && bookId) {
-                        const returnUrl = encodeURIComponent(`/Reader/Read/${bookId}`);
+                        const returnUrl = encodeURIComponent(`/Books/ViewDetails/${bookId}`);
                         loginLink.href = `/Auth/Login?returnUrl=${returnUrl}`;
                     }
 
                     if (registerLink && bookId) {
-                        const returnUrl = encodeURIComponent(`/Reader/Read/${bookId}`);
+                        const returnUrl = encodeURIComponent(`/Books/ViewDetails/${bookId}`);
                         registerLink.href = `/Auth/Register?returnUrl=${returnUrl}`;
                     }
                 });

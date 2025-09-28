@@ -48,50 +48,60 @@ namespace EReaderApp
             builder.Services.AddSingleton<StorageService>();
             builder.Services.AddScoped<IJwtService, JwtService>();
 
-            builder.Services.AddControllersWithViews()
+            builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
-                    // Configure JSON serialization for APIs
                     options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
                     options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
                 });
 
-            // Configure CORS for mobile apps
+            builder.Services.AddEndpointsApiExplorer();
+
+            builder.Services.AddControllersWithViews();
+
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("MobileAppPolicy", policy =>
                 {
                     if (builder.Environment.IsDevelopment())
                     {
-                        // Development: Allow any origin for testing
                         policy.AllowAnyOrigin()
                               .AllowAnyMethod()
                               .AllowAnyHeader();
                     }
                     else
                     {
-                        // Production: Specify allowed origins
-                        var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',')
-                            ?? new[] { "https://yourdomain.com" };
+                        var allowedOrigins = new List<string>
+                        {
+                            "https://librolibredv.onrender.com",
+                            "http://localhost:3000",
+                            "http://10.0.2.2:5000" 
+                        };
 
-                        policy.WithOrigins(allowedOrigins)
+                        var customOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS");
+                        if (!string.IsNullOrEmpty(customOrigins))
+                        {
+                            allowedOrigins.AddRange(customOrigins.Split(','));
+                        }
+
+                        policy.WithOrigins(allowedOrigins.ToArray())
                               .AllowAnyMethod()
                               .AllowAnyHeader()
                               .AllowCredentials();
                     }
                 });
 
-                // Separate policy for web app (if needed)
+                // Separate policy for web app
                 options.AddPolicy("WebAppPolicy", policy =>
                 {
-                    policy.WithOrigins("https://localhost:7166", "https://yourdomain.com")
+                    policy.WithOrigins("https://librolibredv.onrender.com", "https://localhost:7166")
                           .AllowAnyMethod()
                           .AllowAnyHeader()
                           .AllowCredentials();
                 });
             });
 
-            // Configure authentication with both Cookie and JWT
+            // ENHANCED Authentication Configuration
             var googleClientId = builder.Environment.IsProduction()
                 ? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
                 : builder.Configuration["Authentication:Google:ClientId"];
@@ -102,18 +112,67 @@ namespace EReaderApp
 
             // Get JWT configuration
             var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
-                ?? builder.Configuration["Jwt:SecretKey"];
+                ?? builder.Configuration["Jwt:SecretKey"]
+                ?? "YourDefaultSecretKeyForDevelopment_MustBe32Characters!";
 
-            if (string.IsNullOrEmpty(jwtSecretKey))
-            {
-                throw new InvalidOperationException("JWT Secret Key must be configured for production.");
-            }
+            var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER")
+                ?? builder.Configuration["Jwt:Issuer"]
+                ?? "EReaderApp";
+
+            var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE")
+                ?? builder.Configuration["Jwt:Audience"]
+                ?? "EReaderApp";
 
             builder.Services.AddAuthentication(options =>
             {
-                // Default scheme for web controllers
-                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+            {
+                options.RequireHttpsMetadata = builder.Environment.IsProduction();
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtIssuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwtAudience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            (path.StartsWithSegments("/hubs") || path.StartsWithSegments("/api")))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    },
+                    OnTokenValidated = context =>
+                    {
+
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogInformation("JWT token validated for user: {UserId}",
+                            context.Principal?.FindFirst("user_id")?.Value);
+                        return Task.CompletedTask;
+                    },
+                    OnAuthenticationFailed = context =>
+                    {
+                        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                        logger.LogWarning("JWT authentication failed: {Exception}", context.Exception.Message);
+                        return Task.CompletedTask;
+                    }
+                };
             })
             .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
             {
@@ -127,41 +186,10 @@ namespace EReaderApp
                     ? CookieSecurePolicy.Always
                     : CookieSecurePolicy.SameAsRequest;
             })
-            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-            {
-                options.RequireHttpsMetadata = builder.Environment.IsProduction();
-                options.SaveToken = true;
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
-                    ValidateIssuer = true,
-                    ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? builder.Configuration["Jwt:Issuer"] ?? "EReaderApp",
-                    ValidateAudience = true,
-                    ValidAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? builder.Configuration["Jwt:Audience"] ?? "EReaderApp",
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
-                };
-
-                // Handle JWT token from query string for SignalR connections (if you add real-time features)
-                options.Events = new JwtBearerEvents
-                {
-                    OnMessageReceived = context =>
-                    {
-                        var accessToken = context.Request.Query["access_token"];
-                        var path = context.HttpContext.Request.Path;
-                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
-                        {
-                            context.Token = accessToken;
-                        }
-                        return Task.CompletedTask;
-                    }
-                };
-            })
             .AddGoogle(googleOptions =>
             {
-                googleOptions.ClientId = googleClientId;
-                googleOptions.ClientSecret = googleClientSecret;
+                googleOptions.ClientId = googleClientId ?? "placeholder";
+                googleOptions.ClientSecret = googleClientSecret ?? "placeholder";
                 googleOptions.CallbackPath = "/signin-google";
                 googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.email");
                 googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.profile");
@@ -173,13 +201,17 @@ namespace EReaderApp
             {
                 options.AddPolicy("RequireAdminRole", policy =>
                     policy.RequireRole("Admin")
-                          .RequireAuthenticatedUser());
+                          .RequireAuthenticatedUser()
+                          .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme));
 
-                // Policy that accepts both authentication schemes
                 options.AddPolicy("ApiOrWeb", policy =>
                     policy.AddAuthenticationSchemes(
                         JwtBearerDefaults.AuthenticationScheme,
                         CookieAuthenticationDefaults.AuthenticationScheme)
+                          .RequireAuthenticatedUser());
+
+                options.AddPolicy("ApiOnly", policy =>
+                    policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
                           .RequireAuthenticatedUser());
             });
 
@@ -252,7 +284,6 @@ namespace EReaderApp
                 }
             });
 
-            // Force HTTPS scheme for OAuth redirects in production
             if (app.Environment.IsProduction())
             {
                 app.Use((context, next) =>
@@ -270,10 +301,24 @@ namespace EReaderApp
             app.UseAuthorization();
             app.UseSession();
 
-            // Configure routes
+            app.MapControllers();
+
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            if (app.Environment.IsDevelopment())
+            {
+                app.Use(async (context, next) =>
+                {
+                    if (context.Request.Path.StartsWithSegments("/api"))
+                    {
+                        app.Logger.LogInformation("API Request: {Method} {Path}",
+                            context.Request.Method, context.Request.Path);
+                    }
+                    await next();
+                });
+            }
 
             app.Run();
         }
