@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace EReaderApp.Controllers.Api
 {
-    [Route("api/[controller]")]
+    [Route("api/reading")]
     [ApiController]
     [Authorize]
     public class ReadingApiController : ControllerBase

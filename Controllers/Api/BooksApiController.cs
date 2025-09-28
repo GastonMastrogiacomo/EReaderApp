@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace EReaderApp.Controllers.Api
 {
-    [Route("api/[controller]")]
+    [Route("api/books")]
     [ApiController]
     [Authorize] // Requires JWT authentication
     public class BooksApiController : ControllerBase

@@ -7,7 +7,7 @@ using EReaderApp.Models;
 
 namespace EReaderApp.Controllers.Api
 {
-    [Route("api/[controller]")]
+    [Route("api/user")]
     [ApiController]
     [Authorize]
     public class UserApiController : ControllerBase

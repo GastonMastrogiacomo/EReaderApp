@@ -30,7 +30,7 @@ namespace EReaderApp.Controllers.Api
                 {
                     "GET /api/debug/test",
                     "GET /api/debug",
-                    "GET /api/books",
+                    "GET api/BooksApi",
                     "POST /api/auth/login",
                     "POST /api/auth/google"
                 }

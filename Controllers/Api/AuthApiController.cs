@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace EReaderApp.Controllers.Api
 {
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     [ApiController]
     public class AuthApiController : ControllerBase
     {
@@ -244,13 +244,6 @@ namespace EReaderApp.Controllers.Api
                     return null;
                 }
 
-                // Verify email is verified (optional check, comment out if causing issues)
-                if (!tokenInfo.EmailVerified)
-                {
-                    _logger.LogWarning("Google account email is not verified for: {Email}", tokenInfo.Email);
-                    // return null;
-                }
-
                 return tokenInfo;
             }
             catch (HttpRequestException ex)
@@ -278,8 +271,6 @@ namespace EReaderApp.Controllers.Api
         [HttpPost("validate")]
         public IActionResult ValidateToken()
         {
-            // This endpoint can be used to validate if the current token is still valid
-            // The JWT middleware will handle the validation
             if (User.Identity?.IsAuthenticated == true)
             {
                 return Ok(new
@@ -351,6 +342,7 @@ namespace EReaderApp.Controllers.Api
         public string IdToken { get; set; } = string.Empty;
     }
 
+    // Google token payload model for HTTP-based verification
     public class GoogleTokenPayload
     {
         public string? Iss { get; set; }        // Issuer
