@@ -59,6 +59,7 @@ namespace EReaderApp
 
             builder.Services.AddControllersWithViews();
 
+            // Configure CORS
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("MobileAppPolicy", policy =>
@@ -75,7 +76,7 @@ namespace EReaderApp
                         {
                             "https://librolibredv.onrender.com",
                             "http://localhost:3000",
-                            "http://10.0.2.2:5000" 
+                            "http://10.0.2.2:5000"
                         };
 
                         var customOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS");
@@ -90,18 +91,9 @@ namespace EReaderApp
                               .AllowCredentials();
                     }
                 });
-
-                // Separate policy for web app
-                options.AddPolicy("WebAppPolicy", policy =>
-                {
-                    policy.WithOrigins("https://librolibredv.onrender.com", "https://localhost:7166")
-                          .AllowAnyMethod()
-                          .AllowAnyHeader()
-                          .AllowCredentials();
-                });
             });
 
-            // ENHANCED Authentication Configuration
+            // Authentication Configuration
             var googleClientId = builder.Environment.IsProduction()
                 ? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
                 : builder.Configuration["Authentication:Google:ClientId"];
@@ -160,7 +152,6 @@ namespace EReaderApp
                     },
                     OnTokenValidated = context =>
                     {
-
                         var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
                         logger.LogInformation("JWT token validated for user: {UserId}",
                             context.Principal?.FindFirst("user_id")?.Value);
@@ -294,31 +285,28 @@ namespace EReaderApp
             }
 
             app.UseRouting();
-
             app.UseCors("MobileAppPolicy");
-
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseSession();
+
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api"))
+                {
+                    app.Logger.LogInformation("API Request: {Method} {Path} from {Host}",
+                        context.Request.Method,
+                        context.Request.Path,
+                        context.Request.Host);
+                }
+                await next();
+            });
 
             app.MapControllers();
 
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
-
-            if (app.Environment.IsDevelopment())
-            {
-                app.Use(async (context, next) =>
-                {
-                    if (context.Request.Path.StartsWithSegments("/api"))
-                    {
-                        app.Logger.LogInformation("API Request: {Method} {Path}",
-                            context.Request.Method, context.Request.Path);
-                    }
-                    await next();
-                });
-            }
 
             app.Run();
         }
