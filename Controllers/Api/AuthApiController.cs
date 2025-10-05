@@ -229,10 +229,10 @@ namespace EReaderApp.Controllers.Api
                     return null;
                 }
 
-                if (tokenInfo.Aud != googleClientId)
+                if (tokenInfo.Aud != googleClientId && tokenInfo.Azp != googleClientId)
                 {
-                    _logger.LogWarning("Google token audience mismatch. Expected: {Expected}, Actual: {Actual}",
-                        googleClientId, tokenInfo.Aud);
+                    _logger.LogWarning("Google token audience mismatch. Expected: {Expected}, Actual Aud: {Aud}, Actual Azp: {Azp}",
+                        googleClientId, tokenInfo.Aud, tokenInfo.Azp);
                     return null;
                 }
 
@@ -346,6 +346,7 @@ namespace EReaderApp.Controllers.Api
     public class GoogleTokenPayload
     {
         public string? Iss { get; set; }        // Issuer
+        public string? Azp { get; set; }        // Authorized party 
         public string? Aud { get; set; }        // Audience (Client ID)
         public long Exp { get; set; }           // Expiration time
         public long Iat { get; set; }           // Issued at
