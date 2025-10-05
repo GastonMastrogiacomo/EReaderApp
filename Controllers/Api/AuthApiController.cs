@@ -237,11 +237,17 @@ namespace EReaderApp.Controllers.Api
                 }
 
                 // Check if token is expired
-                if (tokenInfo.Exp < DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                if (!string.IsNullOrEmpty(tokenInfo.Exp))
                 {
-                    _logger.LogWarning("Google token has expired. Exp: {Exp}, Now: {Now}",
-                        tokenInfo.Exp, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-                    return null;
+                    if (long.TryParse(tokenInfo.Exp, out long expTimestamp))
+                    {
+                        if (expTimestamp < DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                        {
+                            _logger.LogWarning("Google token has expired. Exp: {Exp}, Now: {Now}",
+                                expTimestamp, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                            return null;
+                        }
+                    }
                 }
 
                 return tokenInfo;
@@ -346,16 +352,25 @@ namespace EReaderApp.Controllers.Api
     public class GoogleTokenPayload
     {
         public string? Iss { get; set; }        // Issuer
-        public string? Azp { get; set; }        // Authorized party 
+        public string? Azp { get; set; }        // Authorized party
         public string? Aud { get; set; }        // Audience (Client ID)
-        public long Exp { get; set; }           // Expiration time
-        public long Iat { get; set; }           // Issued at
+
+        public string? Exp { get; set; }        // Expiration time (as string)
+        public string? Iat { get; set; }        // Issued at (as string)
+
         public string? Sub { get; set; }        // Subject (User ID)
         public string? Email { get; set; }      // User email
+
+        [System.Text.Json.Serialization.JsonPropertyName("email_verified")]
         public bool EmailVerified { get; set; } // Email verification status
+
         public string? Name { get; set; }       // Full name
         public string? Picture { get; set; }    // Profile picture URL
+
+        [System.Text.Json.Serialization.JsonPropertyName("given_name")]
         public string? GivenName { get; set; }  // First name
+
+        [System.Text.Json.Serialization.JsonPropertyName("family_name")]
         public string? FamilyName { get; set; } // Last name
     }
 }
