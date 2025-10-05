@@ -115,10 +115,12 @@ namespace EReaderApp
                 ?? builder.Configuration["Jwt:Audience"]
                 ?? "EReaderApp";
 
+            // Configure Authentication with proper scheme hierarchy
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             })
             .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
             {
@@ -177,14 +179,30 @@ namespace EReaderApp
                     ? CookieSecurePolicy.Always
                     : CookieSecurePolicy.SameAsRequest;
             })
-            .AddGoogle(googleOptions =>
+            .AddGoogle(GoogleDefaults.AuthenticationScheme, googleOptions =>
             {
-                googleOptions.ClientId = googleClientId ?? "placeholder";
-                googleOptions.ClientSecret = googleClientSecret ?? "placeholder";
+                if (string.IsNullOrEmpty(googleClientId))
+                {
+                    builder.Logging.AddConsole().SetMinimumLevel(LogLevel.Warning);
+                    var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+                    logger.LogWarning("Google Client ID is not configured. Google authentication will not work.");
+                    googleOptions.ClientId = "placeholder";
+                    googleOptions.ClientSecret = "placeholder";
+                }
+                else
+                {
+                    googleOptions.ClientId = googleClientId;
+                    googleOptions.ClientSecret = googleClientSecret ?? throw new InvalidOperationException("Google Client Secret is not configured");
+                }
+
                 googleOptions.CallbackPath = "/signin-google";
-                googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.email");
-                googleOptions.Scope.Add("https://www.googleapis.com/auth/userinfo.profile");
+                googleOptions.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                googleOptions.SaveTokens = true;
+
+                googleOptions.Scope.Clear();
                 googleOptions.Scope.Add("openid");
+                googleOptions.Scope.Add("profile");
+                googleOptions.Scope.Add("email");
             });
 
             // Configure authorization policies
