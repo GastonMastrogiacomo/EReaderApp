@@ -4,12 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using EReaderApp.Data;
 using EReaderApp.Models;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace EReaderApp.Controllers.Api
 {
     [Route("api/books")]
     [ApiController]
-    [Authorize] // Requires JWT authentication
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class BooksApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

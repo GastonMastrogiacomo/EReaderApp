@@ -4,12 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using EReaderApp.Data;
 using System.Security.Claims;
 using EReaderApp.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace EReaderApp.Controllers.Api
 {
     [Route("api/user")]
     [ApiController]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class UserApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -119,7 +120,7 @@ namespace EReaderApp.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class LibrariesApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
