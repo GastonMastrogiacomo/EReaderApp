@@ -351,26 +351,24 @@ namespace EReaderApp.Controllers.Api
     // Google token payload model for HTTP-based verification
     public class GoogleTokenPayload
     {
-        public string? Iss { get; set; }        // Issuer
-        public string? Azp { get; set; }        // Authorized party
-        public string? Aud { get; set; }        // Audience (Client ID)
-
-        public string? Exp { get; set; }        // Expiration time (as string)
-        public string? Iat { get; set; }        // Issued at (as string)
-
-        public string? Sub { get; set; }        // Subject (User ID)
-        public string? Email { get; set; }      // User email
+        public string? Iss { get; set; }
+        public string? Azp { get; set; }
+        public string? Aud { get; set; }
+        public string? Exp { get; set; }
+        public string? Iat { get; set; }
+        public string? Sub { get; set; }
+        public string? Email { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("email_verified")]
-        public bool EmailVerified { get; set; } // Email verification status
+        public string? EmailVerified { get; set; }
 
-        public string? Name { get; set; }       // Full name
-        public string? Picture { get; set; }    // Profile picture URL
+        public string? Name { get; set; }
+        public string? Picture { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("given_name")]
-        public string? GivenName { get; set; }  // First name
+        public string? GivenName { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("family_name")]
-        public string? FamilyName { get; set; } // Last name
+        public string? FamilyName { get; set; }
     }
 }
