@@ -118,7 +118,7 @@ namespace EReaderApp.Controllers.Api
 // Controllers/Api/LibrariesApiController.cs
 namespace EReaderApp.Controllers.Api
 {
-    [Route("api/[controller]")]
+    [Route("api/libraries")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class LibrariesApiController : ControllerBase
@@ -144,7 +144,28 @@ namespace EReaderApp.Controllers.Api
                     {
                         id = l.IdLibrary,
                         name = l.ListName,
-                        bookCount = _context.LibraryBooks.Count(lb => lb.FKIdLibrary == l.IdLibrary)
+                        bookCount = _context.LibraryBooks.Count(lb => lb.FKIdLibrary == l.IdLibrary),
+                        books = _context.LibraryBooks
+                            .Where(lb => lb.FKIdLibrary == l.IdLibrary)
+                            .Include(lb => lb.Book)
+                            .Select(lb => new
+                            {
+                                id = lb.Book.IdBook,
+                                title = lb.Book.Title,
+                                author = lb.Book.Author,
+                                imageLink = lb.Book.ImageLink,
+                                description = lb.Book.Description,
+                                releaseDate = lb.Book.ReleaseDate,
+                                pageCount = lb.Book.PageCount,
+                                score = lb.Book.Score,
+                                authorBio = lb.Book.AuthorBio,
+                                averageRating = _context.Reviews
+                                    .Where(r => r.FKIdBook == lb.Book.IdBook)
+                                    .Select(r => (double?)r.Rating)
+                                    .Average() ?? 0,
+                                reviewCount = _context.Reviews.Count(r => r.FKIdBook == lb.Book.IdBook)
+                            })
+                            .ToList()
                     })
                     .ToListAsync();
 
@@ -181,8 +202,16 @@ namespace EReaderApp.Controllers.Api
                         title = lb.Book.Title,
                         author = lb.Book.Author,
                         imageLink = lb.Book.ImageLink,
+                        description = lb.Book.Description,
+                        releaseDate = lb.Book.ReleaseDate,
                         pageCount = lb.Book.PageCount,
-                        score = lb.Book.Score
+                        score = lb.Book.Score,
+                        authorBio = lb.Book.AuthorBio,
+                        averageRating = _context.Reviews
+                            .Where(r => r.FKIdBook == lb.Book.IdBook)
+                            .Select(r => (double?)r.Rating)
+                            .Average() ?? 0,
+                        reviewCount = _context.Reviews.Count(r => r.FKIdBook == lb.Book.IdBook)
                     })
                     .ToListAsync();
 
@@ -233,7 +262,8 @@ namespace EReaderApp.Controllers.Api
                     {
                         id = library.IdLibrary,
                         name = library.ListName,
-                        bookCount = 0
+                        bookCount = 0,
+                        books = new List<object>()
                     }
                 });
             }
@@ -251,7 +281,6 @@ namespace EReaderApp.Controllers.Api
             {
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-                // Verify user owns the library
                 var library = await _context.Libraries
                     .FirstOrDefaultAsync(l => l.IdLibrary == libraryId && l.FKIdUser == userId);
 
@@ -260,14 +289,12 @@ namespace EReaderApp.Controllers.Api
                     return NotFound(new { success = false, message = "Library not found" });
                 }
 
-                // Check if book exists
                 var bookExists = await _context.Books.AnyAsync(b => b.IdBook == bookId);
                 if (!bookExists)
                 {
                     return NotFound(new { success = false, message = "Book not found" });
                 }
 
-                // Check if book already in library
                 var existingEntry = await _context.LibraryBooks
                     .FirstOrDefaultAsync(lb => lb.FKIdLibrary == libraryId && lb.FKIdBook == bookId);
 
@@ -276,7 +303,6 @@ namespace EReaderApp.Controllers.Api
                     return Ok(new { success = true, message = "Book already in library", alreadyExists = true });
                 }
 
-                // Add book to library
                 _context.LibraryBooks.Add(new LibraryBook
                 {
                     FKIdLibrary = libraryId,
@@ -294,14 +320,12 @@ namespace EReaderApp.Controllers.Api
         }
 
         // DELETE: api/libraries/5/books/10
-        [HttpDelete("{libraryId}/books/{bookId}")]
         public async Task<IActionResult> RemoveBookFromLibrary(int libraryId, int bookId)
         {
             try
             {
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-                // Verify user owns the library
                 var library = await _context.Libraries
                     .FirstOrDefaultAsync(l => l.IdLibrary == libraryId && l.FKIdUser == userId);
 
