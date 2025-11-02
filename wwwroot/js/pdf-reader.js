@@ -127,9 +127,8 @@ async function loadPDF() {
         if (pdfDoc) {
             savePosition();
         }
-    }, 150000); // Every 15 seconds
+    }, 150000); // 15 secs
 
-    // Also save when user leaves the page
     window.addEventListener('beforeunload', function () {
         if (pdfDoc) {
             savePosition();
@@ -232,7 +231,7 @@ async function renderSinglePage() {
         console.error(`Error al renderizar página ${currentPage}: `, error);
         pagesRendering = false;
         document.getElementById('single-page-container').style.opacity = '1';
-        showNotification('Error al renderizar la página', 'danger');
+        showNotification('Error when rendering page', 'danger');
     }
 }
 
@@ -299,21 +298,18 @@ async function renderDoublePages() {
         }
         pagesRendering = false;
         document.getElementById('double-page-container').style.opacity = '1';
-        showNotification('Error al renderizar las páginas', 'danger');
+        showNotification('Error rendering pages', 'danger');
     }
 }
 
-// 4. Add initialization code to connect everything
 document.addEventListener('DOMContentLoaded', function () {
-    // The original initialization will run, but we need to make sure our fixes
-    // are applied. Let's set a short timeout to ensure the original code has run.
+
     setTimeout(() => {
     }, 100);
 });
 
 // Renderizar página en modo de desplazamiento (scroll)
 async function renderScrollMode() {
-    // Esta es una implementación básica, se podría mejorar para cargar solo las páginas visibles
     pagesRendering = true;
 
     try {
@@ -333,7 +329,6 @@ async function renderScrollMode() {
 // Renderizar una página en un canvas
 async function renderPage(pageNum, canvas) {
     try {
-        // Cancel any existing render task for this canvas
         if (canvas.id === 'left-canvas' && renderTaskLeft) {
             await renderTaskLeft.cancel();
             renderTaskLeft = null;
@@ -345,29 +340,23 @@ async function renderPage(pageNum, canvas) {
             renderTaskSingle = null;
         }
 
-        // Obtain the page
         const page = await pdfDoc.getPage(pageNum);
 
-        // Get container dimensions
         const container = document.getElementById('book-container');
-        const containerWidth = container.clientWidth - 40; // margin
-        const containerHeight = container.clientHeight - 40; // margin
+        const containerWidth = container.clientWidth - 40; 
+        const containerHeight = container.clientHeight - 40; 
 
-        // Get original viewport
         const viewport = page.getViewport({ scale: 1.0 });
 
-        // Calculate appropriate scale
         let pageScale = scale;
 
         if (isFitWidth) {
-            // Adjust to width, considering mode
             if (viewMode === 'double') {
                 pageScale = (containerWidth / 2 - 5) / viewport.width;
             } else {
                 pageScale = containerWidth / viewport.width;
             }
         } else if (isFitPage) {
-            // Adjust to page
             let scaleX;
             if (viewMode === 'double') {
                 scaleX = (containerWidth / 2 - 5) / viewport.width;
@@ -378,7 +367,6 @@ async function renderPage(pageNum, canvas) {
             const scaleY = containerHeight / viewport.height;
             pageScale = Math.min(scaleX, scaleY);
         } else {
-            // Verify scale isn't too large
             const maxScaleX = containerWidth / viewport.width;
             const maxScaleY = containerHeight / viewport.height;
             const maxScale = Math.min(maxScaleX, maxScaleY);
@@ -390,25 +378,20 @@ async function renderPage(pageNum, canvas) {
 
         const scaledViewport = page.getViewport({ scale: pageScale });
 
-        // Setup canvas dimensions
         canvas.width = scaledViewport.width;
         canvas.height = scaledViewport.height;
 
-        // Setup page container dimensions
         const pageDiv = canvas.parentElement;
         pageDiv.style.width = `${scaledViewport.width}px`;
         pageDiv.style.height = `${scaledViewport.height}px`;
 
-        // Apply theme
         applyThemeToElement(pageDiv);
 
-        // Create render context
         const renderContext = {
             canvasContext: canvas.getContext('2d'),
             viewport: scaledViewport
         };
 
-        // Store the render task reference based on canvas ID
         const renderTask = page.render(renderContext);
 
         if (canvas.id === 'left-canvas') {
@@ -419,16 +402,13 @@ async function renderPage(pageNum, canvas) {
             renderTaskSingle = renderTask;
         }
 
-        // Wait for rendering to complete
         await renderTask.promise;
 
-        // Update zoom buttons state
         document.getElementById('zoom-in').disabled = scale >= 2.0;
         document.getElementById('zoom-out').disabled = scale <= 0.5;
 
         return page;
     } catch (error) {
-        // Only log non-cancellation errors
         if (error.message !== 'Rendering cancelled') {
             console.error(`Error al renderizar página ${pageNum}: `, error);
         }
@@ -459,7 +439,7 @@ function renderBlankPage(canvas) {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         } else {
             // Si no hay referencia, usar dimensiones estándar
-            canvas.width = 595; // Tamaño A4 estándar en puntos
+            canvas.width = 595; 
             canvas.height = 842;
 
             ctx.fillStyle = '#ffffff';
@@ -2167,7 +2147,7 @@ function setupEventListeners() {
             //if (kindleProgress) kindleProgress.style.display = 'none';
             //if (readerControlsPanel) readerControlsPanel.style.display = 'none';
 
-            showNotification('Presiona ESC para salir de pantalla completa', 'info');
+            showNotification('Press ESC Key to exit Full Screen', 'info');
         } else {
             // Desactivar modo fullscreen
             if (bookContainer) bookContainer.classList.remove('fullscreen-mode');
@@ -2193,7 +2173,7 @@ function setupEventListeners() {
 async function createNote() {
     const content = document.getElementById('new-note-content').value.trim();
     if (!content) {
-        showNotification('El contenido de la nota no puede estar vacío', 'warning');
+        showNotification('Note content cant be blank', 'warning');
         return;
     }
 
@@ -2215,7 +2195,7 @@ async function createNote() {
         // Verificar si tenemos el token
         if (!token) {
             console.error('No se pudo encontrar el token de antiforgery');
-            showNotification('Error de autenticación al guardar la nota', 'danger');
+            showNotification('Authentication error when saving note', 'danger');
             saveButton.disabled = false;
             saveButton.innerHTML = originalText;
             return;
@@ -2247,16 +2227,16 @@ async function createNote() {
                 notes.push(result.note);
                 renderNotes();
                 document.getElementById('new-note-content').value = '';
-                showNotification('Nota guardada correctamente', 'success');
+                showNotification('Note saved Succesfully', 'success');
             } else {
-                showNotification('Error al guardar la nota: ' + (result.message || 'Respuesta inválida'), 'danger');
+                showNotification('Error when saving note: ' + (result.message || 'Respuesta inválida'), 'danger');
             }
         } else {
-            showNotification(`Error al guardar la nota (${response.status})`, 'danger');
+            showNotification(`Error when saving note (${response.status})`, 'danger');
         }
     } catch (error) {
-        console.error('Error al crear la nota:', error);
-        showNotification('Error al guardar la nota: ' + error.message, 'danger');
+        console.error('Error when creating note:', error);
+        showNotification('Error when saving note: ' + error.message, 'danger');
 
         // Restaurar el botón
         saveButton.disabled = false;
@@ -2305,7 +2285,7 @@ async function editNote(note) {
     noteElement.querySelector('.save-edit').addEventListener('click', async () => {
         const newContent = textarea.value.trim();
         if (!newContent) {
-            showNotification('El contenido de la nota no puede estar vacío', 'warning');
+            showNotification('Note content can not be blank', 'warning');
             return;
         }
 
@@ -2344,14 +2324,14 @@ async function editNote(note) {
                 }
 
                 renderNotes();
-                showNotification('Nota actualizada correctamente', 'success');
+                showNotification('Note updated succesfully', 'success');
             } else {
-                showNotification('Error al actualizar la nota', 'danger');
+                showNotification('Error when updating note', 'danger');
                 renderNotes();
             }
         } catch (error) {
-            console.error('Error al actualizar la nota:', error);
-            showNotification('Error al actualizar la nota', 'danger');
+            console.error('Error when updating note:', error);
+            showNotification('Error when updating note', 'danger');
             renderNotes();
         }
     });
@@ -2366,8 +2346,8 @@ async function deleteNote(id) {
 
         // Verificar si tenemos el token
         if (!token) {
-            console.error('No se pudo encontrar el token de antiforgery');
-            showNotification('Error de autenticación al eliminar la nota', 'danger');
+            //console.error('No se pudo encontrar el token de antiforgery');
+            showNotification('Authentication error when deleting note', 'danger');
             return;
         }
 
@@ -2387,13 +2367,13 @@ async function deleteNote(id) {
             // Eliminar la nota del array
             notes = notes.filter(n => n.id !== id);
             renderNotes();
-            showNotification('Nota eliminada correctamente', 'success');
+            showNotification('Note deleted succesfully', 'success');
         } else {
-            showNotification('Error al eliminar la nota', 'danger');
+            showNotification('Error when deleting note', 'danger');
         }
     } catch (error) {
-        console.error('Error al eliminar la nota:', error);
-        showNotification('Error al eliminar la nota', 'danger');
+        console.error('Error when deleting note:', error);
+        showNotification('Error when deleting note', 'danger');
     }
 }
 
@@ -2407,7 +2387,7 @@ setTimeout(() => {
     }
 
     if (!localStorage.getItem(`visited_${bookId}`)) {
-        showNotification('Use las flechas del teclado o deslice para cambiar de página', 'info');
+        showNotification('Use the arrow keys on your keyboard to change pages', 'info');
         localStorage.setItem(`visited_${bookId}`, 'true');
     }
 }, 500);

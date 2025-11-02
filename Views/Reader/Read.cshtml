@@ -10,7 +10,6 @@
         @Html.AntiForgeryToken()
     </form>
 
-    <!-- COMPACT HEADER WITHOUT PROGRESS BAR -->
     <div class="kindle-top-bar">
         <div class="kindle-title">
             <span class="book-author">@Model.Title</span>
@@ -18,13 +17,12 @@
         </div>
 
         <div class="kindle-controls">
-            <button id="toggle-controls" class="btn btn-sm btn-icon" title="Mostrar/Ocultar controles">
+            <button id="toggle-controls" class="btn btn-sm btn-icon" title="Show/Hide controls">
                 <i class="fas fa-ellipsis-v"></i>
             </button>
         </div>
     </div>
 
-    <!-- SEPARATE FULL-WIDTH PROGRESS BAR (same width as top bar) -->
     <div class="kindle-progress">
         <div class="progress-text">
             <span id="progress-percentage">0%</span>
@@ -34,32 +32,30 @@
         </div>
     </div>
 
-    <!-- More compact controls panel -->
     <div id="reader-controls-panel" class="reader-controls bg-light p-2 rounded shadow-sm" style="display: none;">
         <div class="d-flex flex-wrap align-items-center gap-2">
-            <!-- Navigation - More compact -->
             <div class="btn-group" role="group">
-                <button id="first-page" class="btn btn-sm btn-outline-secondary" title="Primera página">
+                <button id="first-page" class="btn btn-sm btn-outline-secondary" title="First Page">
                     <i class="fas fa-angle-double-left"></i>
                 </button>
-                <button id="prev-page" class="btn btn-sm btn-outline-secondary" title="Página anterior">
+                <button id="prev-page" class="btn btn-sm btn-outline-secondary" title="Previous Page">
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <div class="input-group input-group-sm" style="width: auto;">
                     <input type="number" id="current-page-input" class="form-control text-center" style="width: 60px;" min="1" value="1">
                     <span class="input-group-text small">/ <span id="page-count">0</span></span>
                 </div>
-                <button id="next-page" class="btn btn-sm btn-outline-secondary" title="Página siguiente">
+                <button id="next-page" class="btn btn-sm btn-outline-secondary" title="Next Page">
                     <i class="fas fa-chevron-right"></i>
                 </button>
-                <button id="last-page" class="btn btn-sm btn-outline-secondary" title="Última página">
+                <button id="last-page" class="btn btn-sm btn-outline-secondary" title="last Page">
                     <i class="fas fa-angle-double-right"></i>
                 </button>
             </div>
 
             <!-- Zoom controls - Inline -->
             <div class="btn-group" role="group">
-                <button id="zoom-out" class="btn btn-sm btn-outline-secondary" title="Reducir">
+                <button id="zoom-out" class="btn btn-sm btn-outline-secondary" title="Zoom Out">
                     <i class="fas fa-search-minus"></i>
                 </button>
                 <div class="dropdown">
@@ -74,11 +70,11 @@
                         <li><a class="dropdown-item zoom-preset" data-zoom="1.15">115%</a></li>
                         <li><a class="dropdown-item zoom-preset" data-zoom="1.3">130%</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" id="zoom-fit-width">Ajustar al ancho</a></li>
-                        <li><a class="dropdown-item" id="zoom-fit-page">Ajustar a la página</a></li>
+                        <li><a class="dropdown-item" id="zoom-fit-width">Adjust to Width</a></li>
+                        <li><a class="dropdown-item" id="zoom-fit-page">Fit to Page</a></li>
                     </ul>
                 </div>
-                <button id="zoom-in" class="btn btn-sm btn-outline-secondary" title="Ampliar">
+                <button id="zoom-in" class="btn btn-sm btn-outline-secondary" title="Zoom In">
                     <i class="fas fa-search-plus"></i>
                 </button>
             </div>
@@ -87,21 +83,20 @@
             <div class="dropdown ms-2">
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" id="view-mode"
                         data-bs-toggle="dropdown" data-bs-boundary="viewport">
-                    <span id="view-mode-text">Doble página</span>
+                    <span id="view-mode-text">Double Page</span>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item view-mode-option" data-mode="single">Página única</a></li>
-                    <li><a class="dropdown-item view-mode-option" data-mode="double">Doble página</a></li>
+                    <li><a class="dropdown-item view-mode-option" data-mode="single">Single Page</a></li>
+                    <li><a class="dropdown-item view-mode-option" data-mode="double">Double Page</a></li>
                 </ul>
             </div>
 
-            <!-- Additional controls -->
             <div class="btn-group ms-auto" role="group">
-                <button id="toggle-toc" class="btn btn-sm btn-outline-secondary" title="Tabla de contenidos">
+                <button id="toggle-toc" class="btn btn-sm btn-outline-secondary" title="Table of Contents">
                     <i class="fas fa-list"></i>
                 </button>
                 <div class="position-relative">
-                    <button id="theme-button" class="btn btn-sm btn-outline-secondary" title="Cambiar tema">
+                    <button id="theme-button" class="btn btn-sm btn-outline-secondary" title="Switch Theme">
                         <i class="fas fa-adjust"></i>
                     </button>
                     <!-- Theme menu positioned relative to button -->
@@ -109,7 +104,7 @@
                         <div class="theme-options">
                             <div class="theme-option" data-theme="light">
                                 <div class="theme-swatch light-theme"></div>
-                                <span>Día</span>
+                                <span>Light</span>
                             </div>
                             <div class="theme-option" data-theme="sepia">
                                 <div class="theme-swatch sepia-theme"></div>
@@ -117,18 +112,18 @@
                             </div>
                             <div class="theme-option" data-theme="dark">
                                 <div class="theme-swatch dark-theme"></div>
-                                <span>Noche</span>
+                                <span>Dark</span>
                             </div>
                         </div>
                     </div>
                 </div>
-                <a href="@Model.PdfPath" download class="btn btn-sm btn-outline-secondary" title="Descargar libro">
+                <a href="@Model.PdfPath" download class="btn btn-sm btn-outline-secondary" title="Download PDF">
                     <i class="fas fa-download"></i>
                 </a>
-                <button id="toggle-fullscreen" class="btn btn-sm btn-outline-secondary" title="Pantalla completa">
+                <button id="toggle-fullscreen" class="btn btn-sm btn-outline-secondary" title="Full Screen">
                     <i class="fas fa-expand"></i>
                 </button>
-                <a href="@Url.Action("ViewDetails", "Books", new { id = Model.IdBook })" class="btn btn-sm btn-outline-secondary" title="Detalles del Libro">
+                <a href="@Url.Action("ViewDetails", "Books", new { id = Model.IdBook })" class="btn btn-sm btn-outline-secondary" title="Book Details">
                     <i class="fa-solid fa-circle-info"></i>
                 </a>
             </div>
@@ -144,25 +139,24 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link py-2" id="toc-tab" data-bs-toggle="tab" data-bs-target="#toc-content"
                             type="button" role="tab" aria-controls="toc-content" aria-selected="false">
-                        <i class="fas fa-list me-1"></i>Índice
+                        <i class="fas fa-list me-1"></i>Index
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active py-2" id="bookmarks-tab" data-bs-toggle="tab" data-bs-target="#bookmarks-content"
                             type="button" role="tab" aria-controls="bookmarks-content" aria-selected="true">
-                        <i class="fas fa-bookmark me-1"></i>Marcadores
+                        <i class="fas fa-bookmark me-1"></i>Bookmarks
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link py-2" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes-content"
                             type="button" role="tab" aria-controls="notes-content" aria-selected="false">
-                        <i class="fas fa-sticky-note me-1"></i>Notas
+                        <i class="fas fa-sticky-note me-1"></i>Notes
                     </button>
                 </li>
             </ul>
 
             <div class="tab-content p-2" id="side-panel-tab-content">
-                <!-- TOC Content - More compact -->
                 <div class="tab-pane fade" id="toc-content" role="tabpanel" aria-labelledby="toc-tab">
                     <div class="d-flex justify-content-end mb-2">
                         <button id="close-side-panel-toc" class="btn btn-sm btn-outline-secondary">
@@ -172,12 +166,12 @@
                     <div id="toc-list" class="list-group list-group-flush">
                         <div id="toc-loading" class="text-center py-3">
                             <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                <span class="visually-hidden">Cargando índice...</span>
+                                <span class="visually-hidden">Loading Index...</span>
                             </div>
-                            <span class="ms-2 small">Cargando índice...</span>
+                            <span class="ms-2 small">Loading Index...</span>
                         </div>
                         <div id="toc-empty" class="text-center py-3 text-muted small" style="display: none;">
-                            No se encontró tabla de contenidos
+                            Table of Contents not found
                         </div>
                     </div>
                 </div>
@@ -190,13 +184,13 @@
                         </button>
                     </div>
 
-                    <!-- Compact bookmark form -->
+                    <!-- Bookmark form -->
                     <div class="mb-3">
-                        <input type="text" class="form-control form-control-sm mb-2" id="bookmark-title" placeholder="Título del marcador">
+                        <input type="text" class="form-control form-control-sm mb-2" id="bookmark-title" placeholder="Bookmark title">
                         <div class="d-flex justify-content-between align-items-center">
                             <small class="text-muted">Página: <span id="bookmark-page">1</span></small>
                             <button type="button" class="btn btn-sm btn-primary" id="save-bookmark">
-                                <i class="fas fa-plus me-1"></i>Guardar
+                                <i class="fas fa-plus me-1"></i>Save
                             </button>
                         </div>
                     </div>
@@ -204,12 +198,12 @@
 
                     <div id="bookmarks-list" class="list-group list-group-flush">
                         <div class="text-center py-3 text-muted small">
-                            No hay marcadores guardados
+                            There are no saved Bookmarks
                         </div>
                     </div>
                 </div>
 
-                <!-- Notes Content - More compact -->
+                <!-- Notes Content  -->
                 <div class="tab-pane fade" id="notes-content" role="tabpanel" aria-labelledby="notes-tab">
                     <div class="d-flex justify-content-end mb-2">
                         <button id="close-notes-panel" class="btn btn-sm btn-outline-secondary">
@@ -218,10 +212,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <textarea id="new-note-content" class="form-control form-control-sm" rows="2" placeholder="Nueva nota..."></textarea>
+                        <textarea id="new-note-content" class="form-control form-control-sm" rows="2" placeholder="New note..."></textarea>
                         <div class="mt-2 d-flex justify-content-end">
                             <button id="save-new-note" class="btn btn-sm btn-primary">
-                                <i class="fas fa-save me-1"></i>Guardar
+                                <i class="fas fa-save me-1"></i>Save
                             </button>
                         </div>
                     </div>
@@ -229,7 +223,7 @@
 
                     <div id="notes-list" class="overflow-auto" style="max-height: 250px;">
                         <div class="text-center py-3 text-muted small notes-empty">
-                            No hay notas para este libro
+                            There are no Notes for this book
                         </div>
                     </div>
                 </div>
@@ -240,9 +234,9 @@
         <div id="book-container" class="border rounded shadow flex-grow-1" data-book-id="@Model.IdBook" data-pdf-path="@Model.PdfPath">
             <div id="loading-indicator" class="text-center p-4">
                 <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Cargando...</span>
+                    <span class="visually-hidden">Loading...</span>
                 </div>
-                <p class="mt-2 mb-0">Cargando documento...</p>
+                <p class="mt-2 mb-0">Loading Book...</p>
             </div>
 
             <div id="book-view" data-reading-state='@Html.Raw(Json.Serialize(ViewBag.ReadingState))'>
