@@ -1,47 +1,91 @@
 ﻿@model IEnumerable<EReaderApp.Models.Review>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Reviews Management";
+    Layout = "_AdminLayout";
 }
 
-<h1>Index</h1>
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">All Reviews</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover datatable">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Book</th>
+                        <th>User</th>
+                        <th>Rating</th>
+                        <th>Comment</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.IdReview</td>
+                            <td>@item.Book?.Title</td>
+                            <td>@item.User?.Name</td>
+                            <td>
+                                <span class="badge bg-warning text-dark">
+                                    @item.Rating <i class="fas fa-star"></i>
+                                </span>
+                            </td>
+                            <td>@(item.Comment.Length > 50 ? item.Comment.Substring(0, 50) + "..." : item.Comment)</td>
+                            <td>@item.CreatedAt.ToString("MMM dd, yyyy")</td>
+                            <td>
+                                <div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.IdReview">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-action="Details" asp-route-id="@item.IdReview">
+                                                <i class="fas fa-eye"></i> View Details
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger confirm-delete" asp-action="Delete" asp-route-id="@item.IdReview">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Comment)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Book)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.User)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Comment)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Book.Author)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.User.Email)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.IdReview">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.IdReview">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.IdReview">Delete</a>
-            </td>
-        </tr>
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
+
+    <script>
+        $(document).ready(function() {
+            if (!$.fn.DataTable.isDataTable('.datatable')) {
+                $('.datatable').DataTable({
+                    responsive: true,
+                    order: [[0, 'desc']],
+                    columnDefs: [
+                        { orderable: false, targets: [6] }
+                    ]
+                });
+            }
+        });
+    </script>
 }
-    </tbody>
-</table>

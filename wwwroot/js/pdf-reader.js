@@ -1797,7 +1797,7 @@ function renderNotes() {
         );
 
         const updatedInfo = note.updatedAt ?
-            `<small class="text-muted">(Editada: ${new Date(note.updatedAt).toLocaleDateString()})</small>` : '';
+            `<small class="text-muted">(Edited: ${new Date(note.updatedAt).toLocaleDateString()})</small>` : '';
 
         noteElement.innerHTML = `
             <div class="card-body py-2 px-3">

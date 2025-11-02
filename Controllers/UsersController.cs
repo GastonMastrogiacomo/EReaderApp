@@ -67,11 +67,28 @@ namespace EReaderApp.Controllers
         [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Create([Bind("IdUser,Name,Email,Password,ProfilePicture")] User user)
         {
+            // Remover validación del User para poder asignar valores manualmente
+            ModelState.Remove("User");
+
             if (ModelState.IsValid)
             {
+                // Validar password strength (igual que en Register)
+                if (!IsPasswordValid(user.Password))
+                {
+                    ModelState.AddModelError("Password", "Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.");
+                    return View(user);
+                }
+
+                // Hash the password antes de guardar
+                user.Password = HashPassword(user.Password);
+
+                // Establecer valores por defecto
+                user.CreatedAt = DateTime.Now;
+                user.Role = "User"; // O permitir selección en el formulario
+
                 _context.Add(user);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Users", "Admin");
             }
             return View(user);
         }
@@ -154,7 +171,7 @@ namespace EReaderApp.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Users", "Admin");
             }
             return View(model);
         }
@@ -314,7 +331,7 @@ namespace EReaderApp.Controllers
                 }
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Users", "Admin");
         }
 
         private bool UserExists(int id)
@@ -333,7 +350,6 @@ namespace EReaderApp.Controllers
                 return NotFound();
             }
 
-            // Create a view model to avoid exposing the password
             var viewModel = new UserProfileViewModel
             {
                 IdUser = user.IdUser,

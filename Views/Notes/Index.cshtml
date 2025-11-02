@@ -75,26 +75,27 @@
 
 @section Scripts {
     <script>
-        // Código para la edición y eliminación de notas mediante AJAX
         document.addEventListener('DOMContentLoaded', function () {
             // Eliminar nota
             document.querySelectorAll('.delete-note').forEach(button => {
                 button.addEventListener('click', function () {
                     const noteId = this.getAttribute('data-note-id');
                     if (confirm('¿Estás seguro de que deseas eliminar esta nota?')) {
-                        fetch(`/Notes/DeleteNote/${noteId}`, {
-                            method: 'DELETE',
+                        // Crear FormData con el token CSRF
+                        const formData = new FormData();
+                        formData.append('id', noteId);
+
+                        fetch(`/Notes/DeleteNote`, {
+                            method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json',
                                 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                            }
+                            },
+                            body: formData
                         })
                             .then(response => response.json())
                             .then(data => {
                                 if (data.success) {
-                                    // Eliminar el elemento de la interfaz
                                     this.closest('.col-md-6').remove();
-                                    // Mostrar mensaje
                                     showAlert('Nota eliminada correctamente', 'success');
                                 }
                             })
@@ -112,11 +113,9 @@
                     const noteId = this.getAttribute('data-note-id');
                     const noteContent = this.closest('.card').querySelector('.card-text').textContent;
 
-                    // Establecer valores en el modal
                     document.getElementById('edit-note-id').value = noteId;
                     document.getElementById('edit-note-content').value = noteContent;
 
-                    // Mostrar el modal
                     const modal = new bootstrap.Modal(document.getElementById('editNoteModal'));
                     modal.show();
                 });
@@ -132,25 +131,25 @@
                     return;
                 }
 
-                fetch(`/Notes/UpdateNote/${noteId}`, {
-                    method: 'PUT',
+                // Crear FormData
+                const formData = new FormData();
+                formData.append('id', noteId);
+                formData.append('content', content);
+
+                fetch(`/Notes/UpdateNote`, {
+                    method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
                     },
-                    body: JSON.stringify({ content })
+                    body: formData
                 })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Actualizar el texto de la nota en la página
                             const noteCard = document.querySelector(`.edit-note[data-note-id="${noteId}"]`).closest('.card');
                             noteCard.querySelector('.card-text').textContent = content;
 
-                            // Cerrar el modal
                             bootstrap.Modal.getInstance(document.getElementById('editNoteModal')).hide();
-
-                            // Mostrar mensaje
                             showAlert('Nota actualizada correctamente', 'success');
                         }
                     })
@@ -160,18 +159,16 @@
                     });
             });
 
-            // Función para mostrar alertas
             function showAlert(message, type) {
                 const alertDiv = document.createElement('div');
                 alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
                 alertDiv.setAttribute('role', 'alert');
                 alertDiv.innerHTML = `
-                            ${message}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        `;
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
                 document.querySelector('.container').prepend(alertDiv);
 
-                // Auto-cerrar después de 3 segundos
                 setTimeout(() => {
                     alertDiv.classList.remove('show');
                     setTimeout(() => alertDiv.remove(), 300);

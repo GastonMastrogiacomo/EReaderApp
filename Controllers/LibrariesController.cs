@@ -72,34 +72,24 @@ namespace EReaderApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Library library, int? bookId)
         {
-            /*System.Diagnostics.Debug.WriteLine("========== CREATE LIBRARY SUBMISSION ==========");
-            System.Diagnostics.Debug.WriteLine($"Create called with: ListName={library?.ListName ?? "null"}, FKIdUser={library?.FKIdUser.ToString() ?? "null"}, bookId={bookId}");
-            System.Diagnostics.Debug.WriteLine($"Form data received: {Request.HasFormContentType}, Content-Type: {Request.ContentType}");
-            System.Diagnostics.Debug.WriteLine($"Form values count: {Request.Form.Count}");
-            */
 
-            // Explicitly exclude the User navigation property from validation
             ModelState.Remove("User");
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // If user is not admin, ensure they can only create libraries for themselves
                     if (!User.IsInRole("Admin"))
                     {
                         int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
                         library.FKIdUser = userId;
                     }
 
-                    // Add the library to the context
                     _context.Add(library);
                     await _context.SaveChangesAsync();
 
-                    //Console.WriteLine($"Library created with ID: {library.IdLibrary}");
                     TempData["SuccessMessage"] = "Library created successfully";
 
-                    // If a book ID was provided, add the book to the newly created library
                     if (bookId.HasValue)
                     {
                         var libraryBook = new LibraryBook
@@ -367,7 +357,8 @@ namespace EReaderApp.Controllers
                 return NotFound();
             }
 
-            return View(library);
+            //return View(library);
+            return RedirectToAction(nameof(MyLibraries));
         }
 
         // POST: Libraries/Delete/5
@@ -460,11 +451,6 @@ namespace EReaderApp.Controllers
             return View(books);
         }
 
-        // NEW AJAX API ENDPOINTS //
-
-        /// <summary>
-        /// AJAX endpoint to get all libraries for the current user
-        /// </summary>
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> GetUserLibraries()
@@ -489,9 +475,7 @@ namespace EReaderApp.Controllers
             }
         }
 
-        /// <summary>
-        /// AJAX endpoint to create a new library
-        /// </summary>
+
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -528,9 +512,7 @@ namespace EReaderApp.Controllers
             }
         }
 
-        /// <summary>
-        /// AJAX endpoint to add a book to an existing library
-        /// </summary>
+
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -579,9 +561,7 @@ namespace EReaderApp.Controllers
             }
         }
 
-        /// <summary>
-        /// AJAX endpoint to create a new library and add a book in one operation
-        /// </summary>
+
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -705,7 +685,6 @@ namespace EReaderApp.Controllers
         }
     }
 
-    // Models for API requests
     public class CreateLibraryModel
     {
         public string ListName { get; set; }
