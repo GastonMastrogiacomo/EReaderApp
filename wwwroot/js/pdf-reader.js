@@ -636,9 +636,9 @@ function updateViewModeDisplay() {
     const viewModeText = document.getElementById('view-mode-text');
     if (viewModeText) {
         if (viewMode === 'single') {
-            viewModeText.textContent = 'Página única';
+            viewModeText.textContent = 'Single Page';
         } else if (viewMode === 'double') {
-            viewModeText.textContent = 'Doble página';
+            viewModeText.textContent = 'Double Page';
         }
     }
 
@@ -747,7 +747,7 @@ function fitToPage() {
     isFitPage = true;
 
     scale = 1.0; // Reset scale
-    document.getElementById('zoom-text').textContent = 'Página';
+    document.getElementById('zoom-text').textContent = 'Fit to Page';
     renderCurrentPages();
 }
 
@@ -1026,7 +1026,7 @@ function renderBookmarks() {
     if (bookmarks.length === 0) {
         bookmarksList.innerHTML = `
             <div class="text-center p-3 text-muted small">
-                No hay marcadores guardados
+                No saved bookmarks
             </div>`;
         return;
     }
@@ -1797,7 +1797,7 @@ function renderNotes() {
         );
 
         const updatedInfo = note.updatedAt ?
-            `<small class="text-muted">(Edited: ${new Date(note.updatedAt).toLocaleDateString()})</small>` : '';
+            `<small class="text-muted">(Editada: ${new Date(note.updatedAt).toLocaleDateString()})</small>` : '';
 
         noteElement.innerHTML = `
             <div class="card-body py-2 px-3">

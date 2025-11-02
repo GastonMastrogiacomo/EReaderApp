@@ -58,13 +58,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Confirmation for delete actions
-    document.querySelectorAll('.confirm-delete').forEach(function (button) {
+    /*document.querySelectorAll('.confirm-delete').forEach(function (button) {
         button.addEventListener('click', function (e) {
             if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
                 e.preventDefault();
             }
         });
     });
+    */
 
     // Auto-hide alerts after 5 seconds
     setTimeout(function () {

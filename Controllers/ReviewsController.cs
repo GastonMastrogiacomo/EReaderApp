@@ -191,6 +191,10 @@ namespace EReaderApp.Controllers
                 return Forbid();
             }
 
+            // Remove validation for navigation properties
+            ModelState.Remove("Book");
+            ModelState.Remove("User");
+
             if (ModelState.IsValid)
             {
                 try
@@ -200,6 +204,8 @@ namespace EReaderApp.Controllers
 
                     // Update book score with average rating
                     await UpdateBookScore(review.FKIdBook);
+
+                    TempData["SuccessMessage"] = "Review updated successfully.";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -214,6 +220,7 @@ namespace EReaderApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+
             ViewData["FKIdBook"] = new SelectList(_context.Books, "IdBook", "Author", review.FKIdBook);
             ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", review.FKIdUser);
             return View(review);

@@ -2,45 +2,53 @@
 
 @{
     ViewData["Title"] = "Edit User";
+    Layout = "_AdminLayout";
 }
 
-<h1>Edit</h1>
-<h4>User</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Edit User</h5>
+    </div>
+    <div class="card-body">
         <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
             <input type="hidden" asp-for="IdUser" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Email" class="control-label"></label>
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
                 <input asp-for="Email" class="form-control" />
                 <span asp-validation-for="Email" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="NewPassword" class="control-label">Password (leave blank to keep unchanged)</label>
-                <input asp-for="NewPassword" class="form-control" />
+
+            <div class="mb-3">
+                <label asp-for="NewPassword" class="form-label">Password (leave blank to keep unchanged)</label>
+                <input asp-for="NewPassword" class="form-control" type="password" />
                 <span asp-validation-for="NewPassword" class="text-danger"></span>
+                <div class="form-text">Leave empty if you don't want to change the password</div>
             </div>
-            <div class="form-group">
-                <label asp-for="ProfilePicture" class="control-label"></label>
+
+            <div class="mb-3">
+                <label asp-for="ProfilePicture" class="form-label"></label>
                 <input asp-for="ProfilePicture" class="form-control" />
                 <span asp-validation-for="ProfilePicture" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+
+            <div class="d-flex justify-content-between mt-4">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save Changes
+                </button>
             </div>
         </form>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {

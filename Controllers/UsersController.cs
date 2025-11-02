@@ -72,19 +72,18 @@ namespace EReaderApp.Controllers
 
             if (ModelState.IsValid)
             {
-                // Validar password strength (igual que en Register)
+                // Validar password strength
                 if (!IsPasswordValid(user.Password))
                 {
                     ModelState.AddModelError("Password", "Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.");
                     return View(user);
                 }
 
-                // Hash the password antes de guardar
-                user.Password = HashPassword(user.Password);
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
                 // Establecer valores por defecto
                 user.CreatedAt = DateTime.Now;
-                user.Role = "User"; // O permitir selección en el formulario
+                user.Role = "User";
 
                 _context.Add(user);
                 await _context.SaveChangesAsync();
@@ -540,11 +539,9 @@ namespace EReaderApp.Controllers
                     return View("ProfileEdit", model);
                 }
 
-                // Update the password only if a new one is provided
-                user.Password = HashPassword(model.NewPassword);
+                // CRITICAL: Use BCrypt instead of SHA256
+                user.Password = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
             }
-            // If no new password is provided, keep the existing one
-            // No need to set it explicitly as we're not changing it
 
             // Handle profile picture upload with Supabase storage
             if (model.ProfilePictureFile != null && model.ProfilePictureFile.Length > 0)
