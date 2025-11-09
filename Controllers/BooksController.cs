@@ -546,10 +546,11 @@ namespace EReaderApp.Controllers
             // Apply search query if provided
             if (!string.IsNullOrEmpty(query))
             {
+                query = query.ToLower(); // Convert search query to lowercase
                 books = books.Where(b =>
-                    b.Title.Contains(query) ||
-                    b.Author.Contains(query) ||
-                    b.Description.Contains(query));
+                    b.Title.ToLower().Contains(query) ||
+                    b.Author.ToLower().Contains(query) ||
+                    b.Description.ToLower().Contains(query));
             }
 
             // Filter by category if provided
@@ -582,7 +583,10 @@ namespace EReaderApp.Controllers
                                 .Where(r => r.FKIdBook == book.IdBook)
                                 .Select(r => (double?)r.Rating)
                                 .Average()
-                            orderby avgRating descending, book.Title
+                            let reviewCount = _context.Reviews.Count(r => r.FKIdBook == book.IdBook)
+                            orderby avgRating descending,
+                                    reviewCount > 0 ? 1 : 0 descending,
+                                    book.Title
                             select book;
                     break;
                 case "title":

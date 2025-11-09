@@ -1735,9 +1735,9 @@ async function loadNotes() {
         notesList.innerHTML = `
             <div class="text-center p-3">
                 <div class="spinner-border spinner-border-sm text-primary" role="status">
-                    <span class="visually-hidden">Cargando notas...</span>
+                    <span class="visually-hidden">Loading Notes...</span>
                 </div>
-                <span class="ms-2">Cargando notas...</span>
+                <span class="ms-2">Loading Notes...</span>
             </div>
         `;
 
@@ -1777,7 +1777,7 @@ function renderNotes() {
     if (notes.length === 0) {
         notesList.innerHTML = `
             <div class="text-center p-3 text-muted small notes-empty">
-                No hay notas para este libro
+                No notes available.
             </div>`;
         return;
     }

@@ -35,7 +35,7 @@ namespace EReaderApp.Controllers
 
             if (user == null || !VerifyPassword(password, user.Password))
             {
-                ModelState.AddModelError("", "Invalid email or password");
+                ModelState.AddModelError(string.Empty, "Invalid email or password. Please try again.");
                 ViewBag.ReturnUrl = returnUrl;
                 return View();
             }

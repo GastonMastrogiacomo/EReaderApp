@@ -7,9 +7,12 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using EReaderApp.Data;
 using EReaderApp.Models;
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace EReaderApp.Controllers.Intermedias
 {
+    [Authorize(Policy = "RequireAdminRole")]
     public class BookCategoriesController : Controller
     {
         private readonly ApplicationDbContext _context;

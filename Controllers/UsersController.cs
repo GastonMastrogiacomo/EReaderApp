@@ -59,20 +59,21 @@ namespace EReaderApp.Controllers
             return View();
         }
 
-        // POST: Users/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "RequireAdminRole")]
         public async Task<IActionResult> Create([Bind("IdUser,Name,Email,Password,ProfilePicture")] User user)
         {
-            // Remover validación del User para poder asignar valores manualmente
             ModelState.Remove("User");
+
+            if (await _context.Users.AnyAsync(u => u.Email == user.Email))
+            {
+                ModelState.AddModelError("Email", "This email address is already in use.");
+                return View(user);
+            }
 
             if (ModelState.IsValid)
             {
-                // Validar password strength
                 if (!IsPasswordValid(user.Password))
                 {
                     ModelState.AddModelError("Password", "Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.");
@@ -80,13 +81,13 @@ namespace EReaderApp.Controllers
                 }
 
                 user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-
-                // Establecer valores por defecto
                 user.CreatedAt = DateTime.Now;
                 user.Role = "User";
 
                 _context.Add(user);
                 await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "User created successfully.";
                 return RedirectToAction("Users", "Admin");
             }
             return View(user);
