@@ -310,6 +310,20 @@
                                     {
                                         <small class="text-muted me-2"><i class="fas fa-file me-1"></i> @book.PageCount pages</small>
                                     }
+
+                                    @{
+                                        var bookCategories = ViewBag.BookCategories as Dictionary<int, string> ?? new Dictionary<int, string>();
+                                        var bookCategory = bookCategories.ContainsKey(book.IdBook) ? bookCategories[book.IdBook] : null;
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(bookCategory))
+                                    {
+                                        <span class="category-badge">
+                                            <i class="fas fa-tag"></i> @bookCategory
+                                        </span>
+                                    }
+
+                                    
                                 </div>
                                 <small class="text-muted">
                                     @(book.Description?.Length > 100

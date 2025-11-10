@@ -614,7 +614,6 @@ html body .theme-light .right-page {
         color: #333333 !important;
     }
 
-/* Ensure theme menu is never affected by dark theme */
 .theme-dark .theme-menu,
 .theme-dark .theme-option,
 .theme-dark .theme-option span {
@@ -667,7 +666,6 @@ html body .theme-light .right-page {
         display: none !important;
     }
 
-    /* Show toggle controls button in fullscreen for accessibility */
     .fullscreen-mode #toggle-controls {
         position: fixed !important;
         top: 10px !important;
@@ -685,7 +683,6 @@ html body .theme-light .right-page {
             background-color: rgba(0, 0, 0, 0.9) !important;
         }
 
-    /* If controls are shown in fullscreen (via JS), ensure proper z-index */
     .fullscreen-mode #reader-controls-panel[style*="block"] {
         position: fixed !important;
         top: 10px !important;
@@ -697,7 +694,6 @@ html body .theme-light .right-page {
         border: 1px solid rgba(0, 0, 0, 0.1);
     }
 
-    /* CRITICAL: Ensure all dropdowns in fullscreen have maximum z-index */
     .fullscreen-mode .dropdown {
         position: relative !important;
         z-index: 10100 !important;
@@ -709,7 +705,6 @@ html body .theme-light .right-page {
         will-change: transform !important;
     }
 
-    /* Specific fixes for zoom and view mode dropdowns */
     .fullscreen-mode #zoom-level + .dropdown-menu,
     .fullscreen-mode #view-mode + .dropdown-menu {
         z-index: 10120 !important;
@@ -719,7 +714,6 @@ html body .theme-light .right-page {
         transform: none !important;
     }
 
-    /* Make sure dropdown buttons themselves have high z-index */
     .fullscreen-mode #zoom-level,
     .fullscreen-mode #view-mode {
         position: relative !important;
@@ -727,7 +721,7 @@ html body .theme-light .right-page {
     }
 
     .fullscreen-mode::after {
-        content: "Presiona ESC para salir";
+        content: "Prss ESC to exit";
         position: fixed;
         bottom: 10px;
         right: 10px;

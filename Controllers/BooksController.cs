@@ -577,14 +577,13 @@ namespace EReaderApp.Controllers
                     books = books.OrderBy(b => b.Author).ThenBy(b => b.Title);
                     break;
                 case "rating":
-                    // For rating sort, we need to join with reviews and calculate average
                     books = from book in books
                             let avgRating = _context.Reviews
                                 .Where(r => r.FKIdBook == book.IdBook)
                                 .Select(r => (double?)r.Rating)
                                 .Average()
                             let reviewCount = _context.Reviews.Count(r => r.FKIdBook == book.IdBook)
-                            orderby avgRating descending,
+                            orderby (avgRating ?? 0) descending,
                                     reviewCount > 0 ? 1 : 0 descending,
                                     book.Title
                             select book;
@@ -625,6 +624,24 @@ namespace EReaderApp.Controllers
             }
 
             ViewBag.ReviewStats = reviewStats;
+
+            var bookCategoriesDict = new Dictionary<int, string>();
+
+            var bookCategoriesData = await _context.BookCategories
+                .Where(bc => bookIds.Contains(bc.FKIdBook))
+                .Include(bc => bc.Category)
+                .Select(bc => new { bc.FKIdBook, bc.Category.CategoryName })
+                .ToListAsync();
+
+            foreach (var bc in bookCategoriesData)
+            {
+                if (!bookCategoriesDict.ContainsKey(bc.FKIdBook))
+                {
+                    bookCategoriesDict[bc.FKIdBook] = bc.CategoryName;
+                }
+            }
+
+            ViewBag.BookCategories = bookCategoriesDict;
 
             // Pagination data
             ViewBag.CurrentPage = page;

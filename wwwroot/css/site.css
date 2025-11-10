@@ -416,6 +416,7 @@ body {
     transition: opacity 0.3s ease;
     border-radius: 8px;
     pointer-events: none;
+
 }
 
 .book-card:hover .book-overlay {
@@ -581,4 +582,62 @@ body.fullscreen-mode {
 .theme-sepia .note-item {
     background-color: #ffffff !important;
     border: 1px solid #d4c5a0 !important;
+}
+
+.btn-read-overlay {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+    min-width: 120px;
+    white-space: nowrap;
+}
+
+.book-overlay .btn-read-overlay {
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.book-card:hover .book-overlay .btn-read-overlay {
+    transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+    .btn-read-overlay {
+        min-width: 100px;
+        padding: 0.4rem 0.8rem !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* Badge de categoría en vista de lista */
+.category-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+    .category-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .category-badge i {
+        margin-right: 0.25rem;
+        font-size: 0.7rem;
+    }
+
+@media (max-width: 768px) {
+    .category-badge {
+        display: block;
+        width: fit-content;
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
 }
