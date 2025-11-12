@@ -320,6 +320,7 @@ namespace EReaderApp.Controllers.Api
         }
 
         // DELETE: api/libraries/5/books/10
+        [HttpDelete("{libraryId}/books/{bookId}")]
         public async Task<IActionResult> RemoveBookFromLibrary(int libraryId, int bookId)
         {
             try
