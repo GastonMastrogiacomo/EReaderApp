@@ -353,7 +353,45 @@ namespace EReaderApp.Controllers.Api
                 return StatusCode(500, new { success = false, message = "An error occurred", error = ex.Message });
             }
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteLibrary(int id)
+        {
+            try
+            {
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+                var library = await _context.Libraries
+                    .FirstOrDefaultAsync(l => l.IdLibrary == id && l.FKIdUser == userId);
+
+                if (library == null)
+                {
+                    return NotFound(new { success = false, message = "Library not found" });
+                }
+
+                // Remove all library-book relationships first
+                var libraryBooks = await _context.LibraryBooks
+                    .Where(lb => lb.FKIdLibrary == id)
+                    .ToListAsync();
+
+                _context.LibraryBooks.RemoveRange(libraryBooks);
+
+                // Remove the library
+                _context.Libraries.Remove(library);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, message = "Library deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "An error occurred", error = ex.Message });
+            }
+        }
+
+
     }
+
+
 
     public class CreateLibraryRequest
     {
