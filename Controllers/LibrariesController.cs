@@ -72,7 +72,6 @@ namespace EReaderApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Library library, int? bookId)
         {
-
             ModelState.Remove("User");
 
             if (ModelState.IsValid)
@@ -83,6 +82,26 @@ namespace EReaderApp.Controllers
                     {
                         int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
                         library.FKIdUser = userId;
+                    }
+
+                    bool libraryExists = await _context.Libraries
+                        .AnyAsync(l => l.ListName.Trim().ToLower() == library.ListName.Trim().ToLower()
+                                  && l.FKIdUser == library.FKIdUser);
+
+                    if (libraryExists)
+                    {
+                        TempData["ErrorMessage"] = $"You already have a library named '{library.ListName}'. Please choose a different name.";
+
+                        if (bookId.HasValue)
+                        {
+                            return RedirectToAction("ViewDetails", "Books", new { id = bookId.Value });
+                        }
+
+                        if (User.IsInRole("Admin"))
+                        {
+                            ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
+                        }
+                        return View(library);
                     }
 
                     _context.Add(library);
@@ -99,13 +118,10 @@ namespace EReaderApp.Controllers
                         };
                         _context.LibraryBooks.Add(libraryBook);
                         await _context.SaveChangesAsync();
-                        //Console.WriteLine($"Added book {bookId.Value} to library {library.IdLibrary}");
 
-                        // Return to the book details page
                         return RedirectToAction("ViewDetails", "Books", new { id = bookId.Value });
                     }
 
-                    // For standard form submission, redirect based on role
                     if (User.IsInRole("Admin"))
                     {
                         return RedirectToAction(nameof(Index));
@@ -117,24 +133,21 @@ namespace EReaderApp.Controllers
                 }
                 catch (Exception ex)
                 {
-                    // Log error and add to ModelState
-                    //Console.WriteLine($"Error creating library: {ex.Message}");
+                    Console.WriteLine($"Error creating library: {ex.Message}");
                     ModelState.AddModelError("", $"Error creating library: {ex.Message}");
                 }
             }
             else
             {
-                // Log validation errors
                 foreach (var state in ModelState)
                 {
                     foreach (var error in state.Value.Errors)
                     {
-                        //System.Diagnostics.Debug.WriteLine($"Validation error: {state.Key} - {error.ErrorMessage}");
+                        System.Diagnostics.Debug.WriteLine($"Validation error: {state.Key} - {error.ErrorMessage}");
                     }
                 }
             }
 
-            // If we got this far, something failed, redisplay form
             if (User.IsInRole("Admin"))
             {
                 ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
@@ -180,17 +193,12 @@ namespace EReaderApp.Controllers
         [Authorize]
         public async Task<IActionResult> Edit(int id, [Bind("IdLibrary,ListName,FKIdUser")] Library library)
         {
-            // Add debug information to help diagnose issues
-            Console.WriteLine($"Edit called with id: {id}, IdLibrary: {library.IdLibrary}, ListName: {library.ListName}, FKIdUser: {library.FKIdUser}");
-
-            // Check for ID mismatch
             if (id != library.IdLibrary)
             {
                 TempData["ErrorMessage"] = "ID mismatch. Please try again.";
                 return RedirectToAction(nameof(MyLibraries));
             }
 
-            // Get the existing library from the database
             var existingLibrary = await _context.Libraries
                 .Include(l => l.User)
                 .FirstOrDefaultAsync(l => l.IdLibrary == id);
@@ -201,7 +209,6 @@ namespace EReaderApp.Controllers
                 return RedirectToAction(nameof(MyLibraries));
             }
 
-            // User authorization check
             if (!User.IsInRole("Admin"))
             {
                 int currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
@@ -210,16 +217,27 @@ namespace EReaderApp.Controllers
                     TempData["ErrorMessage"] = "You are not authorized to edit this library.";
                     return RedirectToAction(nameof(MyLibraries));
                 }
-
-                // Ensure we keep the user's ID
                 library.FKIdUser = currentUserId;
             }
 
-            // Validate ListName
             if (string.IsNullOrWhiteSpace(library.ListName))
             {
                 ModelState.AddModelError("ListName", "Library name is required.");
+                if (User.IsInRole("Admin"))
+                {
+                    ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
+                }
+                return View(library);
+            }
 
+            bool duplicateExists = await _context.Libraries
+                .AnyAsync(l => l.ListName.Trim().ToLower() == library.ListName.Trim().ToLower()
+                          && l.FKIdUser == library.FKIdUser
+                          && l.IdLibrary != id);
+
+            if (duplicateExists)
+            {
+                TempData["ErrorMessage"] = $"You already have another library named '{library.ListName}'. Please choose a different name.";
                 if (User.IsInRole("Admin"))
                 {
                     ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
@@ -229,10 +247,8 @@ namespace EReaderApp.Controllers
 
             try
             {
-                // Update only the name field
                 existingLibrary.ListName = library.ListName;
 
-                // For admin users, also update the ownership if changed
                 if (User.IsInRole("Admin"))
                 {
                     existingLibrary.FKIdUser = library.FKIdUser;
@@ -243,17 +259,13 @@ namespace EReaderApp.Controllers
 
                 TempData["SuccessMessage"] = "Library renamed successfully.";
 
-                // For admin users, stay on the Edit view
                 if (User.IsInRole("Admin") && !IsAjaxRequest())
                 {
-                    // Re-populate the user dropdown
                     ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", existingLibrary.FKIdUser);
-                    // Return to the same view with success message
                     return View(existingLibrary);
                 }
                 else
                 {
-                    // For regular users, redirect to MyLibraries
                     return RedirectToAction(nameof(MyLibraries));
                 }
             }
@@ -276,7 +288,6 @@ namespace EReaderApp.Controllers
                 TempData["ErrorMessage"] = "An error occurred while saving changes. Please try again.";
             }
 
-            // If we got this far, something failed
             if (User.IsInRole("Admin"))
             {
                 ViewData["FKIdUser"] = new SelectList(_context.Users, "IdUser", "Email", library.FKIdUser);
@@ -370,22 +381,28 @@ namespace EReaderApp.Controllers
             {
                 return Problem("Entity set 'ApplicationDbContext.Libraries'  is null.");
             }
+
             var library = await _context.Libraries.FindAsync(id);
             if (library != null)
             {
+                // Verificar autorización
+                if (!User.IsInRole("Admin"))
+                {
+                    int currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                    if (library.FKIdUser != currentUserId)
+                    {
+                        TempData["ErrorMessage"] = "You are not authorized to delete this library.";
+                        return RedirectToAction(nameof(MyLibraries));
+                    }
+                }
+
                 _context.Libraries.Remove(library);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Library deleted successfully.";
             }
 
-            await _context.SaveChangesAsync();
-
-            if (User.IsInRole("Admin"))
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            else
-            {
-                return RedirectToAction(nameof(MyLibraries));
-            }
+            return RedirectToAction(nameof(MyLibraries));
         }
 
         private bool LibraryExists(int id)
@@ -490,6 +507,20 @@ namespace EReaderApp.Controllers
 
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
+                // NUEVA VALIDACIÓN: Verificar si ya existe una biblioteca con ese nombre
+                bool libraryExists = await _context.Libraries
+                    .AnyAsync(l => l.ListName.Trim().ToLower() == model.ListName.Trim().ToLower()
+                              && l.FKIdUser == userId);
+
+                if (libraryExists)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"You already have a library named '{model.ListName}'. Please choose a different name."
+                    });
+                }
+
                 var library = new Library
                 {
                     ListName = model.ListName,
@@ -575,6 +606,19 @@ namespace EReaderApp.Controllers
                 }
 
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+                bool libraryExists = await _context.Libraries
+                    .AnyAsync(l => l.ListName.Trim().ToLower() == model.LibraryName.Trim().ToLower()
+                              && l.FKIdUser == userId);
+
+                if (libraryExists)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"You already have a library named '{model.LibraryName}'. Please choose a different name."
+                    });
+                }
 
                 // Create the new library
                 var library = new Library

@@ -412,30 +412,35 @@
 </div>
 
 <style>
-    /* Book card hover effects */
     .book-card {
         position: relative;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 12px;
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
         .book-card:hover {
             transform: translateY(-8px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
 
     .book-cover-container {
         position: relative;
-        height: 200px;
+        height: 280px;
         overflow: hidden;
-        border-radius: 8px;
+        border-radius: 12px 12px 0 0;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
     }
 
     .book-cover {
         height: 100%;
         width: 100%;
         background-position: center;
-        background-size: cover;
+        background-size: contain; /* Shows full book cover */
         background-repeat: no-repeat;
+        background-color: #ffffff;
         transition: transform 0.3s ease;
     }
 
@@ -449,13 +454,14 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8));
+        background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7));
         display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0;
         transition: opacity 0.3s ease;
-        border-radius: 8px;
+        border-radius: 12px 12px 0 0;
+        z-index: 10;
     }
 
     .book-card:hover .book-overlay {
@@ -466,13 +472,20 @@
         transform: translateY(20px);
         transition: transform 0.3s ease;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        z-index: 11;
     }
 
     .book-card:hover .book-overlay .btn {
         transform: translateY(0);
     }
 
-    /* Login required book cards styling */
+    /* Book info section with proper padding */
+    .book-info {
+        padding: 1rem;
+        background: white;
+        border-radius: 0 0 12px 12px;
+    }
+
     .book-card-login-required {
         position: relative;
     }
@@ -501,10 +514,26 @@
     .book-title {
         font-weight: 600;
         line-height: 1.3;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+        color: #2c3e50;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-height: 2.6em;
     }
 
     .book-author {
         font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* Category card styling */

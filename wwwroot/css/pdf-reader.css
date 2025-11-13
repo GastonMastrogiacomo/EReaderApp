@@ -131,7 +131,7 @@
     }
 
     .kindle-progress .progress-bar {
-        background-color: var(--reader-primary-color);
+        background-color: #8B4513;
         transition: width 0.3s ease;
     }
 
@@ -186,8 +186,15 @@
     margin-bottom: 0.5rem;
     padding: 0.75rem;
     position: relative;
-    z-index: 1000;
+    z-index: 900;
 }
+
+    #reader-controls-panel .btn-group,
+    #reader-controls-panel button,
+    #reader-controls-panel select {
+        position: relative;
+        z-index: 901;
+    }
 
     #reader-controls-panel .gap-2 > * {
         margin-bottom: 0;
@@ -203,7 +210,6 @@
             color: #333;
         }
 
-    /* Ensure all dropdowns in controls have high z-index */
     #reader-controls-panel .dropdown-menu {
         z-index: 10000 !important;
     }
@@ -215,7 +221,6 @@
     clip-path: none !important;
 }
 
-/* Mejoras para los controles del lector */
 .reader-controls {
     border-radius: 8px;
     background-color: var(--reader-page-color);
@@ -305,6 +310,7 @@
     transition: all 0.3s ease;
     overflow: hidden;
     min-width: 0;
+    z-index: 10;    
 }
 
 #book-view {
@@ -317,17 +323,23 @@
     overflow: auto;
     flex-grow: 1;
     padding: 0.75rem;
+    z-index: 5;
 }
 
 /* ==============================
  * 9. ESTILOS DE PÁGINA
  * ============================== */
-/* Contenedor de página única */
-#single-page-container {
+
+#single-page-container,
+#double-page-container {
     display: flex;
+    align-items: flex-start;
     justify-content: center;
-    max-width: 100%;
-    transition: all 0.3s ease;
+    padding: 2rem;
+    min-height: 100%;
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
 }
 
 .single-page {
@@ -337,20 +349,15 @@
     border-radius: 4px;
 }
 
-/* Contenedor de doble página */
-#double-page-container {
-    display: flex;
-    justify-content: center;
-    align-items: stretch;
-    max-width: 100%;
-    perspective: 1500px;
-    transition: all 0.3s ease;
-}
 
 .book-page {
-    background-color: var(--reader-page-color);
-    box-shadow: 0 1px 5px var(--reader-shadow-color);
-    transition: all 0.3s ease;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+    max-width: 100%;
+    position: relative;
+    z-index: 2;
 }
 
 .left-page, .right-page {
@@ -398,9 +405,10 @@
 /* Canvas de páginas */
 .page-canvas {
     display: block;
-    max-width: 100%;
+    width: 100%;
     height: auto;
-    filter: none !important;
+    position: relative;
+    z-index: 3;
 }
 
 /* ==============================
@@ -545,19 +553,18 @@ html body .theme-light .right-page {
 /* ==============================
  * 12. MENÚ DE TEMAS
  * ============================== */
-.theme-menu {
+#theme-menu {
     position: absolute;
-    top: calc(100% + 5px);
     right: 0;
-    background-color: white !important;
-    border: 1px solid #dee2e6;
+    top: 100%;
+    margin-top: 0.5rem;
+    background-color: var(--surface-color, #FBF8F3);
+    border: 1px solid var(--border-color, #D7CCC8);
     border-radius: 8px;
-    padding: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 9999;
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 950;
     min-width: 200px;
-    transform: translateX(0);
-    color: #333333 !important;
 }
 
 .theme-options {
@@ -572,6 +579,8 @@ html body .theme-light .right-page {
     text-align: center;
     transition: background-color 0.2s;
     color: #333333 !important;
+    position: relative;
+    z-index: 951;
 }
 
     .theme-option:hover {
