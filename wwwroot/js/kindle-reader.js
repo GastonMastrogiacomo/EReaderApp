@@ -1,36 +1,41 @@
-﻿// Archivo específico para controlar el comportamiento del tema Kindle
+﻿// Archivo específico para controlar el comportamiento de los temas
+
 document.addEventListener('DOMContentLoaded', function () {
     // Toggle de controles
     const toggleControlsBtn = document.getElementById('toggle-controls');
     const controlsPanel = document.getElementById('reader-controls-panel');
 
-    toggleControlsBtn.addEventListener('click', function () {
-        if (controlsPanel.style.display === 'none') {
-            controlsPanel.style.display = 'block';
-        } else {
-            controlsPanel.style.display = 'none';
-        }
-    });
+    if (toggleControlsBtn && controlsPanel) {
+        toggleControlsBtn.addEventListener('click', function () {
+            if (controlsPanel.style.display === 'none' || !controlsPanel.style.display) {
+                controlsPanel.style.display = 'block';
+            } else {
+                controlsPanel.style.display = 'none';
+            }
+        });
+    }
 
     // Control del menú de temas
     const themeButton = document.getElementById('theme-button');
     const themeMenu = document.getElementById('theme-menu');
 
-    themeButton.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (themeMenu.style.display === 'block') {
-            themeMenu.style.display = 'none';
-        } else {
-            themeMenu.style.display = 'block';
-        }
-    });
+    if (themeButton && themeMenu) {
+        themeButton.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (themeMenu.style.display === 'block') {
+                themeMenu.style.display = 'none';
+            } else {
+                themeMenu.style.display = 'block';
+            }
+        });
 
-    // Cerrar el menú de temas al hacer clic fuera
-    document.addEventListener('click', function (e) {
-        if (themeMenu.style.display === 'block' && !themeMenu.contains(e.target) && e.target !== themeButton) {
-            themeMenu.style.display = 'none';
-        }
-    });
+        // Cerrar el menú de temas al hacer clic fuera
+        document.addEventListener('click', function (e) {
+            if (themeMenu.style.display === 'block' && !themeMenu.contains(e.target) && e.target !== themeButton) {
+                themeMenu.style.display = 'none';
+            }
+        });
+    }
 
     // Aplicar tema al hacer clic en una opción
     document.querySelectorAll('.theme-option').forEach(function (option) {
@@ -38,68 +43,90 @@ document.addEventListener('DOMContentLoaded', function () {
             const theme = this.dataset.theme;
             if (!theme) return;
 
-            // Actualizar clase activa
+            // Actualizar clase activa en el menú
             document.querySelectorAll('.theme-option').forEach(opt => {
                 opt.classList.remove('active');
             });
             this.classList.add('active');
 
-            // Guardar y aplicar el tema
+            // Obtener el bookId
             const bookId = document.getElementById('book-container')?.dataset.bookId || 1;
 
-            // Intentar usar el objeto global si existe
-            if (window.ReaderApp) {
+            // Actualizar configuración global
+            if (window.ReaderApp && window.ReaderApp.readerSettings) {
                 window.ReaderApp.readerSettings.theme = theme;
-                localStorage.setItem(`settings_${window.ReaderApp.getBookId()}`, JSON.stringify(window.ReaderApp.readerSettings));
 
+                // Guardar en localStorage
+                localStorage.setItem(`settings_${bookId}`, JSON.stringify(window.ReaderApp.readerSettings));
+
+                // Aplicar tema usando la función global
                 if (typeof window.ReaderApp.applyTheme === 'function') {
                     window.ReaderApp.applyTheme();
                 }
+            } else if (typeof readerSettings !== 'undefined') {
+                // Fallback para variables globales
+                readerSettings.theme = theme;
+                localStorage.setItem(`settings_${bookId}`, JSON.stringify(readerSettings));
+
+                // Aplicar tema manualmente
+                applyThemeManually(theme);
             }
-            // Si no, intentar con las funciones directas
-            else {
-                try {
-                    // Acceder a las variables globales del lector original
-                    readerSettings.theme = theme;
-                    localStorage.setItem(`settings_${bookId}`, JSON.stringify(readerSettings));
 
-                    // Llamar a la función applyTheme si existe
-                    if (typeof applyTheme === 'function') {
-                        applyTheme();
-                    } else {
-                        // Aplicación manual de tema si no existe función
-                        const bookContainer = document.getElementById('book-container');
-                        if (bookContainer) {
-                            bookContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
-                            bookContainer.classList.add(`theme-${theme}`);
+            // Re-renderizar las páginas inmediatamente para mostrar el tema
+            if (typeof renderCurrentPages === 'function' && window.pdfDoc) {
+                renderCurrentPages();
+            }
 
-                            // Aplicar filtros para páginas
-                            const canvases = document.querySelectorAll('.page-canvas');
-                            canvases.forEach(canvas => {
-                                if (theme === 'sepia') {
-                                    canvas.style.filter = 'sepia(0.5)';
-                                } else if (theme === 'dark') {
-                                    canvas.style.filter = 'invert(0.85) hue-rotate(180deg)';
-                                } else {
-                                    canvas.style.filter = 'none';
-                                }
-                            });
-                        }
-                    }
-
-                    // Notificación
-                    if (typeof showNotification === 'function') {
-                        showNotification(`Tema cambiado a ${theme === 'light' ? 'claro' : theme === 'dark' ? 'oscuro' : 'sepia'}`, 'info');
-                    }
-                } catch (error) {
-                    console.error('Error al aplicar tema:', error);
-                }
+            // Notificación
+            if (typeof showNotification === 'function') {
+                const themeNames = {
+                    'light': 'Light',
+                    'sepia': 'Sepia',
+                    'dark': 'Dark'
+                };
+                showNotification(`Theme changed to ${themeNames[theme] || theme}`, 'info');
             }
 
             // Cerrar el menú después de seleccionar
-            themeMenu.style.display = 'none';
+            if (themeMenu) {
+                themeMenu.style.display = 'none';
+            }
         });
     });
+
+    // Función para aplicar tema manualmente
+    function applyThemeManually(theme) {
+        // Aplicar al body
+        document.body.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+        document.body.classList.add(`theme-${theme}`);
+
+        // Aplicar al contenedor del libro
+        const bookContainer = document.getElementById('book-container');
+        const bookView = document.getElementById('book-view');
+
+        if (bookContainer) {
+            bookContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+            bookContainer.classList.add(`theme-${theme}`);
+            bookContainer.dataset.theme = theme;
+        }
+
+        if (bookView) {
+            bookView.classList.remove('light-theme', 'sepia-theme', 'dark-theme');
+            bookView.classList.add(`${theme}-theme`);
+        }
+
+        // Aplicar filtros a los canvas según el tema
+        const canvases = document.querySelectorAll('.page-canvas');
+        canvases.forEach(canvas => {
+            if (theme === 'sepia') {
+                canvas.style.filter = 'sepia(0.5)';
+            } else if (theme === 'dark') {
+                canvas.style.filter = 'invert(0.85) hue-rotate(180deg)';
+            } else {
+                canvas.style.filter = 'none';
+            }
+        });
+    }
 
     // Actualizar el porcentaje de progreso
     function updateProgressText() {
@@ -113,10 +140,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Observar cambios en la barra de progreso para actualizar el texto
-    const progressObserver = new MutationObserver(updateProgressText);
     const progressBar = document.getElementById('reading-progress');
-
     if (progressBar) {
+        const progressObserver = new MutationObserver(updateProgressText);
         progressObserver.observe(progressBar, {
             attributes: true,
             attributeFilter: ['aria-valuenow', 'style']
@@ -125,7 +151,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Inicializar estado de los temas
     function initThemes() {
-        // Marcar el tema activo
         let activeTheme = 'light';
 
         // Intentar obtener el tema guardado
@@ -149,9 +174,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 opt.classList.remove('active');
             }
         });
+
+        // Aplicar el tema guardado
+        applyThemeManually(activeTheme);
     }
+
+    // Asegurar tema por defecto
     function ensureLightThemeDefault() {
-        // Verificar si ya hay un tema guardado
         const bookId = document.getElementById('book-container')?.dataset.bookId || 1;
         let savedSettings = localStorage.getItem(`settings_${bookId}`);
 
@@ -168,11 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log("Creando configuración por defecto con tema claro");
 
             // Aplicar tema claro inmediatamente
-            const bookContainer = document.getElementById('book-container');
-            if (bookContainer) {
-                bookContainer.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
-                bookContainer.classList.add('theme-light');
-            }
+            applyThemeManually('light');
         } else {
             try {
                 // Verificar si el tema está definido
@@ -190,6 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Llamada a la función para asegurar tema por defecto
     ensureLightThemeDefault();
+
     // Inicializar temas
     initThemes();
 

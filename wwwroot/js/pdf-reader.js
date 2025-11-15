@@ -737,7 +737,7 @@ function fitToWidth() {
     isFitPage = false;
 
     scale = 1.0; // Reset scale
-    document.getElementById('zoom-text').textContent = 'Ancho';
+    document.getElementById('zoom-text').textContent = 'Fit to Width';
     renderCurrentPages();
 }
 
