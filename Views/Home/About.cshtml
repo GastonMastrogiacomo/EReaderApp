@@ -2,67 +2,104 @@
     ViewData["Title"] = "About Us";
 }
 
-<div class="about-hero-section py-5">
+<div class="about-hero-section">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-6 mb-4 mb-lg-0">
-                <img src="~/images/undraw_book-lover_f1dq.svg" alt="Our Story Illustration" class="img-fluid">
+                <div class="hero-content">
+                    <span class="about-badge">Our Story</span>
+                    <h1 class="about-hero-title">Bringing Books to Life in the Digital Age</h1>
+                    <p class="about-hero-subtitle">
+                        LibroLibre was born from a deep passion for literature and a vision to modernize the way we read.
+                        We aim to create a space where timeless books and smart technology work together to make reading more accessible, meaningful, and enjoyable.
+                    </p>
+                    <div class="about-hero-buttons">
+                        <a asp-controller="Books" asp-action="Search" class="btn btn-primary btn-lg rounded-pill px-4">
+                            <i class="fas fa-book-open me-2"></i>Explore Library
+                        </a>
+                        @if (!User.Identity.IsAuthenticated)
+                        {
+                            <a asp-controller="Auth" asp-action="Register" class="btn btn-outline-primary btn-lg rounded-pill px-4">
+                                <i class="fas fa-user-plus me-2"></i>Join Free
+                            </a>
+                        }
+                    </div>
+                </div>
             </div>
             <div class="col-lg-6">
-                <h2 class="fw-bold mb-3">Our Story</h2>
-                <p class="text-muted lead mb-0">
-                    LibroLibre was born from a deep passion for literature and a vision to modernize the way we read.
-                    We aim to create a space where timeless books and smart technology work together to make reading more accessible, meaningful, and fun.
-                </p>
+                <div class="hero-image-container">
+                    <div class="floating-card card-1">
+                        <i class="fas fa-book-reader fa-2x"></i>
+                        <span class="small mt-2 d-block fw-semibold">Digital Reading</span>
+                    </div>
+                    <div class="floating-card card-2">
+                        <i class="fas fa-users fa-2x"></i>
+                        <span class="small mt-2 d-block fw-semibold">Book Community</span>
+                    </div>
+                    <div class="floating-card card-3">
+                        <i class="fas fa-bookmark fa-2x"></i>
+                        <span class="small mt-2 d-block fw-semibold">Personal Libraries</span>
+                    </div>
+                    <svg viewBox="0 0 400 400" class="hero-svg">
+                        <defs>
+                            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#7A4E2B;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#C89B6D;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="200" cy="200" r="150" fill="url(#grad1)" opacity="0.1" />
+                        <path d="M150,150 L250,150 L250,250 L150,250 Z" fill="url(#grad1)" opacity="0.2" />
+                        <rect x="180" y="180" width="40" height="60" rx="3" fill="#7A4E2B" opacity="0.3" />
+                        <rect x="190" y="190" width="20" height="40" rx="2" fill="#C89B6D" opacity="0.5" />
+                    </svg>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-
-
-<section class="py-5 bg-light">
+<section class="about-why-section">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto">
-                <h2 class="h3 mb-4 text-center">Why We Built This</h2>
-                <p class="text-center mb-5">
+                <h2 class="about-section-title">Why We Built This</h2>
+                <p class="about-section-intro">
                     As avid readers ourselves, we understood the need for a platform that respects both
                     the tradition of reading and the convenience of modern technology.
                 </p>
 
                 <div class="row g-4">
                     <div class="col-md-4">
-                        <div class="text-center">
-                            <div class="icon-box mb-3">
-                                <i class="fas fa-heart text-danger" style="font-size: 3rem;"></i>
+                        <div class="about-value-card">
+                            <div class="about-icon-box danger">
+                                <i class="fas fa-heart"></i>
                             </div>
                             <h4>Passion for Reading</h4>
-                            <p class="text-muted">
+                            <p>
                                 Every feature is crafted by readers, for readers. We believe in the
                                 transformative power of books.
                             </p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="text-center">
-                            <div class="icon-box mb-3">
-                                <i class="fas fa-users text-primary" style="font-size: 3rem;"></i>
+                        <div class="about-value-card">
+                            <div class="about-icon-box primary">
+                                <i class="fas fa-users"></i>
                             </div>
                             <h4>Community First</h4>
-                            <p class="text-muted">
+                            <p>
                                 Reading is better when shared. Connect with fellow book lovers,
                                 share reviews, and discover new favorites.
                             </p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="text-center">
-                            <div class="icon-box mb-3">
-                                <i class="fas fa-mobile-alt text-success" style="font-size: 3rem;"></i>
+                        <div class="about-value-card">
+                            <div class="about-icon-box accent">
+                                <i class="fas fa-mobile-alt"></i>
                             </div>
                             <h4>Read Anywhere</h4>
-                            <p class="text-muted">
+                            <p>
                                 Your entire library in your pocket. Seamlessly switch between
                                 devices and never lose your place.
                             </p>
@@ -74,47 +111,47 @@
     </div>
 </section>
 
-<section class="py-5">
+<section class="about-mission-section">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-6 mb-4 mb-lg-0">
-                <h3 class="mb-4">Our Mission</h3>
-                <p class="mb-4">
+                <h3 class="about-mission-title">Our Mission</h3>
+                <p class="about-mission-text">
                     We're on a mission to make reading more accessible, enjoyable, and social.
                     By combining the best of traditional reading experiences with innovative
                     digital features, we're creating a platform where stories come alive.
                 </p>
-                <blockquote class="blockquote">
-                    <p class="mb-3 fst-italic">
+                <blockquote class="about-quote">
+                    <p class="about-quote-text">
                         "A reader lives a thousand lives before he dies. The man who never reads lives only one."
                     </p>
-                    <footer class="blockquote-footer">George R.R. Martin</footer>
+                    <footer class="about-quote-author">George R.R. Martin</footer>
                 </blockquote>
             </div>
             <div class="col-lg-6">
                 <div class="row g-3">
                     <div class="col-6">
-                        <div class="stat-box text-center p-4 bg-light rounded">
-                            <h2 class="text-primary mb-2">Curated</h2>
-                            <p class="text-muted mb-0">Handpicked Reads</p>
+                        <div class="about-stat-box primary">
+                            <h2 class="stat-number">Curated</h2>
+                            <p class="stat-label">Handpicked Reads</p>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="stat-box text-center p-4 bg-light rounded">
-                            <h2 class="text-success mb-2">24/7</h2>
-                            <p class="text-muted mb-0">Access Your Library</p>
+                        <div class="about-stat-box accent">
+                            <h2 class="stat-number">24/7</h2>
+                            <p class="stat-label">Access Your Library</p>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="stat-box text-center p-4 bg-light rounded">
-                            <h2 class="text-warning mb-2">∞</h2>
-                            <p class="text-muted mb-0">Stories to Discover</p>
+                        <div class="about-stat-box accent-alt">
+                            <h2 class="stat-number">∞</h2>
+                            <p class="stat-label">Stories to Discover</p>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="stat-box text-center p-4 bg-light rounded">
-                            <h2 class="text-info mb-2">100%</h2>
-                            <p class="text-muted mb-0">Reading Focused</p>
+                        <div class="about-stat-box primary-light">
+                            <h2 class="stat-number">100%</h2>
+                            <p class="stat-label">Reading Focused</p>
                         </div>
                     </div>
                 </div>
@@ -123,16 +160,16 @@
     </div>
 </section>
 
-<section class="py-5 bg-primary text-white">
+<section class="about-cta-section">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center">
-                <h3 class="mb-4">Join Our Reading Journey</h3>
-                <p class="mb-4">
-                    Whether you're a casual reader or a literary enthusiast, E-Reader App is designed
+                <h3 class="about-cta-title">Join Our Reading Journey</h3>
+                <p class="about-cta-text">
+                    Whether you're a casual reader or a literary enthusiast, LibroLibre is designed
                     to enhance your reading experience. Start your journey with us today.
                 </p>
-                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <div class="about-cta-buttons">
                     <a asp-controller="Books" asp-action="Search" class="btn btn-light btn-lg">
                         <i class="fas fa-search me-2"></i>Explore Books
                     </a>
@@ -148,73 +185,65 @@
     </div>
 </section>
 
-<section class="py-5">
+<section class="about-features-section">
     <div class="container">
         <div class="row">
             <div class="col-lg-10 mx-auto">
-                <h3 class="text-center mb-5">What Makes Us Different</h3>
+                <h3 class="about-section-title">What Makes Us Different</h3>
                 <div class="row g-4">
                     <div class="col-md-6">
-                        <div class="feature-card h-100 p-4 border rounded">
-                            <div class="d-flex align-items-start">
-                                <div class="feature-icon me-3">
-                                    <i class="fas fa-bookmark text-primary" style="font-size: 2rem;"></i>
-                                </div>
-                                <div>
-                                    <h5>Smart Bookmarking</h5>
-                                    <p class="text-muted mb-0">
-                                        Never lose your place. Our intelligent bookmarking system remembers
-                                        where you left off across all your devices.
-                                    </p>
-                                </div>
+                        <div class="about-feature-card">
+                            <div class="about-feature-icon">
+                                <i class="fas fa-bookmark"></i>
+                            </div>
+                            <div class="about-feature-content">
+                                <h5>Smart Bookmarking</h5>
+                                <p>
+                                    Never lose your place. Our intelligent bookmarking system remembers
+                                    where you left off across all your devices.
+                                </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="feature-card h-100 p-4 border rounded">
-                            <div class="d-flex align-items-start">
-                                <div class="feature-icon me-3">
-                                    <i class="fas fa-moon text-primary" style="font-size: 2rem;"></i>
-                                </div>
-                                <div>
-                                    <h5>Comfortable Reading</h5>
-                                    <p class="text-muted mb-0">
-                                        Customizable themes, fonts, and layouts ensure comfortable reading
-                                        any time of day or night.
-                                    </p>
-                                </div>
+                        <div class="about-feature-card">
+                            <div class="about-feature-icon">
+                                <i class="fas fa-moon"></i>
+                            </div>
+                            <div class="about-feature-content">
+                                <h5>Comfortable Reading</h5>
+                                <p>
+                                    Customizable themes, fonts, and layouts ensure comfortable reading
+                                    any time of day or night.
+                                </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="feature-card h-100 p-4 border rounded">
-                            <div class="d-flex align-items-start">
-                                <div class="feature-icon me-3">
-                                    <i class="fas fa-folder-open text-primary" style="font-size: 2rem;"></i>
-                                </div>
-                                <div>
-                                    <h5>Personal Libraries</h5>
-                                    <p class="text-muted mb-0">
-                                        Organize your reading with custom libraries. Create collections
-                                        for every mood and interest.
-                                    </p>
-                                </div>
+                        <div class="about-feature-card">
+                            <div class="about-feature-icon">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                            <div class="about-feature-content">
+                                <h5>Personal Libraries</h5>
+                                <p>
+                                    Organize your reading with custom libraries. Create collections
+                                    for every mood and interest.
+                                </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="feature-card h-100 p-4 border rounded">
-                            <div class="d-flex align-items-start">
-                                <div class="feature-icon me-3">
-                                    <i class="fas fa-comments text-primary" style="font-size: 2rem;"></i>
-                                </div>
-                                <div>
-                                    <h5>Reading Community</h5>
-                                    <p class="text-muted mb-0">
-                                        Share reviews, discover recommendations, and connect with readers
-                                        who share your literary tastes.
-                                    </p>
-                                </div>
+                        <div class="about-feature-card">
+                            <div class="about-feature-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="about-feature-content">
+                                <h5>Reading Community</h5>
+                                <p>
+                                    Share reviews, discover recommendations, and connect with readers
+                                    who share your literary tastes.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -224,55 +253,34 @@
     </div>
 </section>
 
-<style>
-    .about-hero-section {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        min-height: 50vh;
-        display: flex;
-        align-items: center;
-    }
-
-    .min-vh-50 {
-        min-height: 50vh;
-    }
-
-    .stat-box {
-        transition: transform 0.3s ease;
-    }
-
-        .stat-box:hover {
-            transform: translateY(-5px);
-        }
-
-    .feature-card {
-        transition: all 0.3s ease;
-        background: #fff;
-    }
-
-        .feature-card:hover {
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-
-    .icon-box {
-        width: 80px;
-        height: 80px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0,123,255,0.1);
-        border-radius: 50%;
-    }
-
-    .about-hero-section img {
-        max-width: 100%;
-        height: auto;
-        border: none;
-        box-shadow: none;
-        background: transparent;
-        padding: 0;
-        margin: 0;
-    }
-
-
-</style>
+<section class="about-support-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="support-card">
+                    <div class="support-content">
+                        <div class="support-icon">
+                            <i class="fas fa-mug-hot"></i>
+                        </div>
+                        <h3 class="support-title">Keep LibroLibre Free & Running</h3>
+                        <p class="support-lead">
+                            LibroLibre is completely <strong>free</strong> and always will be. All our books are from the public domain,
+                            ensuring that literature remains accessible to everyone, everywhere.
+                        </p>
+                        <p class="support-text">
+                            We're not asking for money, but if you love what we're doing and want to help us keep the servers running
+                            and continue improving the platform, you can support us with a coffee. Every contribution, no matter how small,
+                            helps us maintain and enhance your reading experience.
+                        </p>
+                        <a href="https://tecito.app/librolibredv" target="_blank" rel="noopener noreferrer" class="btn btn-support">
+                            <i class="fas fa-coffee me-2"></i>Buy Us a Coffee
+                        </a>
+                        <p class="support-thanks">
+                            <i class="fas fa-heart"></i> Thank you for being part of our community!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

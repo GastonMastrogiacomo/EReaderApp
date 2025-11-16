@@ -1,8 +1,4 @@
-﻿/**
- * E-Reader Application - Book Interactions
- * Handles sharing, library management, and other book-related user interactions
- */
-
+﻿
 // Share book function
 function shareBook(bookId, bookTitle) {
     const url = window.location.origin + '/Books/ViewDetails/' + bookId;
@@ -191,7 +187,6 @@ function createLibraryAndAddBook(bookId, libraryName) {
 
 // Save book for later
 function saveBookForLater(bookId) {
-    // This could be implemented as a special "Read Later" library or a separate feature
     showToast('Book saved for later reading!', 'success');
 }
 
@@ -233,7 +228,6 @@ function showToast(message, type = 'info') {
     });
 }
 
-// Book details enhancement - Google Books API integration
 function initializeBookDetailsEnhancement() {
     const bookDetailsElement = document.getElementById('book-details');
     if (!bookDetailsElement) return;
@@ -266,7 +260,6 @@ async function fetchBookDetails(title, author) {
 
 function updateBookDetails(bookInfo) {
     // Implementation depends on the page structure
-    // See the existing updateBookDetails function in ViewDetails.cshtml
 }
 
 // Review functions

@@ -280,7 +280,7 @@
                     })
                     .catch(error => {
                         console.error('Error creating library:', error);
-                        showToast('error', 'An error occurred while creating the library');
+                        showToast('error', 'Ensure that no two libraries share the same name.');
                     })
                     .finally(() => {
                         // Reset button state

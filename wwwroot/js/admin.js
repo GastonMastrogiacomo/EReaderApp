@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     */
 
-    // Auto-hide alerts after 5 seconds
+    // Auto-hide alerts after 3 seconds
     setTimeout(function () {
         document.querySelectorAll('.alert').forEach(function (alert) {
             // Create a Bootstrap alert instance and call hide
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 alert.style.display = 'none';
             }
         });
-    }, 5000);
+    }, 3000);
 
     // Function to handle dynamic form fields
     function setupDynamicFormFields() {

@@ -39,10 +39,11 @@ namespace EReaderApp.Controllers.Api
                 // Apply search filter
                 if (!string.IsNullOrEmpty(search))
                 {
+                    search = search.ToLower(); // Convert search query to lowercase
                     query = query.Where(b =>
-                        b.Title.Contains(search) ||
-                        b.Author.Contains(search) ||
-                        b.Description.Contains(search));
+                        b.Title.ToLower().Contains(search) ||
+                        b.Author.ToLower().Contains(search) ||
+                        b.Description.ToLower().Contains(search));
                 }
 
                 // Apply category filter

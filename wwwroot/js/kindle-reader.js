@@ -55,26 +55,26 @@ document.addEventListener('DOMContentLoaded', function () {
             // Actualizar configuración global
             if (window.ReaderApp && window.ReaderApp.readerSettings) {
                 window.ReaderApp.readerSettings.theme = theme;
-
-                // Guardar en localStorage
                 localStorage.setItem(`settings_${bookId}`, JSON.stringify(window.ReaderApp.readerSettings));
-
-                // Aplicar tema usando la función global
-                if (typeof window.ReaderApp.applyTheme === 'function') {
-                    window.ReaderApp.applyTheme();
-                }
             } else if (typeof readerSettings !== 'undefined') {
-                // Fallback para variables globales
                 readerSettings.theme = theme;
                 localStorage.setItem(`settings_${bookId}`, JSON.stringify(readerSettings));
-
-                // Aplicar tema manualmente
-                applyThemeManually(theme);
             }
 
-            // Re-renderizar las páginas inmediatamente para mostrar el tema
+            // Apply theme immediately
+            applyThemeManually(theme);
+
+            // Re-render pages immediately with new theme
             if (typeof renderCurrentPages === 'function' && window.pdfDoc) {
-                renderCurrentPages();
+                // Cancel any ongoing renders
+                if (renderTaskLeft) renderTaskLeft.cancel();
+                if (renderTaskRight) renderTaskRight.cancel();
+                if (renderTaskSingle) renderTaskSingle.cancel();
+
+                // Force immediate re-render
+                setTimeout(() => {
+                    renderCurrentPages();
+                }, 50);
             }
 
             // Notificación

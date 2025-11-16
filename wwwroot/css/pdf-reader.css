@@ -116,6 +116,7 @@
         opacity: 1 !important;
         visibility: visible !important;
         height: 4px !important;
+        display: block !important;
     }
 
     .fullscreen-mode .kindle-progress .progress-bar,
@@ -126,7 +127,19 @@
         opacity: 1 !important;
         visibility: visible !important;
         height: 4px !important;
+        display: block !important;
         background: linear-gradient(90deg, var(--reader-primary), var(--reader-accent)) !important;
+    }
+
+    /* Ensure progress text is also visible */
+    .fullscreen-mode .progress-text,
+    :fullscreen .progress-text,
+    :-webkit-full-screen .progress-text,
+    :-moz-full-screen .progress-text,
+    :-ms-fullscreen .progress-text {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
 /* ============================================

@@ -2131,7 +2131,7 @@ function setupEventListeners() {
         }
     });
 
-    // Evento para pantalla completa - Versión mejorada
+    // Evento para pantalla completa
     document.addEventListener('fullscreenchange', function () {
         const bookContainer = document.getElementById('book-container');
         const kindleTopBar = document.querySelector('.kindle-top-bar');
@@ -2144,8 +2144,15 @@ function setupEventListeners() {
 
             // Ocultar elementos del navbar
             if (kindleTopBar) kindleTopBar.style.display = 'none';
-            //if (kindleProgress) kindleProgress.style.display = 'none';
-            //if (readerControlsPanel) readerControlsPanel.style.display = 'none';
+
+            if (kindleProgress) {
+                kindleProgress.style.display = 'block';
+                kindleProgress.style.position = 'fixed';
+                kindleProgress.style.top = '0';
+                kindleProgress.style.left = '0';
+                kindleProgress.style.right = '0';
+                kindleProgress.style.zIndex = '9999';
+            }
 
             showNotification('Press ESC Key to exit Full Screen', 'info');
         } else {
@@ -2154,10 +2161,16 @@ function setupEventListeners() {
 
             // Restaurar elementos del navbar
             if (kindleTopBar) kindleTopBar.style.display = 'flex';
-            if (kindleProgress) kindleProgress.style.display = 'flex';
 
-            // Controles se mantienen ocultos para ser consistente con la UX
-            // El usuario puede mostrarlos usando el botón de toggle
+            // Restore progress bar to normal position
+            if (kindleProgress) {
+                kindleProgress.style.display = 'block';
+                kindleProgress.style.position = '';
+                kindleProgress.style.top = '';
+                kindleProgress.style.left = '';
+                kindleProgress.style.right = '';
+                kindleProgress.style.zIndex = '';
+            }
         }
 
         // Re-renderizar para ajustar tamaño
