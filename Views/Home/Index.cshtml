@@ -328,6 +328,171 @@
     </div>
 </section>
 
+<!-- Find Nearby Libraries Section -->
+<section class="mb-5 nearby-libraries-section">
+    <div class="container">
+        <!-- Section Header with Description -->
+        <div class="text-center mb-5">
+            <h2 class="section-title mb-3">
+                <i class="fas fa-map-marker-alt me-2"></i>Discover Physical Libraries & Bookstores
+            </h2>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <p class="lead text-muted mb-3">
+                        While we love bringing books to your screen, we know nothing can replace the magic of browsing physical shelves,
+                        the smell of printed pages, and the cozy atmosphere of a real library or bookstore.
+                    </p>
+                    <p class="text-muted">
+                        <i class="fas fa-book-heart me-2 text-primary"></i>
+                        Use our interactive map to find libraries and bookstores near you. Visit them, support your local community,
+                        and experience the timeless joy of discovering books in person!
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-lg-4 mb-3 mb-lg-0">
+                        <div class="nearby-search-controls">
+                            <!-- Feature Highlights -->
+                            <div class="feature-highlights mb-4">
+                                <div class="feature-item">
+                                    <i class="fas fa-location-dot text-primary"></i>
+                                    <span>Auto-detect your location</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-map text-success"></i>
+                                    <span>Search any area on the map</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-building text-warning"></i>
+                                    <span>Find libraries & bookstores</span>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <button id="init-map-btn" class="btn btn-primary btn-lg w-100 mb-3 shadow-sm">
+                                <i class="fas fa-map-marked-alt me-2"></i>Show Map & Find Places
+                            </button>
+
+                            <button id="search-this-area-btn" class="btn btn-outline-primary w-100 mb-3" style="display: none;">
+                                <i class="fas fa-search-location me-2"></i>Search This Area
+                            </button>
+
+                            <button id="recenter-btn" class="btn btn-outline-secondary w-100 mb-3" style="display: none;">
+                                <i class="fas fa-location-arrow me-2"></i>Return to My Location
+                            </button>
+
+                            <!-- Search Type Selection -->
+                            <div class="mb-3" id="search-type-container" style="display: none;">
+                                <label class="form-label fw-semibold text-muted small">
+                                    <i class="fas fa-filter me-1"></i>FILTER RESULTS:
+                                </label>
+                                <div class="btn-group w-100 search-type-group" role="group">
+                                    <input type="radio" class="btn-check" name="search-type" id="search-both" value="both" checked>
+                                    <label class="btn btn-outline-primary" for="search-both">
+                                        <i class="fas fa-layer-group me-1"></i>Both
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="search-type" id="search-libraries" value="library">
+                                    <label class="btn btn-outline-primary" for="search-libraries">
+                                        <i class="fas fa-book me-1"></i>Libraries
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="search-type" id="search-bookstores" value="book_store">
+                                    <label class="btn btn-outline-primary" for="search-bookstores">
+                                        <i class="fas fa-store me-1"></i>Bookstores
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="location-status" class="alert alert-info" style="display: none;">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Loading...
+                            </div>
+
+                            <div id="libraries-list" class="libraries-results" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                    <h6 class="fw-bold mb-0 text-primary">
+                                        <i class="fas fa-list-ul me-2"></i>Nearby Places
+                                    </h6>
+                                    <span id="results-count" class="badge bg-primary rounded-pill">0</span>
+                                </div>
+                                <div id="libraries-container"></div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div id="empty-state" class="text-center py-4" style="display: none;">
+                                <i class="fas fa-map-location-dot fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">Move the map and click<br>"Search This Area"</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div id="map" class="libraries-map" style="display: none;"></div>
+                        <div id="map-placeholder" class="libraries-map-placeholder">
+                            <div class="placeholder-content">
+                                <i class="fas fa-map-marked-alt fa-4x text-primary mb-4"></i>
+                                <h5 class="fw-bold mb-3">Ready to Explore?</h5>
+                                <p class="text-muted mb-4 px-3">
+                                    Click the button below to activate the map and discover libraries and bookstores in your area
+                                </p>
+                                <div class="placeholder-features">
+                                    <div class="placeholder-feature-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span>Automatic location detection</span>
+                                    </div>
+                                    <div class="placeholder-feature-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span>Interactive map navigation</span>
+                                    </div>
+                                    <div class="placeholder-feature-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span>Real-time search results</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Cards Below Map -->
+        <div class="row mt-4">
+            <div class="col-md-4 mb-3">
+                <div class="info-card">
+                    <div class="info-card-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <h6 class="fw-bold">Browse Physical Books</h6>
+                    <p class="small text-muted mb-0">Feel the pages, smell the ink, and experience books the traditional way</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="info-card">
+                    <div class="info-card-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h6 class="fw-bold">Support Local Communities</h6>
+                    <p class="small text-muted mb-0">Visit local libraries and bookstores to support your community</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="info-card">
+                    <div class="info-card-icon">
+                        <i class="fas fa-hands-helping"></i>
+                    </div>
+                    <h6 class="fw-bold">Get Expert Recommendations</h6>
+                    <p class="small text-muted mb-0">Librarians and booksellers can help you discover your next favorite read</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- Login Modal -->
 <div class="modal fade" id="homeLoginModal" tabindex="-1" aria-labelledby="homeLoginModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -355,6 +520,8 @@
 </div>
 
 @section Scripts {
+    @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const homeLoginModal = document.getElementById('homeLoginModal');
@@ -384,5 +551,439 @@
                 });
             }
         });
+    </script>
+
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(Environment.GetEnvironmentVariable("GOOGLE_MAPS_API_KEY") ?? Configuration["GoogleMaps:ApiKey"])&libraries=places"></script>
+
+    <script>
+        let map;
+        let service;
+        let infowindow;
+        let markers = [];
+        let userLocation;
+        let userLocationMarker;
+        let mapInitialized = false;
+        let isSearchingThisArea = false;
+
+        // Initialize map button
+        document.getElementById('init-map-btn').addEventListener('click', function() {
+            initializeMapAndSearch();
+        });
+
+        // Search this area button
+        document.getElementById('search-this-area-btn').addEventListener('click', function() {
+            const center = map.getCenter();
+            const searchLocation = {
+                lat: center.lat(),
+                lng: center.lng()
+            };
+            isSearchingThisArea = true;
+            searchPlaces(searchLocation);
+        });
+
+        // Recenter button
+        document.getElementById('recenter-btn').addEventListener('click', function() {
+            if (userLocation && map) {
+                map.setCenter(userLocation);
+                map.setZoom(14);
+                isSearchingThisArea = false;
+                searchPlaces(userLocation);
+            }
+        });
+
+        // Search type change
+        document.querySelectorAll('input[name="search-type"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (mapInitialized) {
+                    const center = map.getCenter();
+                    const searchLocation = {
+                        lat: center.lat(),
+                        lng: center.lng()
+                    };
+                    searchPlaces(searchLocation);
+                }
+            });
+        });
+
+        function initializeMapAndSearch() {
+            showStatus('Detecting your location...', 'info');
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        // Hide init button and placeholder
+                        document.getElementById('init-map-btn').style.display = 'none';
+                        document.getElementById('map-placeholder').style.display = 'none';
+                        document.getElementById('map').style.display = 'block';
+                        document.getElementById('search-this-area-btn').style.display = 'block';
+                        document.getElementById('recenter-btn').style.display = 'block';
+                        document.getElementById('search-type-container').style.display = 'block';
+
+                        // Initialize map
+                        initMap(userLocation);
+                        mapInitialized = true;
+
+                        // Automatically search for places
+                        showStatus('Searching for libraries and bookstores...', 'info');
+                        searchPlaces(userLocation);
+                    },
+                    function(error) {
+                        handleGeolocationError(error);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                showStatus('Geolocation is not supported by your browser.', 'danger');
+            }
+        }
+
+        function handleGeolocationError(error) {
+            let errorMessage = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Location permission denied. Please enable location access in your browser settings.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Location information unavailable. Please try again.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Location request timed out. Please try again.';
+                    break;
+                default:
+                    errorMessage = 'An unknown error occurred while getting your location.';
+            }
+            showStatus(errorMessage, 'danger');
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('location-status');
+            statusDiv.style.display = 'block';
+            statusDiv.className = `alert alert-${type}`;
+
+            const icon = type === 'info' ? 'fa-spinner fa-spin' :
+                        type === 'warning' ? 'fa-exclamation-circle' :
+                        type === 'danger' ? 'fa-exclamation-triangle' : 'fa-check-circle';
+
+            statusDiv.innerHTML = `<i class="fas ${icon} me-2"></i>${message}`;
+        }
+
+        function initMap(location) {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: location,
+                zoom: 14,
+                mapTypeControl: true,
+                mapTypeControlOptions: {
+                    style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+                    position: google.maps.ControlPosition.TOP_RIGHT
+                },
+                zoomControl: true,
+                zoomControlOptions: {
+                    position: google.maps.ControlPosition.RIGHT_CENTER
+                },
+                streetViewControl: true,
+                streetViewControlOptions: {
+                    position: google.maps.ControlPosition.RIGHT_CENTER
+                },
+                fullscreenControl: true,
+                styles: [
+                    {
+                        featureType: 'poi',
+                        elementType: 'labels',
+                        stylers: [{ visibility: 'off' }]
+                    }
+                ]
+            });
+
+            // Add marker for user location
+            userLocationMarker = new google.maps.Marker({
+                position: location,
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: '#4285F4',
+                    fillOpacity: 1,
+                    strokeColor: '#FFFFFF',
+                    strokeWeight: 3
+                },
+                title: 'Your Location',
+                zIndex: 1000
+            });
+
+            infowindow = new google.maps.InfoWindow();
+
+            // Add idle event listener to detect when map movement stops
+            map.addListener('idle', function() {
+                if (mapInitialized && !isSearchingThisArea) {
+                    const currentCenter = map.getCenter();
+                    const distance = calculateDistance(
+                        userLocation,
+                        { lat: currentCenter.lat(), lng: currentCenter.lng() }
+                    );
+
+                    // If map has moved more than 1km from user location, show search button
+                    if (distance > 1) {
+                        highlightSearchButton();
+                    }
+                }
+            });
+
+            // Add dragend event to suggest new search
+            map.addListener('dragend', function() {
+                if (mapInitialized) {
+                    highlightSearchButton();
+                }
+            });
+        }
+
+        function highlightSearchButton() {
+            const searchBtn = document.getElementById('search-this-area-btn');
+            searchBtn.classList.add('btn-pulse');
+            setTimeout(() => {
+                searchBtn.classList.remove('btn-pulse');
+            }, 2000);
+        }
+
+        function searchPlaces(location) {
+            const searchType = document.querySelector('input[name="search-type"]:checked').value;
+            const listDiv = document.getElementById('libraries-list');
+            const containerDiv = document.getElementById('libraries-container');
+
+            listDiv.style.display = 'none';
+            containerDiv.innerHTML = '';
+
+            // Clear existing markers (except user location)
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            let allResults = [];
+            let searchesCompleted = 0;
+            let searchesToPerform = [];
+
+            // Determine which searches to perform
+            if (searchType === 'both') {
+                searchesToPerform = ['library', 'book_store'];
+            } else {
+                searchesToPerform = [searchType];
+            }
+
+            searchesToPerform.forEach(type => {
+                const request = {
+                    location: location,
+                    radius: 3000, // 3km radius
+                    type: type
+                };
+
+                service = new google.maps.places.PlacesService(map);
+                service.nearbySearch(request, function(results, status) {
+                    searchesCompleted++;
+
+                    if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                        allResults = allResults.concat(results);
+                    }
+
+                    // When all searches are complete
+                    if (searchesCompleted === searchesToPerform.length) {
+                        handleSearchResults(allResults, location);
+                    }
+                });
+            });
+        }
+
+        function handleSearchResults(results, searchLocation) {
+            const statusDiv = document.getElementById('location-status');
+            const listDiv = document.getElementById('libraries-list');
+            const containerDiv = document.getElementById('libraries-container');
+            const resultsCount = document.getElementById('results-count');
+
+            if (results.length > 0) {
+                statusDiv.style.display = 'none';
+                listDiv.style.display = 'block';
+
+                // Remove duplicates based on place_id
+                const uniqueResults = Array.from(
+                    new Map(results.map(item => [item.place_id, item])).values()
+                );
+
+                // Sort by distance from search location
+                uniqueResults.sort((a, b) => {
+                    const distA = calculateDistance(searchLocation, a.geometry.location);
+                    const distB = calculateDistance(searchLocation, b.geometry.location);
+                    return distA - distB;
+                });
+
+                resultsCount.textContent = uniqueResults.length;
+
+                // Display results (limit to 20)
+                const displayResults = uniqueResults.slice(0, 20);
+                displayResults.forEach((place, index) => {
+                    createMarker(place, index, searchLocation);
+                    createListItem(place, index, searchLocation);
+                });
+
+                // Adjust map bounds to show all results
+                const bounds = new google.maps.LatLngBounds();
+
+                // Include user location if not searching another area
+                if (!isSearchingThisArea && userLocation) {
+                    bounds.extend(userLocation);
+                }
+
+                displayResults.forEach(place => {
+                    bounds.extend(place.geometry.location);
+                });
+
+                map.fitBounds(bounds);
+
+                // Add padding to bounds
+                setTimeout(() => {
+                    const currentZoom = map.getZoom();
+                    if (currentZoom > 15) {
+                        map.setZoom(15);
+                    }
+                }, 100);
+
+            } else {
+                showStatus('No libraries or bookstores found in this area. Try moving the map to a different location.', 'warning');
+                listDiv.style.display = 'none';
+            }
+
+            isSearchingThisArea = false;
+        }
+
+        function createMarker(place, index, searchLocation) {
+            // Determine marker color based on type
+            const isLibrary = place.types.includes('library');
+            const markerColor = isLibrary ? '#7A4E2B' : '#C89B6D';
+
+            const marker = new google.maps.Marker({
+                map: map,
+                position: place.geometry.location,
+                title: place.name,
+                label: {
+                    text: (index + 1).toString(),
+                    color: 'white',
+                    fontSize: '11px',
+                    fontWeight: 'bold'
+                },
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 14,
+                    fillColor: markerColor,
+                    fillOpacity: 1,
+                    strokeColor: '#FFFFFF',
+                    strokeWeight: 2
+                },
+                animation: google.maps.Animation.DROP
+            });
+
+            marker.addListener('click', function() {
+                const placeType = place.types.includes('library') ?
+                    '<span class="badge bg-primary">Library</span>' :
+                    '<span class="badge bg-success">Bookstore</span>';
+
+                const distance = calculateDistance(searchLocation, place.geometry.location);
+
+                const content = `
+                    <div style="max-width: 280px;">
+                        <h6 class="fw-bold mb-2">${place.name}</h6>
+                        <div class="mb-2">${placeType}</div>
+                        <p class="mb-1 small"><i class="fas fa-map-marker-alt me-1"></i>${place.vicinity}</p>
+                        <p class="mb-1 small"><i class="fas fa-route me-1"></i>${distance.toFixed(2)} km away</p>
+                        ${place.rating ? `<p class="mb-1 small"><i class="fas fa-star text-warning me-1"></i>${place.rating} (${place.user_ratings_total || 0} reviews)</p>` : ''}
+                        ${place.opening_hours ? `<p class="mb-0 small"><i class="fas fa-clock me-1"></i>${place.opening_hours.open_now ? '<span class="text-success fw-semibold">Open now</span>' : '<span class="text-danger">Closed</span>'}</p>` : ''}
+                    </div>
+                `;
+                infowindow.setContent(content);
+                infowindow.open(map, marker);
+
+                // Highlight corresponding list item
+                document.querySelectorAll('.library-item').forEach(item => item.classList.remove('active'));
+                const listItem = document.getElementById(`library-${index}`);
+                if (listItem) {
+                    listItem.classList.add('active');
+                    listItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            });
+
+            markers.push(marker);
+        }
+
+        function createListItem(place, index, searchLocation) {
+            const container = document.getElementById('libraries-container');
+            const distance = calculateDistance(searchLocation, place.geometry.location);
+            const isLibrary = place.types.includes('library');
+            const typeIcon = isLibrary ? 'fa-book' : 'fa-store';
+            const typeBadge = isLibrary ?
+                '<span class="badge bg-primary me-1">Library</span>' :
+                '<span class="badge bg-success me-1">Bookstore</span>';
+
+            const item = document.createElement('div');
+            item.className = 'library-item';
+            item.id = `library-${index}`;
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="library-number me-2">${index + 1}.</span>
+                            ${typeBadge}
+                        </div>
+                        <div class="library-name">${place.name}</div>
+                        <div class="library-address"><i class="fas fa-map-marker-alt me-1"></i>${place.vicinity}</div>
+                        ${place.rating ? `<div class="library-rating mt-1"><i class="fas fa-star"></i> ${place.rating} (${place.user_ratings_total || 0})</div>` : ''}
+                        ${place.opening_hours ? `<div class="library-hours mt-1"><i class="fas fa-clock me-1"></i>${place.opening_hours.open_now ? '<span class="text-success fw-semibold">Open now</span>' : '<span class="text-muted">Closed</span>'}</div>` : ''}
+                    </div>
+                    <div class="text-end">
+                        <div class="library-distance mb-1">${distance.toFixed(2)} km</div>
+                        <i class="fas ${typeIcon} text-muted"></i>
+                    </div>
+                </div>
+            `;
+
+            item.addEventListener('click', function() {
+                google.maps.event.trigger(markers[index], 'click');
+                map.panTo(place.geometry.location);
+
+                setTimeout(() => {
+                    if (map.getZoom() < 16) {
+                        map.setZoom(16);
+                    }
+                }, 300);
+            });
+
+            container.appendChild(item);
+        }
+
+        function calculateDistance(point1, point2) {
+            const lat1 = typeof point1.lat === 'function' ? point1.lat() : point1.lat;
+            const lng1 = typeof point1.lng === 'function' ? point1.lng() : point1.lng;
+            const lat2 = typeof point2.lat === 'function' ? point2.lat() : point2.lat;
+            const lng2 = typeof point2.lng === 'function' ? point2.lng() : point2.lng;
+
+            const R = 6371; // Earth's radius in km
+            const dLat = toRad(lat2 - lat1);
+            const dLng = toRad(lng2 - lng1);
+
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                     Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function toRad(degrees) {
+            return degrees * (Math.PI / 180);
+        }
     </script>
 }

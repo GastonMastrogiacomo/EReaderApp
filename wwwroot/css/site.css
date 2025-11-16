@@ -300,6 +300,10 @@ a {
     color: white !important;
 }
 
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
     .btn-info:hover,
     .btn-info:focus {
         background-color: var(--primary-color) !important;
@@ -1236,6 +1240,8 @@ a.text-primary {
     }
 }
 
+
+
 /* Why Section */
 .about-why-section {
     padding: 5rem 0;
@@ -1328,7 +1334,6 @@ a.text-primary {
 /* Mission Section */
 .about-mission-section {
     padding: 5rem 0;
-    background: var(--background-section);
 }
 
 .about-mission-title {
@@ -1612,7 +1617,6 @@ a.text-primary {
 /* Support Section */
 .about-support-section {
     padding: 5rem 0 6rem;
-    background: var(--background-section);
 }
 
 .support-card {
@@ -1910,5 +1914,383 @@ a.text-primary {
         padding: 0.75rem 2rem;
         font-size: 0.95rem;
         width: 100%;
+    }
+}
+
+/* Nearby Libraries Section */
+.nearby-libraries-section {
+    padding: 4rem 0;
+    margin-left: -15px;
+    margin-right: -15px;
+}
+
+.section-title {
+    color: #7A4E2B;
+    font-weight: 700;
+}
+
+/* Feature Highlights */
+.feature-highlights {
+    background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid #E9ECEF;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+    .feature-item i {
+        font-size: 1.1rem;
+        margin-right: 0.75rem;
+        width: 20px;
+    }
+
+/* Search Type Group */
+.search-type-group .btn-check:checked + .btn-outline-primary {
+    background-color: #7A4E2B;
+    border-color: #7A4E2B;
+    color: #FFFFFF !important;
+}
+
+    .search-type-group .btn-check:checked + .btn-outline-primary i {
+        color: #FFFFFF !important;
+    }
+
+.search-type-group .btn-outline-primary {
+    border-color: #7A4E2B;
+    color: #7A4E2B;
+    transition: all 0.3s ease;
+}
+
+    .search-type-group .btn-outline-primary:hover {
+        background-color: #C89B6D;
+        border-color: #C89B6D;
+        color: #FFFFFF;
+    }
+
+/* Map Container */
+.libraries-map {
+    width: 100%;
+    height: 550px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    border: 2px solid #F5F2EE;
+}
+
+.libraries-map-placeholder {
+    width: 100%;
+    height: 550px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #C89B6D;
+    padding: 3rem;
+    text-align: center;
+}
+
+.placeholder-content {
+    max-width: 400px;
+}
+
+.placeholder-features {
+    margin-top: 2rem;
+}
+
+.placeholder-feature-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #6C757D;
+}
+
+    .placeholder-feature-item i {
+        margin-right: 0.5rem;
+    }
+
+/* Results List */
+.libraries-results {
+    max-height: 450px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+    /* Custom scrollbar for results */
+    .libraries-results::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .libraries-results::-webkit-scrollbar-track {
+        background: #F8F9FA;
+        border-radius: 10px;
+    }
+
+    .libraries-results::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #C89B6D 0%, #7A4E2B 100%);
+        border-radius: 10px;
+    }
+
+        .libraries-results::-webkit-scrollbar-thumb:hover {
+            background: #7A4E2B;
+        }
+
+/* Library Items */
+.library-item {
+    padding: 1.25rem;
+    border-bottom: 1px solid #E9ECEF;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    background: #FFFFFF;
+    border: 1px solid transparent;
+}
+
+    .library-item:hover {
+        background-color: #F8F9FA;
+        transform: translateX(8px);
+        border-color: #C89B6D;
+        box-shadow: 0 4px 12px rgba(122, 78, 43, 0.1);
+    }
+
+    .library-item.active {
+        background: linear-gradient(135deg, #7A4E2B 0%, #5D3A1F 100%);
+        color: white;
+        border-color: #7A4E2B;
+        box-shadow: 0 6px 20px rgba(122, 78, 43, 0.3);
+    }
+
+        .library-item.active .library-name,
+        .library-item.active .library-address,
+        .library-item.active .library-distance,
+        .library-item.active .library-rating,
+        .library-item.active .library-hours,
+        .library-item.active .library-number {
+            color: white !important;
+        }
+
+        .library-item.active .badge {
+            background-color: white !important;
+            color: #7A4E2B !important;
+        }
+
+        .library-item.active i {
+            color: white !important;
+        }
+
+.library-number {
+    font-weight: 700;
+    color: #7A4E2B;
+    font-size: 1.1rem;
+}
+
+.library-name {
+    font-weight: 600;
+    color: #2C3E50;
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.library-address {
+    font-size: 0.85rem;
+    color: #6C757D;
+    margin-bottom: 0.25rem;
+}
+
+.library-distance {
+    font-size: 0.9rem;
+    color: #C89B6D;
+    font-weight: 700;
+}
+
+.library-rating {
+    font-size: 0.85rem;
+    color: #FFC107;
+    margin-top: 0.25rem;
+}
+
+.library-hours {
+    font-size: 0.8rem;
+}
+
+/* Info Cards */
+.info-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 1px solid #E9ECEF;
+    height: 100%;
+}
+
+    .info-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        border-color: #C89B6D;
+    }
+
+.info-card-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #7A4E2B 0%, #C89B6D 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+    .info-card-icon i {
+        color: white;
+        font-size: 1.5rem;
+    }
+
+.info-card h6 {
+    color: #2C3E50;
+    margin-bottom: 0.75rem;
+}
+
+/* Buttons */
+#init-map-btn {
+    background: linear-gradient(135deg, #7A4E2B 0%, #5D3A1F 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+    #init-map-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(122, 78, 43, 0.3);
+    }
+
+#search-this-area-btn,
+#recenter-btn {
+    transition: all 0.3s ease;
+}
+
+    #search-this-area-btn:hover,
+    #recenter-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+/* Animation for search button */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(122, 78, 43, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(122, 78, 43, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(122, 78, 43, 0);
+    }
+}
+
+.btn-pulse {
+    animation: pulse 1.5s;
+}
+
+/* Badge Styles */
+#results-count {
+    background: linear-gradient(135deg, #7A4E2B 0%, #C89B6D 100%);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+    .libraries-map,
+    .libraries-map-placeholder {
+        height: 450px;
+    }
+
+    .libraries-results {
+        max-height: 350px;
+    }
+
+    .nearby-libraries-section {
+        padding: 3rem 0;
+    }
+}
+
+@media (max-width: 576px) {
+    .libraries-map,
+    .libraries-map-placeholder {
+        height: 350px;
+    }
+
+    .nearby-libraries-section {
+        padding: 2rem 0;
+    }
+
+    .placeholder-content {
+        padding: 1rem;
+    }
+
+    .feature-highlights {
+        padding: 1rem;
+    }
+
+    .info-card {
+        padding: 1.25rem;
+    }
+
+    .search-type-group .btn {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* Utility Classes */
+.text-primary {
+    color: #7A4E2B !important;
+}
+
+.bg-primary {
+    background-color: #7A4E2B !important;
+}
+
+.border-primary {
+    border-color: #7A4E2B !important;
+}
+
+.fa-book-heart {
+    color: #C89B6D;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+    .libraries-map,
+    .libraries-map-placeholder {
+        height: 400px;
+    }
+
+    .libraries-results {
+        max-height: 300px;
+    }
+}
+
+@media (max-width: 576px) {
+    .libraries-map,
+    .libraries-map-placeholder {
+        height: 300px;
+    }
+
+    .nearby-libraries-section {
+        padding: 2rem 0;
     }
 }
